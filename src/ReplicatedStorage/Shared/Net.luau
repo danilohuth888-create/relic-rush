@@ -4,8 +4,19 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local EVENTS = { "State", "SpawnAdded" }
-local FUNCTIONS = { "GetState", "GetSpawns", "Collect", "Place", "Unplace", "GoHome" }
+local EVENTS = { "State", "SpawnAdded", "Notify", "Track" }
+local FUNCTIONS = {
+	"GetState",
+	"GetSpawns",
+	"Collect",
+	"Place",
+	"Unplace",
+	"GoHome",
+	"Upgrade",
+	"ClaimQuest",
+	"SkipTutorial",
+	"BuyLuck",
+}
 
 local folder: Instance
 if RunService:IsServer() then

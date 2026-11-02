@@ -14,7 +14,9 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
 
-type Pickup = { model: Model, beacon: BasePart, base: CFrame, phase: number, busy: boolean }
+-- armed: walking in only collects after the player was outside the radius once, so standing
+-- on a spawn point does not farm every respawn (the prompt still works).
+type Pickup = { model: Model, beacon: BasePart, base: CFrame, phase: number, busy: boolean, armed: boolean? }
 
 local player = Players.LocalPlayer
 local RelicController = {}
@@ -70,7 +72,7 @@ local function tryCollect(id: string)
 		return
 	end
 	pickup.busy = true
-	local ok, success, relicId = pcall(function()
+	local ok, success, relicId, isNew = pcall(function()
 		return Net.func("Collect"):InvokeServer(id)
 	end)
 	if ok and success == true then
@@ -78,7 +80,7 @@ local function tryCollect(id: string)
 		remove(id, true)
 		SoundService:PlayLocalSound(collectSound)
 		if def then
-			hud.relicCollected(def)
+			hud.relicCollected(def, isNew == true)
 		end
 	else
 		pickup.busy = false
@@ -174,12 +176,30 @@ local function step()
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if root then
 			for id, pickup in pickups do
-				if not pickup.busy and (pickup.base.Position - root.Position).Magnitude < Config.AutoCollectRange + 2.5 then
+				local inside = (pickup.base.Position - root.Position).Magnitude < Config.AutoCollectRange + 2.5
+				if pickup.armed == nil then
+					pickup.armed = not inside
+				elseif not inside then
+					pickup.armed = true
+				elseif pickup.armed and not pickup.busy then
+					pickup.armed = false
 					task.spawn(tryCollect, id)
 				end
 			end
 		end
 	end
+end
+
+-- Nearest pickup to a position, for Lumi's guidance.
+function RelicController.nearest(position: Vector3): Vector3?
+	local best, bestDistance = nil, math.huge
+	for _, pickup in pickups do
+		local distance = (pickup.base.Position - position).Magnitude
+		if distance < bestDistance then
+			best, bestDistance = pickup.base.Position, distance
+		end
+	end
+	return best
 end
 
 function RelicController.start(hudController: any)

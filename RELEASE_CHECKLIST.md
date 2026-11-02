@@ -1,45 +1,49 @@
 # Release-Checkliste
 
-Nichts davon wird ohne ausdrückliche Freigabe veröffentlicht.
+Nichts davon wird ohne deine ausdrückliche Freigabe öffentlich geschaltet.
 
-## Voraussetzungen (Roblox-Konto / Experience)
-- [ ] Place als **private** Experience veröffentlicht (für DataStore-Tests)
-- [ ] Game Settings → Security: Studio-Zugriff auf API-Dienste aktiviert (nur für Tests)
+## Was du im Roblox Creator Dashboard / Studio erledigen musst
+- [x] Place als **private** Experience veröffentlicht (GameId 10774417779)
+- [ ] Studio: *Game Settings → Security → Enable Studio Access to API Services* (für Speichertests)
 - [ ] Max. Spieler pro Server = 8
-- [ ] Experience-Fragebogen / Altersfreigabe (Maturity) ausgefüllt
-- [ ] Spielname, Beschreibung, Genre gesetzt
-- [ ] Spielicon (512×512) und Thumbnails erstellt und hochgeladen
-- [ ] Prüfen: aktuelle Roblox-Veröffentlichungsrichtlinien und Monetarisierungsregeln
+- [ ] **Pässe anlegen** (Creator Dashboard → Experience → Monetization → Passes): Magische Flügel, Sternenaura, VIP-Paket, Doppelte Münzen. Preise legst du fest und schickst mir die Pass-IDs.
+- [ ] **Developer Products anlegen** (Monetization → Developer Products): Münzbeutel, Münzschatz. Preise festlegen und mir die Produkt-IDs schicken.
+- [ ] Fragebogen zur Altersfreigabe (Maturity & Compliance) ausfüllen
+- [ ] Spielname, Beschreibung, Genre, Geräte (Computer, Phone, Tablet) setzen
+- [ ] Spielicon (512×512) und Thumbnails (1920×1080) hochladen – Entwürfe liefere ich
+- [ ] Öffentlich schalten (*Privacy → Public*) – erst nach allen Punkten unten
 
 ## Gameplay
-- [x] Kernschleife Sammeln → Ausstellen → Münzen (M1)
-- [ ] Schatzkammer-Upgrades (M2)
-- [ ] Tutorial Lumi, überspringbar (M2)
-- [ ] 25 Relikte im Spiel erreichbar (M3)
-- [ ] Quests (M3)
-- [ ] Expedition oder bewusst auf späteres Update verschoben (M4)
+- [x] Kernschleife Sammeln → Ausstellen → Münzen
+- [x] Schatzkammer-Stufen 2/3
+- [x] Tutorial Lumi, überspringbar
+- [x] Tägliche Aufgaben, Sammelbuch, Meilensteine
+- [x] Wiederholbare Münz-Ausgabe (Glücksrune)
+- [ ] Alle 25 Relikte erreichbar – aktuell 18; der Rest kommt mit der Expedition (Update)
+- [ ] Musik und mehr Soundeffekte
 
 ## Technik und Sicherheit
 - [x] Alle Remotes serverseitig validiert, Rate-Limits
 - [x] Duplikationsschutz bei Ausstellen/Tauschen nachgewiesen
+- [x] Kaufabwicklung idempotent (simuliert)
+- [x] Speicher-Fallback bei DataStore-Fehlern in Studio
 - [ ] Speichern/Rejoin in veröffentlichtem Place nachgewiesen
 - [ ] Session-Lock mit zwei Servern geprüft
-- [ ] BindToClose-Speichern bei Serverabschaltung geprüft
-- [ ] 8-Spieler-Test (Studio Local Server)
-- [ ] Studio-Testhook `DevInspect` nur in Studio aktiv (geprüft per Code, live verifizieren)
-- [ ] Kaufabwicklung (ProcessReceipt) idempotent getestet (M5)
+- [ ] 8-Spieler-Test (Studio *Test → Clients and Servers*)
+- [x] Studio-Testhook `DevTools` nur in Studio aktiv (Code-Prüfung `RunService:IsStudio()`)
+- [ ] Ein echter Testkauf je Artikel mit deinem Konto (erst nach deiner Zustimmung)
 
 ## Mobile und Performance
-- [ ] UI auf kleinen Smartphones (Studio-Emulation + echtes Gerät)
-- [ ] Touch-Einsammeln und Prompts auf Gerät
+- [x] UI skaliert (UIScale 0,62–1,15), große Touch-Flächen, Safe-Area
+- [ ] UI auf kleinem Smartphone (Studio-Geräteemulation + echtes Gerät)
 - [ ] Bildrate auf schwachem Gerät akzeptabel
-- [ ] Partikel und Lichter begrenzt
 
-## Monetarisierung (M5)
-- [ ] Produkte, Preise und IDs von dir bestätigt
-- [ ] Keine bezahlten Zufallsboxen, keine Countdowns, keine Kaufpflicht
-- [ ] PolicyService-Prüfung für regionale Einschränkungen
+## Monetarisierung
+- [x] Keine bezahlten Zufallsboxen, keine Countdowns, keine Kaufpflicht
+- [x] Shop mit Hinweis „Alles optional“
+- [ ] Preise und Artikel von dir bestätigt
+- [ ] „Doppelte Münzen“ und Münzpakete bewusst freigegeben (Komfort-Käufe, nicht nur Kosmetik)
 
 ## Abschluss
 - [ ] Releasekandidat auf `main` gemergt und getaggt
-- [ ] Ausdrückliche Freigabe für die öffentliche Veröffentlichung
+- [ ] Deine ausdrückliche Freigabe für die öffentliche Veröffentlichung

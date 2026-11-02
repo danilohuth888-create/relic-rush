@@ -8,6 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
+local Analytics = require(script.Parent.Parent.Util.Analytics)
+local Progress = require(script.Parent.Parent.Util.Progress)
 local RateLimiter = require(script.Parent.Parent.Util.RateLimiter)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PlotService = require(script.Parent.PlotService)
@@ -90,11 +92,19 @@ function DisplayService.place(player: Player, slot: any, relicId: any): (boolean
 	end
 	data.display[key] = relicId
 	data.stats.placed += 1
+	if data.stats.placed == 1 then
+		Analytics.onboarding(player, Analytics.Onboarding.FirstDisplay)
+	end
+	Progress.bump(player, "place", 1)
 	changed(player, slot, relicId)
 	return true, nil
 end
 
 function DisplayService.unplace(player: Player, slot: any): (boolean, string?)
+	local current = PlayerDataService.get(player)
+	if current and validSlot(slot) and not current.display[tostring(slot)] then
+		return false, "empty"
+	end
 	local data, _, err = check(player, slot)
 	if not data then
 		return false, err

@@ -160,8 +160,8 @@ for i = 0, 3 do
 end
 local light = Instance.new("PointLight")
 light.Color = PAL.violet
-light.Range = 60
-light.Brightness = 2
+light.Range = 40
+light.Brightness = 0.9
 light.Parent = crystal.Core
 crystal.WorldPivot = CFrame.new(0, 24, 0)
 crystal:AddTag("SpinSlow")
@@ -193,6 +193,64 @@ local function path(name, from, to, width)
 end
 
 -- Treasury plots ------------------------------------------------------------------------
+-- Upgrade stone plus the decoration that tiers 2 and 3 reveal (PlotService toggles Decor2/3).
+-- cf is the plot floor's CFrame (local -Z faces the plaza).
+local function decoratePlot(plot, cf, accent)
+	local function at(x, y, z)
+		return cf * CFrame.new(x, y, z)
+	end
+	for _, name in { "UpgradeStone", "Decor2", "Decor3" } do
+		local old = plot:FindFirstChild(name)
+		if old then
+			old:Destroy()
+		end
+	end
+	local stone = container("Model", plot, "UpgradeStone")
+	local stoneCf = CFrame.lookAt(at(16, 2.8, -11).Position, at(0, 2.8, -15).Position)
+	P(stone, "Stone", BLOCK, Vector3.new(3, 4.4, 1.6), stoneCf, PAL.rock)
+	P(stone, "Glyph", BLOCK, Vector3.new(1.8, 2.4, 0.1), stoneCf * CFrame.new(0, 0.2, -0.85), accent, NEON)
+	local board = P(stone, "Board", BLOCK, Vector3.new(7, 2.4, 0.4), stoneCf * CFrame.new(0, 3.6, 0), PAL.wood)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0
+	local text = Instance.new("TextLabel")
+	text.Name = "UpgradeLabel"
+	text.Size = UDim2.new(0.92, 0, 0.84, 0)
+	text.Position = UDim2.new(0.04, 0, 0.08, 0)
+	text.BackgroundTransparency = 1
+	text.Text = "Ausbau-Stein"
+	text.TextScaled = true
+	text.Font = Enum.Font.FredokaOne
+	text.TextColor3 = C(255, 244, 222)
+	text.Parent = gui
+	gui.Parent = board
+
+	local decor2 = container("Folder", plot, "Decor2")
+	for _, x in { -17, 17 } do
+		for _, z in { -2, 10 } do
+			local pillar = P(decor2, "RunePillar", BLOCK, Vector3.new(1.6, 7, 1.6), at(x, 4.1, z), PAL.stoneDark)
+			pillar:SetAttribute("Solid", true)
+			P(decor2, "PillarGem", BLOCK, Vector3.one * 1.3, at(x, 8.4, z) * ON_CORNER, accent, NEON)
+		end
+	end
+	P(decor2, "FloorRune", BLOCK, Vector3.new(26, 0.08, 0.6), at(0, 0.7, 6), accent, NEON)
+
+	local decor3 = container("Folder", plot, "Decor3")
+	for _, x in { -8, 8 } do
+		local arch = P(decor3, "ArchPillar", BLOCK, Vector3.new(1.8, 12, 1.8), at(x, 6.6, -20), PAL.gold, METAL)
+		arch:SetAttribute("Solid", true)
+	end
+	P(decor3, "ArchTop", BLOCK, Vector3.new(18, 1.6, 2), at(0, 13.4, -20), PAL.gold, METAL)
+	local halo = P(decor3, "HallCrystal", BLOCK, Vector3.one * 3.5, at(0, 17, 18) * ON_CORNER, accent, NEON, { CanCollide = false })
+	local glow = Instance.new("PointLight")
+	glow.Color = accent
+	glow.Range = 24
+	glow.Brightness = 1.5
+	glow.Parent = halo
+end
+
 local plots = container("Folder", root, "Plots")
 local PLOT_R = 120
 for i = 1, 8 do
@@ -242,6 +300,7 @@ for i = 1, 8 do
 			P(ped, "Top", BLOCK, Vector3.one, base * CFrame.new(0, 3.4, 0), PAL.gold, SMOOTH, HIDDEN)
 		end
 	end
+	decoratePlot(plot, cf, accent)
 	plot.Parent = plots
 	task.wait()
 end

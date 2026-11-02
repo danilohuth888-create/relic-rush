@@ -2,31 +2,29 @@
 
 | # | Titel | Priorität | Status |
 |---|---|---|---|
-| 1 | Persistenz nicht testbar: Place unveröffentlicht | Hoch (Blocker M2) | Offen – braucht Freigabe |
-| 2 | AFK-Farmen: Stehen auf einem Spawn sammelt jedes Respawn ein | Mittel | Offen |
-| 3 | „Infinite yield“-Warnung beim Beitritt, bevor die Grundstücke gestreamt sind | Niedrig | Offen |
-| 4 | Unplace auf leerem, entferntem Podest meldet `too_far` statt `empty` | Niedrig | Offen |
-| 5 | MCP-Bildschirmfoto im Edit-Modus schwarz | Werkzeug | Umgangen |
-| 6 | MCP-Mausklick per Koordinate trifft die UI nicht | Werkzeug | Umgangen |
+| 1 | Speichern nicht testbar: Studio-API-Zugriff aus | Hoch (Release-Blocker) | Offen – braucht dich |
+| 2 | AFK-Farmen an Spawns | Mittel | ✅ Behoben (M2) |
+| 3 | „Infinite yield“-Warnung beim Beitritt | Niedrig | ✅ Behoben (M2) |
+| 4 | Unplace auf leerem Podest meldete `too_far` | Niedrig | ✅ Behoben (M2) |
+| 5 | MCP-Bildschirmfoto zeitweise schwarz | Werkzeug | Umgangen |
+| 6 | MCP-Mausklick per Koordinate | Werkzeug | Geklärt |
+| 7 | 3D-Vorschau (ViewportFrame) schluckte Taps auf Relikt-Karten | Hoch | ✅ Behoben |
+| 8 | Roblox-Chat und Spielerliste lagen über dem Fenster | Mittel | ✅ Behoben |
+| 9 | Aufgabe „Stelle N Relikte aus“ lässt sich durch Tauschen erfüllen | Niedrig | Offen (bewusst) |
+| 10 | Kristall-Licht überstrahlte den Platz | Niedrig | ✅ Behoben |
 
-## 1 Persistenz nicht testbar
-- **Reproduktion:** Playtest starten → Konsole: `Place is not published: profiles live in memory only`.
-- **Ursache:** DataStores gibt es nur in veröffentlichten Places (`PlaceId = 0`).
-- **Lösung:** Den Place als **private** Experience veröffentlichen und in Game Settings → Security „Enable Studio Access to API Services“ aktivieren. Beides braucht deine Zustimmung, bzw. du schaltest es selbst ein.
-
-## 2 AFK-Farmen an Spawns
-- **Reproduktion:** Auf `Plaza_Start` stehen bleiben → alle 30 s wird ein neues Relikt automatisch eingesammelt.
-- **Folge:** Gewöhnliche Relikte ohne aktives Spielen. Wirtschaftlich klein, aber unerwünscht.
-- **Lösung (M2):** Auto-Einsammeln nur beim Eintreten in den Radius auslösen, nicht im Stand.
-
-## 3 Infinite-yield-Warnung
-- **Reproduktion:** Playtest starten → `Infinite yield possible on 'Workspace.Aetheria.Plots:WaitForChild("Plot1")'`.
-- **Ursache:** Persistente Modelle kommen erst kurz nach den Client-Skripten an. Der Prompt-Aufbau klappt danach korrekt.
-- **Lösung:** WaitForChild mit Timeout in einer Schleife, ohne Warnung.
-
-## 4 Fehlercode-Reihenfolge Unplace
-- Die Reichweite wird vor „leer“ geprüft. Funktional korrekt (die Aktion wird abgewiesen), nur die Meldung passt nicht.
+## 1 Speichern nicht testbar
+- **Reproduktion:** Playtest → Konsole: `StudioAccessToApisNotAllowed … API access is not enabled`. Das Spiel fällt korrekt auf den Arbeitsspeicher zurück.
+- **Lösung:** In Studio *Home → Game Settings → Security → „Enable Studio Access to API Services“* einschalten und speichern. Das ist eine Sicherheitseinstellung, deshalb machst du das selbst. Live-Server sind davon nicht betroffen, dort funktionieren DataStores ohnehin.
 
 ## 5 / 6 Werkzeug-Einschränkungen
-- `screen_capture` liefert im Edit-Modus ein leeres Bild, im Play-Modus funktioniert es. Optische Prüfung deshalb im Playtest.
-- `user_mouse_input` mit x/y traf die Buttons nicht; mit `instance_path` klappt es. Deshalb haben alle wichtigen Buttons feste Namen (`Nav.NavHome`, `Nav.NavCollection`, `Grid.Card_<relicId>`).
+- `screen_capture` liefert manchmal eine schwarze 3D-Ansicht, vermutlich wenn das Studio-Fenster gerade nicht rendert. Die UI wird trotzdem korrekt erfasst.
+- `user_mouse_input` mit x/y erwartet GUI-Koordinaten **ohne** Topbar-Inset. Mit `instance_path` klappt es immer. Wichtige Buttons haben deshalb feste Namen: `Nav.NavHome`, `Nav.NavCollection`, `Side.NavQuests`, `Side.NavShop`, `Guide.Skip`, `RelicPanel.Close`, `Grid.Card_<relicId>.Pick`, `Grid.Item_<key>.Buy`, `Grid.Quest<n>.Claim`.
+- Aus dem MCP-Kontext ergibt `require` eine **eigene** Modul-Instanz. Echte Serverdaten deshalb nur über `ServerStorage.DevTools` lesen.
+
+## 7 ViewportFrame schluckt Taps
+- Ein Klick oder Tap auf die 3D-Vorschau einer Karte kam nie beim Button an, obwohl die Vorschau `Active = false` hat.
+- **Fix:** Über jeder wählbaren Karte liegt jetzt eine transparente Tap-Fläche (`Pick`).
+
+## 9 Aufgabe „Ausstellen“ per Tauschen
+- Jedes Ausstellen zählt, auch wenn man dasselbe Relikt hin- und hertauscht. Das betrifft nur eine kleine Tagesaufgabe pro Tag und schadet niemandem. Falls gewünscht: nur neu belegte Podeste zählen.

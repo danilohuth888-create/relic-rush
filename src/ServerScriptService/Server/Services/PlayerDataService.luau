@@ -12,18 +12,25 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 1
+local SCHEMA_VERSION = 2
 local LOCK_STALE_SECONDS = 600
 local MAX_ATTEMPTS = 5
+local MAX_RECEIPTS = 50
 
+export type Quest = { id: string, goal: number, progress: number, claimed: boolean }
 export type Data = {
 	version: number,
 	coins: number,
 	inventory: { [string]: number }, -- relicId -> count not on display
 	display: { [string]: string }, -- tostring(slot) -> relicId
 	tier: number,
-	stats: { collected: number, placed: number },
-	tutorial: { step: number },
+	stats: { collected: number, placed: number, upgrades: number, coinsEarned: number, forestVisited: boolean },
+	tutorial: { done: boolean },
+	discovered: { [string]: boolean },
+	milestones: number, -- how many Config.Milestones are already paid out
+	quests: { day: number, list: { Quest } },
+	receipts: { string }, -- last processed Developer Product purchase ids
+	lastSeen: number,
 }
 
 local PlayerDataService = {}
@@ -41,13 +48,29 @@ local function defaultData(): Data
 		inventory = {},
 		display = {},
 		tier = 1,
-		stats = { collected = 0, placed = 0 },
-		tutorial = { step = 0 },
+		stats = { collected = 0, placed = 0, upgrades = 0, coinsEarned = 0, forestVisited = false },
+		tutorial = { done = false },
+		discovered = {},
+		milestones = 0,
+		quests = { day = 0, list = {} },
+		receipts = {},
+		lastSeen = 0,
 	}
 end
 
--- One function per schema bump, e.g. MIGRATIONS[2] = function(data) data.newField = 0 end
-local MIGRATIONS: { [number]: (any) -> () } = {}
+-- One function per schema bump; runs after missing fields were filled with defaults.
+local MIGRATIONS: { [number]: (any) -> () } = {
+	[2] = function(data)
+		-- v1 had no collection book: everything the player owns counts as discovered.
+		for relicId in data.inventory do
+			data.discovered[relicId] = true
+		end
+		for _, relicId in data.display do
+			data.discovered[relicId] = true
+		end
+		data.tutorial = { done = false }
+	end,
+}
 
 local function reconcile(data: any): Data
 	local fresh = defaultData() :: any
@@ -56,9 +79,11 @@ local function reconcile(data: any): Data
 			data[key] = value
 		end
 	end
-	for key, value in fresh.stats do
-		if data.stats[key] == nil then
-			data.stats[key] = value
+	for _, group in { "stats", "tutorial", "quests" } do
+		for key, value in fresh[group] do
+			if data[group][key] == nil then
+				data[group][key] = value
+			end
 		end
 	end
 	while data.version < SCHEMA_VERSION do
@@ -120,6 +145,7 @@ local function lockAndRead(userId: number): (boolean, any)
 end
 
 local function writeRecord(userId: number, data: Data, release: boolean): boolean
+	data.lastSeen = os.time()
 	if not store then
 		memory[userId] = deepCopy(data)
 		return true
@@ -253,8 +279,34 @@ function PlayerDataService.snapshot(player: Player): any
 		display = data.display,
 		tier = data.tier,
 		collected = data.stats.collected,
+		forestVisited = data.stats.forestVisited,
+		tutorialDone = data.tutorial.done,
+		discovered = data.discovered,
+		milestones = data.milestones,
+		quests = data.quests.list,
 		persistent = PlayerDataService.persistent,
 	}
+end
+
+-- Saves immediately (yields). Used after purchases so a grant is on disk before Roblox is told.
+function PlayerDataService.saveNow(player: Player): boolean
+	local data = profiles[player]
+	if not data then
+		return false
+	end
+	return writeRecord(player.UserId, data, false)
+end
+
+-- Remembers a processed purchase id; returns false if it was already processed.
+function PlayerDataService.recordReceipt(data: Data, purchaseId: string): boolean
+	if table.find(data.receipts, purchaseId) then
+		return false
+	end
+	table.insert(data.receipts, purchaseId)
+	while #data.receipts > MAX_RECEIPTS do
+		table.remove(data.receipts, 1)
+	end
+	return true
 end
 
 -- Pushes the player's inventory/display/tier to their client (coins travel as an attribute).

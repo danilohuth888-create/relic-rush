@@ -11,8 +11,11 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
+local Analytics = require(script.Parent.Parent.Util.Analytics)
+local Progress = require(script.Parent.Parent.Util.Progress)
 local RateLimiter = require(script.Parent.Parent.Util.RateLimiter)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
 
 type SpawnPoint = { id: string, position: Vector3, area: string, starter: boolean, respawn: number }
 type PlayerSpawns = { active: { [string]: string }, cooldown: { [string]: number } }
@@ -37,20 +40,25 @@ local function buildPools()
 end
 
 -- Picks a rarity by weight among the rarities this area offers, then a relic of that rarity.
-function RelicSpawnService.roll(area: string, random: Random?): string
+-- luck multiplies the weight of every rarity above Common (luck rune).
+function RelicSpawnService.roll(area: string, random: Random?, luck: number?): string
 	local r = random or rng
 	local pool = poolsByArea[area] or poolsByArea.Plaza
+	local function weight(rarity: string): number
+		local w = Config.Rarities[rarity].weight
+		return if rarity ~= Config.RarityOrder[1] then w * (luck or 1) else w
+	end
 	local total = 0
 	for _, rarity in Config.RarityOrder do
 		if pool[rarity] then
-			total += Config.Rarities[rarity].weight
+			total += weight(rarity)
 		end
 	end
 	local pick = r:NextNumber() * total
 	for _, rarity in Config.RarityOrder do
 		local ids = pool[rarity]
 		if ids then
-			pick -= Config.Rarities[rarity].weight
+			pick -= weight(rarity)
 			if pick <= 0 then
 				return ids[r:NextInteger(1, #ids)]
 			end
@@ -58,6 +66,11 @@ function RelicSpawnService.roll(area: string, random: Random?): string
 	end
 	local fallback = pool[Config.RarityOrder[1]]
 	return fallback[1]
+end
+
+local function luckFor(player: Player): number
+	local untilTime = player:GetAttribute("LuckUntil")
+	return if type(untilTime) == "number" and untilTime > os.time() then Config.LuckRune.multiplier else 1
 end
 
 local function entry(point: SpawnPoint, relicId: string)
@@ -85,7 +98,7 @@ function RelicSpawnService.startPlayer(player: Player)
 		if point.starter and data.stats.collected == 0 then
 			state.active[id] = Config.StarterRelic
 		else
-			state.active[id] = RelicSpawnService.roll(point.area)
+			state.active[id] = RelicSpawnService.roll(point.area, nil, luckFor(player))
 		end
 	end
 	states[player] = state
@@ -95,7 +108,21 @@ function RelicSpawnService.stopPlayer(player: Player)
 	states[player] = nil
 end
 
-function RelicSpawnService.collect(player: Player, spawnId: any): (boolean, string?)
+-- Re-rolls every relic currently waiting for the player (used when a luck rune starts).
+function RelicSpawnService.reroll(player: Player)
+	local state = states[player]
+	if not state then
+		return
+	end
+	local spawnAdded = Net.event("SpawnAdded")
+	for id in state.active do
+		local relicId = RelicSpawnService.roll(points[id].area, nil, luckFor(player))
+		state.active[id] = relicId
+		spawnAdded:FireClient(player, entry(points[id], relicId))
+	end
+end
+
+function RelicSpawnService.collect(player: Player, spawnId: any): (boolean, string?, boolean?)
 	if type(spawnId) ~= "string" then
 		return false, "bad_spawn"
 	end
@@ -118,8 +145,24 @@ function RelicSpawnService.collect(player: Player, spawnId: any): (boolean, stri
 	state.cooldown[spawnId] = os.clock() + point.respawn
 	data.inventory[relicId] = (data.inventory[relicId] or 0) + 1
 	data.stats.collected += 1
+	local isNew = not data.discovered[relicId]
+	data.discovered[relicId] = true
+
+	if data.stats.collected == 1 then
+		Analytics.onboarding(player, Analytics.Onboarding.FirstRelic)
+	end
+	Progress.bump(player, "collect", 1)
+	if point.area == "Forest" then
+		Progress.bump(player, "collectForest", 1)
+	end
+	if RelicVisuals.rarityRank(RelicDefs.byId[relicId].rarity) >= 2 then
+		Progress.bump(player, "collectUncommon", 1)
+	end
+	if isNew then
+		Progress.bump(player, "discover", 1, relicId)
+	end
 	PlayerDataService.replicate(player)
-	return true, relicId
+	return true, relicId, isNew
 end
 
 function RelicSpawnService.init()
@@ -161,7 +204,7 @@ function RelicSpawnService.init()
 				for id, readyAt in state.cooldown do
 					if now >= readyAt then
 						state.cooldown[id] = nil
-						local relicId = RelicSpawnService.roll(points[id].area)
+						local relicId = RelicSpawnService.roll(points[id].area, nil, luckFor(player))
 						state.active[id] = relicId
 						spawnAdded:FireClient(player, entry(points[id], relicId))
 					end

@@ -42,19 +42,27 @@ src/
   ServerScriptService/Server/
     Main.server.luau               startet Dienste, Spieler-Lebenszyklus, Studio-Testhook
     Services/
-      PlayerDataService.luau       Profile, DataStore mit Session-Lock, Migrationen
-      PlotService.luau             8 Grundstücke, Besitzer, Podest-Stufen, Darstellung
-      RelicSpawnService.luau       persönliche Relikt-Spawns, Einsammeln
+      PlayerDataService.luau       Profile, DataStore mit Session-Lock, Migrationen, Kaufbelege
+      PlotService.luau             8 Grundstücke, Besitzer, Stufen, Deko, VIP-Look, Darstellung
+      RelicSpawnService.luau       persönliche Relikt-Spawns, Einsammeln, Glücks-Würfe
       DisplayService.luau          Ausstellen / Tauschen / Zurücklegen
-      EconomyService.luau          Münzproduktion pro Sekunde
-    Util/RateLimiter.luau          Token-Bucket pro Spieler und Remote
+      EconomyService.luau          Münzproduktion, Gutschriften, Ausgaben, Offline-Einnahmen
+      UpgradeService.luau          Schatzkammer-Ausbau, Glücksrune
+      QuestService.luau            Tagesaufgaben, Sammelbuch-Meilensteine, Besuche, Tutorial-Abschluss
+      ShopService.luau             Pässe, Developer Products (ProcessReceipt), Kosmetik
+    Util/
+      RateLimiter.luau             Token-Bucket pro Spieler und Remote
+      Progress.luau                Ereignis-Bus „Spieler hat X getan“ (gegen zyklische requires)
+      Analytics.luau               Roblox AnalyticsService (Funnel, Münzflüsse, Ereignisse)
   StarterPlayer/StarterPlayerScripts/Client/
     Main.client.luau               Client-Start
     ClientState.luau               lokale Kopie der Serverdaten (nur lesen)
     Controllers/
-      HudController.luau           komplette UI im Code (Münzen, Ziel, Navigation, Sammlung)
+      HudController.luau           komplette UI im Code (Münzen, Lumi-Hinweis, Navigation,
+                                   Sammelbuch, Podest-Auswahl, Aufgaben, Shop)
       RelicController.luau         Relikt-Pickups, Animationen, Einsammeln
-      PlotController.luau          lokale „Ausstellen“-Prompts am eigenen Grundstück
+      PlotController.luau          lokale Prompts am eigenen Grundstück (Podeste, Ausbau-Stein)
+      LumiController.luau          Tutorial-Geist mit Lichtstrahl-Führung
 tools/
   world/BuildAetheria.luau         Weltgenerator
   sync/                            Abgleich Repo ↔ Studio
@@ -67,7 +75,8 @@ assets/                            Blender-Exporte (GLB)
 - **Inventar als Zähler** (`relicId -> Anzahl`), Ausstellung als `Podest -> relicId`. Jede Verschiebung läuft ohne Yield. Die Summe aus Inventar und Ausstellung bleibt deshalb immer gleich, was gegen Duplikation schützt.
 - **Datenspeicher:** UpdateAsync mit Session-Lock `{ job, t }`, Wiederholungen mit Backoff, Autosave alle 120 s und Speichern bei `BindToClose`. Kann ein Profil nicht geladen werden, wird der Spieler mit Hinweis gekickt, statt mit leeren Daten weiterzuspielen. In einem unveröffentlichten Place liegen die Daten nur im Speicher.
 - **Neue Relikte** brauchen nur eine Zeile in `RelicDefs.luau`. Modell, UI-Karte, Spawn-Pools und Münzrate leiten sich daraus ab.
-- **Teststeuerung:** Im Studio-Playtest gibt `ServerStorage.DevInspect` (BindableFunction, nur bei `RunService:IsStudio()`) die echten Serverprofile zurück. Clients können ihn nicht erreichen.
+- **Teststeuerung:** Im Studio-Playtest stellt `ServerStorage.DevTools` (BindableFunction, nur bei `RunService:IsStudio()`) die Aktionen `inspect`, `grant`, `setPass`, `receipt` und `save` bereit. Clients können ihn nicht erreichen.
+- **Shop-Artikel** stehen in `Config.Shop`. Bei `id = 0` zeigt der Shop „Bald verfügbar“, und es kann nichts gekauft werden. Die Preise kommen live aus dem Creator Dashboard.
 
 ## Nutzung (Entwicklung)
 

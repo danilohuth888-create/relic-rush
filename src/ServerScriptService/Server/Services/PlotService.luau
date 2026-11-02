@@ -46,18 +46,76 @@ local function setAccents(plot: Model, claimed: boolean)
 	end
 end
 
+-- Locked pedestals stay as faint ghosts so players can see what the next upgrade brings.
 local function setPedestalVisible(pedestal: Instance, visible: boolean)
 	for _, p in pedestal:GetDescendants() do
 		if p:IsA("BasePart") and p.Name ~= "Top" then
 			if p:GetAttribute("BaseTransparency") == nil then
 				p:SetAttribute("BaseTransparency", p.Transparency)
 			end
-			p.Transparency = if visible then p:GetAttribute("BaseTransparency") :: number else 1
+			p.Transparency = if visible then p:GetAttribute("BaseTransparency") :: number else 0.82
 			p.CanCollide = visible
 			p.CanQuery = visible
 		end
 	end
 	pedestal:SetAttribute("Active", visible)
+end
+
+-- Decor2 / Decor3 folders hold the extra decoration that appears with each tier.
+local function setDecor(plot: Model, tier: number)
+	for level = 2, #Config.Tiers do
+		local decor = plot:FindFirstChild("Decor" .. level)
+		if decor then
+			for _, p in decor:GetDescendants() do
+				if p:IsA("BasePart") then
+					if p:GetAttribute("BaseTransparency") == nil then
+						p:SetAttribute("BaseTransparency", p.Transparency)
+					end
+					local shown = tier >= level
+					p.Transparency = if shown then p:GetAttribute("BaseTransparency") :: number else 1
+					p.CanCollide = shown and p:GetAttribute("Solid") == true
+				elseif p:IsA("Light") then
+					p.Enabled = tier >= level
+				end
+			end
+		end
+	end
+end
+
+local function setUpgradeLabel(plot: Model, tier: number, owned: boolean)
+	local label = plot:FindFirstChild("UpgradeLabel", true)
+	if not (label and label:IsA("TextLabel")) then
+		return
+	end
+	local nextTier = Config.Tiers[tier + 1]
+	if not owned then
+		label.Text = "Ausbau-Stein"
+	elseif nextTier then
+		label.Text = ("%s\n%d Münzen"):format(nextTier.name, nextTier.cost)
+	else
+		label.Text = "Voll ausgebaut!"
+	end
+end
+
+local GOLD = Color3.fromRGB(255, 200, 80)
+local function setVipLook(plot: Model, vip: boolean)
+	local accents = plot:FindFirstChild("Accents")
+	local banner = plot:FindFirstChild("Banner") :: BasePart?
+	for _, p in (if accents then accents:GetChildren() else {}) do
+		if p:IsA("BasePart") then
+			if p:GetAttribute("BaseColor") == nil then
+				p:SetAttribute("BaseColor", p.Color)
+			end
+			p.Color = if vip then GOLD else p:GetAttribute("BaseColor") :: Color3
+		end
+	end
+	if banner then
+		if banner:GetAttribute("BaseColor") == nil then
+			banner:SetAttribute("BaseColor", banner.Color)
+		end
+		banner.Color = if vip then GOLD else banner:GetAttribute("BaseColor") :: Color3
+		banner.Material = if vip then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	end
 end
 
 local function clearDisplay(pedestal: Instance)
@@ -76,12 +134,16 @@ local function applyTierTo(plot: Model, tier: number)
 		local required = pedestal:GetAttribute("RequiredTier") :: number? or 1
 		setPedestalVisible(pedestal, required <= tier)
 	end
+	setDecor(plot, tier)
+	setUpgradeLabel(plot, tier, (plot:GetAttribute("OwnerUserId") :: number? or 0) ~= 0)
+	plot:SetAttribute("Tier", tier)
 end
 
 local function resetPlot(plot: Model)
 	plot:SetAttribute("OwnerUserId", 0)
 	setSign(plot, "Freie Schatzkammer")
 	setAccents(plot, false)
+	setVipLook(plot, false)
 	local pedestals = plot:FindFirstChild("Pedestals")
 	if pedestals then
 		for _, pedestal in pedestals:GetChildren() do
@@ -165,6 +227,25 @@ function PlotService.applyTier(player: Player, tier: number)
 	if plot then
 		applyTierTo(plot, tier)
 	end
+end
+
+function PlotService.setVip(player: Player, vip: boolean)
+	local plot = PlotService.getPlot(player)
+	if plot then
+		setVipLook(plot, vip)
+	end
+end
+
+-- Every claimed plot keyed by its owner, for visit detection.
+function PlotService.ownedPlots(): { [Player]: Model }
+	local result = {}
+	for index, owner in owners do
+		local plot = plotModel(index)
+		if plot then
+			result[owner] = plot
+		end
+	end
+	return result
 end
 
 -- Puts the relic model on the pedestal (visible to every player) or clears it.
