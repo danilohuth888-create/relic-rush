@@ -1,0 +1,13 @@
+{
+  "note": "Studio state of Place1 before RELIC RUSH development (2026-11-02). The listed Workspace objects were moved, not deleted, to ServerStorage.M0_Backup.",
+  "placeId": 0,
+  "published": false,
+  "workspace": [
+    { "name": "Baseplate", "class": "Part", "position": [0, -8, 0], "size": [2048, 16, 2048], "color": "5b5b5b", "material": "Plastic", "children": ["Texture"] },
+    { "name": "SpawnLocation", "class": "SpawnLocation", "position": [0, 0.5, 0], "size": [12, 1, 12], "color": "a3a2a5", "children": ["Decal"] },
+    { "name": "PurpleCrystal", "class": "Model", "parts": 4, "center": [10, 4, 0], "note": "MCP test crystal, Neon violet + PointLight" },
+    { "name": "AetherRelic", "class": "Model", "parts": 14, "center": [-10, 4.3, 0], "note": "Part rebuild of assets/AetherRelic.glb" }
+  ],
+  "lighting": { "ClockTime": 14.5, "Brightness": 3, "children": ["Sky", "SunRays", "Atmosphere", "Bloom", "DepthOfField"] },
+  "scripts": "none"
+}

@@ -1,0 +1,14 @@
+# Studio and editor leftovers
+*.rbxl.lock
+*.rbxlx.lock
+*.blend1
+*.blend2
+
+# Generated
+build/
+node_modules/
+
+# Secrets never go into git
+.env
+*.secret
+*.key
