@@ -81,8 +81,8 @@ Config.Shop = {
 		{ key = "double_coins", name = "Doppelte Münzen", text = "Deine Relikte erzeugen dauerhaft doppelt so viele Münzen.", id = 2066916613 },
 	},
 	products = {
-		{ key = "coins_small", name = "Münzbeutel", text = "Münzen passend zu deiner Ausbaustufe.", coinsByTier = { 500, 3000, 12000 }, id = 0 },
-		{ key = "coins_large", name = "Münzschatz", text = "Ein großer Haufen Münzen.", coinsByTier = { 2500, 15000, 60000 }, id = 0 },
+		{ key = "coins_small", name = "Münzbeutel", text = "Münzen passend zu deiner Ausbaustufe.", coinsByTier = { 500, 3000, 12000 }, id = 3727480713 },
+		{ key = "coins_large", name = "Münzschatz", text = "Ein großer Haufen Münzen.", coinsByTier = { 2500, 15000, 60000 }, id = 3727481266 },
 	},
 }
 
