@@ -30,7 +30,7 @@ Config.RangeTolerance = 8
 
 Config.DefaultRespawnSeconds = 45
 Config.EconomyTickSeconds = 1
-Config.AutosaveSeconds = 120
+Config.AutosaveSeconds = 60
 
 -- Every new player's first pickup is guaranteed to be this relic.
 Config.StarterRelic = "moonstone"

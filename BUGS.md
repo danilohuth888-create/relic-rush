@@ -2,7 +2,8 @@
 
 | # | Titel | Priorität | Status |
 |---|---|---|---|
-| 1 | Speichern nicht testbar: Studio-API-Zugriff aus | Hoch (Release-Blocker) | Offen – braucht dich |
+| 1 | Speichern nicht testbar: Studio-API-Zugriff aus | Hoch | ✅ Erledigt, Speichern/Rejoin/Lock getestet |
+| 11 | Studio-Stopp verliert den letzten Speichervorgang | Mittel | Abgemildert (Autosave 60 s, Lock-Ablauf 180 s) |
 | 2 | AFK-Farmen an Spawns | Mittel | ✅ Behoben (M2) |
 | 3 | „Infinite yield“-Warnung beim Beitritt | Niedrig | ✅ Behoben (M2) |
 | 4 | Unplace auf leerem Podest meldete `too_far` | Niedrig | ✅ Behoben (M2) |

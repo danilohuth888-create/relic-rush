@@ -4,10 +4,12 @@ Nichts davon wird ohne deine ausdrückliche Freigabe öffentlich geschaltet.
 
 ## Was du im Roblox Creator Dashboard / Studio erledigen musst
 - [x] Place als **private** Experience veröffentlicht (GameId 10774417779)
-- [ ] Studio: *Game Settings → Security → Enable Studio Access to API Services* (für Speichertests)
+- [x] Studio-Zugriff auf API-Dienste
 - [ ] Max. Spieler pro Server = 8
-- [ ] **Pässe anlegen** (Creator Dashboard → Experience → Monetization → Passes): Magische Flügel, Sternenaura, VIP-Paket, Doppelte Münzen. Preise legst du fest und schickst mir die Pass-IDs.
-- [ ] **Developer Products anlegen** (Monetization → Developer Products): Münzbeutel, Münzschatz. Preise festlegen und mir die Produkt-IDs schicken.
+- [x] 4 Pässe angelegt und eingetragen
+- [x] 2 Developer Products angelegt und eingetragen
+- [ ] Zwei versehentlich als Pass angelegte Münzpakete nicht zum Verkauf anbieten
+- [ ] Experience umbenennen in „RELIC RUSH: Treasure Hunters“
 - [ ] Fragebogen zur Altersfreigabe (Maturity & Compliance) ausfüllen
 - [ ] Spielname, Beschreibung, Genre, Geräte (Computer, Phone, Tablet) setzen
 - [ ] Spielicon (512×512) und Thumbnails (1920×1080) hochladen – Entwürfe liefere ich
@@ -27,8 +29,8 @@ Nichts davon wird ohne deine ausdrückliche Freigabe öffentlich geschaltet.
 - [x] Duplikationsschutz bei Ausstellen/Tauschen nachgewiesen
 - [x] Kaufabwicklung idempotent (simuliert)
 - [x] Speicher-Fallback bei DataStore-Fehlern in Studio
-- [ ] Speichern/Rejoin in veröffentlichtem Place nachgewiesen
-- [ ] Session-Lock mit zwei Servern geprüft
+- [x] Speichern/Rejoin in veröffentlichtem Place nachgewiesen
+- [x] Session-Lock (frisch → abgewiesen, veraltet → übernommen) geprüft
 - [ ] 8-Spieler-Test (Studio *Test → Clients and Servers*)
 - [x] Studio-Testhook `DevTools` nur in Studio aktiv (Code-Prüfung `RunService:IsStudio()`)
 - [ ] Ein echter Testkauf je Artikel mit deinem Konto (erst nach deiner Zustimmung)

@@ -77,10 +77,15 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | Fenster offen → Prompts, Chat und Spielerliste ausgeblendet; beim Schließen zurück | Playtest | ✅ |
 | M1-Tests (Manipulation, Duplikation, Rate-Limit, Plot-Freigabe) | vorher bestanden, Code unverändert | ✅ |
 | Repo und Studio identisch (22 Skripte) | `tools/sync` | ✅ |
+| **Echter DataStore:** Speichern (`persistent=true`), Daten + Sperre im Store nachgelesen | automatisiert | ✅ |
+| **Rejoin:** Stufe 2, ausgestellter Mondstein, Sammelbuch, Münzen wieder da (+10 Offline-Münzen) | Playtest | ✅ |
+| **Session-Lock:** fremder, frischer Lock → Spieler nach ~20 s mit Hinweis abgewiesen, fremde Daten unverändert | automatisiert | ✅ |
+| **Veralteter Lock** (Absturz vor 4 min) → übernommen, Daten vollständig | automatisiert | ✅ |
+| **Shop mit echten IDs:** alle 6 Preise live von Roblox, Pass-Besitz erkannt | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
-- **Speichern, Rejoin, Offline-Einnahmen nach echter Pause, Session-Lock zwischen zwei Servern:** braucht Studio-API-Zugriff.
-- **Echte Robux-Käufe:** bewusst nicht ausgelöst; nur die Gutschrift-Logik ist simuliert.
+- **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.
+- **Echte Robux-Käufe:** bewusst nicht ausgelöst; die Gutschrift-Logik ist simuliert. Als Ersteller besitzt du deine Pässe automatisch, deshalb zeigt dein Shop „Besitzt du“, und deine Rate ist mit „Doppelte Münzen“ verdoppelt.
 - **8 Spieler gleichzeitig, Besuchs-Meldung zwischen zwei echten Spielern.**
 - **Smartphone-Bedienung** am Gerät.
 - **3D-Vorschau in den Karten:** In den letzten Bildern war die ganze 3D-Ansicht schwarz, auch ohne offenes Fenster. Das liegt offenbar am Rendern von Studio, nicht am Spiel. Bitte einmal selbst ansehen.
