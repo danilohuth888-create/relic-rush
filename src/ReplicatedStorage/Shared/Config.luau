@@ -75,10 +75,10 @@ Config.LuckRune = {
 -- and no purchase can be prompted. Prices are set in the Creator Dashboard, not here.
 Config.Shop = {
 	passes = {
-		{ key = "wings", name = "Magische Flügel", text = "Leuchtende Aether-Flügel auf deinem Rücken.", id = 0 },
-		{ key = "aura", name = "Sternenaura", text = "Funkelnde Sterne umkreisen deinen Charakter.", id = 0 },
-		{ key = "vip", name = "VIP-Paket", text = "Goldenes Namensschild und goldene Akzente in deiner Schatzkammer.", id = 0 },
-		{ key = "double_coins", name = "Doppelte Münzen", text = "Deine Relikte erzeugen dauerhaft doppelt so viele Münzen.", id = 0 },
+		{ key = "wings", name = "Magische Flügel", text = "Leuchtende Aether-Flügel auf deinem Rücken.", id = 2066634532 },
+		{ key = "aura", name = "Sternenaura", text = "Funkelnde Sterne umkreisen deinen Charakter.", id = 2068344480 },
+		{ key = "vip", name = "VIP-Paket", text = "Goldenes Namensschild und goldene Akzente in deiner Schatzkammer.", id = 2066952546 },
+		{ key = "double_coins", name = "Doppelte Münzen", text = "Deine Relikte erzeugen dauerhaft doppelt so viele Münzen.", id = 2066916613 },
 	},
 	products = {
 		{ key = "coins_small", name = "Münzbeutel", text = "Münzen passend zu deiner Ausbaustufe.", coinsByTier = { 500, 3000, 12000 }, id = 0 },
