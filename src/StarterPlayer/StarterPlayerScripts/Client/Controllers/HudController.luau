@@ -73,6 +73,12 @@ local NOTIFY_COLORS: { [string]: Color3 } = {
 	purchase = THEME.gold,
 	visit = C(255, 200, 230),
 	offline = THEME.gold,
+	step = C(170, 240, 200),
+	solved = THEME.gold,
+	wrong = C(255, 190, 190),
+	hit = C(150, 230, 255),
+	expedition = C(205, 185, 255),
+	reward = THEME.gold,
 }
 local NOTIFY_SOUNDS: { [string]: string } = {
 	upgrade = "upgrade",
@@ -80,6 +86,12 @@ local NOTIFY_SOUNDS: { [string]: string } = {
 	purchase = "purchase",
 	visit = "sparkle",
 	offline = "claim",
+	step = "collect",
+	solved = "upgrade",
+	wrong = "error",
+	hit = "sparkle",
+	expedition = "whoosh",
+	reward = "claim",
 }
 local QUEST_ICONS: { [string]: string } = {
 	collect = "🔮",
@@ -109,6 +121,10 @@ local rateLabel: TextLabel
 local luckLabel: TextLabel
 local navFrame: GuiObject
 local sideFrame: GuiObject
+local expFrame: Frame
+local expLabel: TextLabel
+local expTimer: TextLabel
+local expLeave: TextButton
 local guideFrame: Frame
 local guideLabel: TextLabel
 local skipButton: TextButton
@@ -441,7 +457,8 @@ local function refreshGuide()
 	if not text and state and claimableQuests(state) > 0 then
 		text = "Eine Aufgabe ist erledigt – hol dir deine Belohnung ab!"
 	end
-	guideFrame.Visible = text ~= nil and panelMode == nil
+	local inExpedition = player:GetAttribute("ExpObjective") ~= nil
+	guideFrame.Visible = text ~= nil and panelMode == nil and not inExpedition
 	guideLabel.Text = text or ""
 	skipButton.Visible = guideIsTutorial and guideText ~= nil
 	questBadge.Visible = state ~= nil and claimableQuests(state) > 0
@@ -454,6 +471,19 @@ function Hud.setGuide(text: string?, isTutorial: boolean)
 	end
 	guideText, guideIsTutorial = text, isTutorial
 	refreshGuide()
+end
+
+-- Expedition bar: the server's current objective, the time left and a way out.
+local function refreshExpedition()
+	local objective = player:GetAttribute("ExpObjective")
+	expFrame.Visible = type(objective) == "string" and panelMode == nil
+	expLabel.Text = if type(objective) == "string" then objective else ""
+	local inRun = player:GetAttribute("ExpRun") ~= nil
+	expLeave.Visible = inRun
+	local ends = player:GetAttribute("ExpEnds")
+	local left = if type(ends) == "number" and inRun then math.max(0, ends - os.time()) else 0
+	expTimer.Visible = left > 0
+	expTimer.Text = ("⏳ %d:%02d"):format(left // 60, left % 60)
 end
 
 local function refreshCoins()
@@ -1009,6 +1039,7 @@ local function open(kind: string, slot: number?)
 	navFrame.Visible = false
 	sideFrame.Visible = false
 	refreshGuide()
+	refreshExpedition()
 	-- World prompts, chat and the player list would sit on top of the panel and steal taps.
 	ProximityPromptService.Enabled = false
 	pcall(StarterGui.SetCoreGuiEnabled, StarterGui, Enum.CoreGuiType.PlayerList, false)
@@ -1056,6 +1087,7 @@ function Hud.close()
 	navFrame.Visible = true
 	sideFrame.Visible = true
 	refreshGuide()
+	refreshExpedition()
 	ProximityPromptService.Enabled = true
 	pcall(StarterGui.SetCoreGuiEnabled, StarterGui, Enum.CoreGuiType.PlayerList, true)
 	pcall(StarterGui.SetCoreGuiEnabled, StarterGui, Enum.CoreGuiType.Chat, true)
@@ -1148,6 +1180,44 @@ local function buildGuide()
 	skipButton.Activated:Connect(function()
 		pcall(function()
 			Net.func("SkipTutorial"):InvokeServer()
+		end)
+	end)
+end
+
+local function buildExpedition()
+	expFrame = scaled(new("Frame", {
+		Name = "Expedition",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 76),
+		Size = UDim2.fromOffset(0, 52),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = C(40, 30, 80),
+		BackgroundTransparency = 0.08,
+		Visible = false,
+		Parent = gui,
+	}, {
+		round(),
+		stroke(C(200, 170, 255), 2, 0.4),
+		new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 8) }),
+		hlist(10),
+	})) :: Frame
+	expTimer = chip(expFrame, "", C(255, 228, 160), C(130, 70, 10), { Name = "Timer", Size = UDim2.fromOffset(0, 30), TextSize = 17, Font = TITLE, LayoutOrder = 1 })
+	expLabel = label(expFrame, {
+		Name = "Objective",
+		Size = UDim2.fromOffset(0, 44),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Text = "",
+		TextColor3 = THEME.white,
+		TextSize = 19,
+		LayoutOrder = 2,
+	})
+	expLeave = pillButton(expFrame, "Leave", "Verlassen", C(255, 160, 170), C(200, 70, 100), true, {
+		Size = UDim2.fromOffset(120, 38),
+		TextSize = 17,
+		LayoutOrder = 3,
+	}, function()
+		pcall(function()
+			Net.func("LeaveExpedition"):InvokeServer()
 		end)
 	end)
 end
@@ -1327,6 +1397,7 @@ local function build()
 	})
 	buildCoins()
 	buildGuide()
+	buildExpedition()
 	toastStack = scaled(new("Frame", {
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -1352,6 +1423,12 @@ function Hud.start()
 	for _, attribute in { "Coins", "CoinRate", "LuckUntil" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refreshCoins)
 	end
+	for _, attribute in { "ExpObjective", "ExpRun", "ExpEnds" } do
+		player:GetAttributeChangedSignal(attribute):Connect(function()
+			refreshExpedition()
+			refreshGuide()
+		end)
+	end
 	player.AttributeChanged:Connect(function(name)
 		if name:sub(1, 5) == "Pass_" and panelMode and panelMode.kind == "shop" then
 			renderPanel()
@@ -1375,12 +1452,26 @@ function Hud.start()
 				Audio.play(sound)
 			end
 			Hud.toast(message.text, NOTIFY_COLORS[message.kind])
+			if message.kind == "reward" and type(message.relics) == "table" then
+				local best = 0
+				for _, relic in message.relics do
+					local def = type(relic) == "table" and RelicDefs.byId[relic.id]
+					if def then
+						best = math.max(best, RelicVisuals.rarityRank(def.rarity))
+						Hud.relicCollected(def, relic.new == true)
+					end
+				end
+				if best > 0 then
+					Audio.collect(best)
+				end
+			end
 		end
 	end)
 	task.spawn(function()
 		while true do
 			task.wait(1)
 			refreshCoins()
+			refreshExpedition()
 		end
 	end)
 	refreshCoins()

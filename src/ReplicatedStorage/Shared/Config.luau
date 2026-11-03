@@ -71,6 +71,23 @@ Config.LuckRune = {
 	multiplier = 2,
 }
 
+-- "Forgotten Ruins" expedition: a 3-5 minute co-op run for 1-4 players. Relic rewards are
+-- limited by a per-player cooldown; players on cooldown may still help and earn coins.
+Config.Expedition = {
+	maxPlayers = 4,
+	maxRuns = 3, -- arenas that can run at the same time on one server
+	lobbySeconds = 8,
+	portalRange = 24,
+	maxRunSeconds = 8 * 60,
+	rewardSeconds = 40, -- time at the chest before everyone returns
+	cooldownSeconds = 10 * 60,
+	coinsByTier = { 600, 2500, 9000 },
+	helperShare = 0.25,
+	legendaryChance = 0.2,
+	guardianHits = 5,
+	extraHitsPerPlayer = 1,
+}
+
 -- Player settings (stored in the profile). Volumes are 0..1 in steps of SettingsStep.
 Config.DefaultSettings = { music = 0.6, sfx = 0.8, hints = true }
 Config.SettingsStep = 0.1

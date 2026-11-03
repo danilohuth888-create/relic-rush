@@ -21,8 +21,8 @@ Nichts davon wird ohne deine ausdrückliche Freigabe öffentlich geschaltet.
 - [x] Tutorial Lumi, überspringbar
 - [x] Tägliche Aufgaben, Sammelbuch, Meilensteine
 - [x] Wiederholbare Münz-Ausgabe (Glücksrune)
-- [ ] Alle 25 Relikte erreichbar – aktuell 18; der Rest kommt mit der Expedition (Update)
-- [ ] Musik und mehr Soundeffekte
+- [x] Alle 25 Relikte erreichbar (Expedition)
+- [x] Musik und mehr Soundeffekte
 
 ## Technik und Sicherheit
 - [x] Alle Remotes serverseitig validiert, Rate-Limits

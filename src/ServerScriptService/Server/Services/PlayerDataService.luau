@@ -12,7 +12,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 3
+local SCHEMA_VERSION = 4
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -21,6 +21,7 @@ local MAX_RECEIPTS = 50
 
 export type Quest = { id: string, goal: number, progress: number, claimed: boolean }
 export type Settings = { music: number, sfx: number, hints: boolean }
+export type Expedition = { cooldownUntil: number, runs: number, wins: number }
 export type Data = {
 	version: number,
 	coins: number,
@@ -34,6 +35,7 @@ export type Data = {
 	quests: { day: number, list: { Quest } },
 	receipts: { string }, -- last processed Developer Product purchase ids
 	settings: Settings,
+	expedition: Expedition,
 	lastSeen: number,
 }
 
@@ -60,6 +62,7 @@ local function defaultData(): Data
 		quests = { day = 0, list = {} },
 		receipts = {},
 		settings = table.clone(Config.DefaultSettings),
+		expedition = { cooldownUntil = 0, runs = 0, wins = 0 },
 		lastSeen = 0,
 	}
 end
@@ -80,6 +83,10 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 		-- v3 added player settings; earlier profiles start with the defaults.
 		data.settings = table.clone(Config.DefaultSettings)
 	end,
+	[4] = function(data)
+		-- v4 added the expedition (cooldown and run counters).
+		data.expedition = { cooldownUntil = 0, runs = 0, wins = 0 }
+	end,
 }
 
 local function reconcile(data: any): Data
@@ -89,7 +96,7 @@ local function reconcile(data: any): Data
 			data[key] = value
 		end
 	end
-	for _, group in { "stats", "tutorial", "quests", "settings" } do
+	for _, group in { "stats", "tutorial", "quests", "settings", "expedition" } do
 		for key, value in fresh[group] do
 			if data[group][key] == nil then
 				data[group][key] = value
@@ -298,6 +305,7 @@ function PlayerDataService.snapshot(player: Player): any
 		milestones = data.milestones,
 		quests = data.quests.list,
 		settings = data.settings,
+		expeditionCooldown = data.expedition.cooldownUntil,
 		persistent = PlayerDataService.persistent,
 	}
 end

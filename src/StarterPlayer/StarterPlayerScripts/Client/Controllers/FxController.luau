@@ -207,7 +207,13 @@ function FxController.start()
 	fxFolder.Parent = Workspace
 
 	Net.event("Notify").OnClientEvent:Connect(function(message: any)
-		if type(message) == "table" and message.kind == "upgrade" then
+		if type(message) == "table" and message.kind == "reward" and type(message.relics) == "table" and #message.relics > 0 then
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				FxController.glitter(root.Position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 200, 90), 90)
+			end
+			FxController.cameraKick(6, true)
+		elseif type(message) == "table" and message.kind == "upgrade" then
 			local plot = ownPlot()
 			if plot then
 				FxController.sparkRain(plot:GetPivot().Position)

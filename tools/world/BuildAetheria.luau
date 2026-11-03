@@ -389,7 +389,7 @@ P(ruin, "RuneStone", BLOCK, Vector3.new(3, 4, 1.2), CFrame.new(FOREST + Vector3.
 P(ruin, "RuneGlyph", BLOCK, Vector3.new(1.6, 2.2, 0.1), CFrame.new(FOREST + Vector3.new(0, 2.2, -0.62)), PAL.lavender, NEON)
 task.wait()
 
--- Forgotten Ruins portal (sealed until the expedition milestone) --------------------------
+-- Forgotten Ruins portal: ExpeditionService adds the prompt; the arena is BuildExpedition.luau --
 local RUINS = Vector3.new(140, 0, 118)
 path("RuinsPath", Vector3.new(36, 0.05, 30), RUINS + (Vector3.zero - RUINS).Unit * 14 + Vector3.new(0, 0.05, 0), 8)
 local ruins = container("Model", root, "ForgottenRuins")
@@ -399,7 +399,7 @@ P(ruins, "PillarL", BLOCK, Vector3.new(3, 16, 3), face * CFrame.new(-7, 8.5, 0),
 P(ruins, "PillarR", BLOCK, Vector3.new(3, 16, 3), face * CFrame.new(7, 8.5, 0), PAL.ruin)
 P(ruins, "Lintel", BLOCK, Vector3.new(18, 3, 3.4), face * CFrame.new(0, 17.5, 0), PAL.ruin)
 P(ruins, "Portal", BLOCK, Vector3.new(11, 15, 0.4), face * CFrame.new(0, 8.5, 0), PAL.ruinGlow, NEON, { Transparency = 0.35, CanCollide = true })
-sign(ruins, face * CFrame.new(-11, 0.5, -6), 13, "Vergessene Ruinen", "Bald geöffnet")
+sign(ruins, face * CFrame.new(-11, 0.5, -6), 13, "Vergessene Ruinen", "Expedition · 1–4 Spieler")
 
 -- Relic spawn points --------------------------------------------------------------------
 local spawns = container("Folder", root, "RelicSpawns")

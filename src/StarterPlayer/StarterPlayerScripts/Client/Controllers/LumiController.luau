@@ -152,7 +152,7 @@ local function evaluate()
 		end
 	end
 	-- With hints switched off Lumi stays hidden; the tutorial still completes on the server.
-	if not Settings.values.hints then
+	if not Settings.values.hints or player:GetAttribute("ExpRun") ~= nil then
 		target = nil
 		hud.setGuide(nil, false)
 	end

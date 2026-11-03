@@ -17,6 +17,7 @@ local UpgradeService = require(Services.UpgradeService)
 local QuestService = require(Services.QuestService)
 local ShopService = require(Services.ShopService)
 local SettingsService = require(Services.SettingsService)
+local ExpeditionService = require(Services.ExpeditionService)
 
 PlayerDataService.init()
 PlotService.init()
@@ -27,6 +28,7 @@ UpgradeService.init()
 QuestService.init()
 ShopService.init()
 SettingsService.init()
+ExpeditionService.init()
 
 local function onPlayerAdded(player: Player)
 	Analytics.onboarding(player, Analytics.Onboarding.Joined)
@@ -46,6 +48,7 @@ local function onPlayerAdded(player: Player)
 end
 
 local function onPlayerRemoving(player: Player)
+	ExpeditionService.stopPlayer(player)
 	RelicSpawnService.stopPlayer(player)
 	QuestService.stopPlayer(player)
 	EconomyService.forget(player)
@@ -84,6 +87,15 @@ if RunService:IsStudio() then
 				end
 			end
 			return "unknown product"
+		elseif action == "prompt" then
+			-- Triggers an expedition prompt as this player (range, membership and rate checks apply).
+			return ExpeditionService.trigger(args[1], player)
+		elseif action == "expedition" then
+			local data_ = PlayerDataService.get(player)
+			if data_ and args[1] == "clearCooldown" then
+				data_.expedition.cooldownUntil = 0
+			end
+			return data_ and data_.expedition
 		elseif action == "save" then
 			return PlayerDataService.saveNow(player)
 		elseif action == "showcase" then

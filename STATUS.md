@@ -9,7 +9,7 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 | Block | Inhalt | Stand |
 |---|---|---|
 | 1 | Sound und Spielgefühl, Einstellungen (Schema v3) | ✅ fertig, im Playtest geprüft |
-| 2 | Expedition „Vergessene Ruinen“ (M4) | offen |
+| 2 | Expedition „Vergessene Ruinen“ (M4) | ✅ solo im Playtest geprüft; Zweier-Test mit dir offen |
 | 3 | Optik auf Profi-Niveau | offen |
 | 4 | Englisch, Bestenliste, Wochenziel | offen |
 | 5 | Release-Prüfung (M6) | offen |
@@ -19,6 +19,17 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 - **Soundeffekte** für Einsammeln (Tonhöhe nach Seltenheit, ab „selten“ Glitzern, ab „episch“ Fanfare), Buttons, Fenster, Ausstellen/Zurücklegen, Ausbau, Abholen, Kauf, Fehler, Besuch. Nur lizenzierte Roblox-Audiobibliothek (APM, Pro Sound Effects), siehe `docs/CREDITS.md`.
 - **Effekte:** goldene „+X“-Zahlen über ausgestellten Relikten der eigenen Schatzkammer (alle 3 s, versetzt), Funkenregen und Kamera-Kick beim Ausbau, Glitzerwolke in Reliktfarbe bei seltenen Funden, Kamera-Kick ab „episch“.
 - **Einstellungen (Zahnrad unter „Shop“):** Lautstärke Musik und Effekte in 10 %-Schritten, Lumi-Hinweise an/aus, Credits. Gespeichert im Profil (**Schema v3**, Migration von v2), serverseitig geprüft und rate-limitiert.
+
+### Block 2 – Expedition „Vergessene Ruinen“
+- **Start am Ruinenportal** (E halten): 8 s Sammelphase, bis zu 4 Spieler, dann Teleport in eine eigene Kopie der Arena weit weg von der Insel (bis zu 3 Gruppen gleichzeitig).
+- **Raum 1 Druckplatten:** Reihenfolge von der Tafel, falsche Platte setzt zurück.
+- **Raum 2 Spiegelsaal:** drei Spiegel drehen, bis der Lichtstrahl den Kristall trifft; ein Irrlicht schickt Berührte zum Raumeingang zurück (kein Schaden).
+- **Raum 3 Rätselsteine:** drei Steine auf die Symbole über dem Tor drehen.
+- **Kristallwächter:** leuchtende Runensäule entfesseln (5 Treffer, +1 je weiterem Spieler); der Wächter stampft mit roter Vorwarnung und schubst Getroffene weg.
+- **Truhe:** pro Spieler 1 episches/legendäres Relikt (20 % legendär), 1 Ruinen-Relikt, Münzen nach Stufe; bevorzugt noch nicht entdeckte Relikte. **Damit sind alle 25 Relikte erreichbar.**
+- **Abklingzeit 10 min pro Spieler** (im Profil, Schema v4). Wer sie noch hat, kann als Begleiter helfen und bekommt 25 % der Münzen, keine Relikte.
+- Zeitlimit 8 min, Stürze und Respawns bringen zum letzten Kontrollpunkt, „Verlassen“-Knopf in der Ziel-Leiste.
+- Arena-Vorlage: `ServerStorage.ExpeditionArena`, gebaut von `tools/world/BuildExpedition.luau`.
 
 ## Fertig
 
@@ -105,12 +116,25 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Block 1:** „+22“ über dem Silberkelch (3,6/s × 2 Pass × 3 s) | Playtest | ✅ |
 | **Block 1:** Ausbau-Meldung → Fanfare, Funkenregen über dem Grundstück, Kamera-Kick | Playtest | ✅ |
 | **Block 1:** Credits-Ansicht und Zurück | Playtest (echte Klicks) + Screenshot | ✅ |
+| **Block 2:** Schema v4 migriert (Expedition: Abklingzeit, Läufe, Siege) | automatisiert | ✅ |
+| **Block 2:** Portal → Lobby-Countdown 8 s → Teleport in Arena, Musik „Ruinen“, Ziel-Leiste mit Timer | Playtest | ✅ |
+| **Block 2:** Druckplatten: falsche Platte löscht alle, richtige Reihenfolge öffnet Tor 1 | Playtest | ✅ |
+| **Block 2:** Irrlicht berührt → zurück zum Raumeingang; 3 Spiegel gedreht → Strahl trifft, Tor 2 offen | Playtest | ✅ |
+| **Block 2:** Rätselsteine eingestellt → Tor 3 offen | Playtest | ✅ |
+| **Block 2:** Nicht geladene Säule bewirkt nichts; 5 Treffer → Wächter zerfällt, Truhe und Portal erscheinen | Playtest | ✅ |
+| **Block 2:** Wächter-Stampfer: 2 Rückstöße in 12 s auf einen stehenden Spieler | Playtest | ✅ |
+| **Block 2:** Truhe: Zeitenspiegel (episch) + Schattenmaske (Ruinen) + 2.500 Münzen, Abklingzeit 600 s; zweites Öffnen zahlt nicht | Playtest | ✅ |
+| **Block 2:** Nach allen Truhen → Rückkehr zum Portal, Arena gelöscht, Attribute leer | Playtest | ✅ |
+| **Block 2:** „Verlassen“ per Client-Remote mitten im Kampf → Portal, Arena gelöscht | automatisiert (Client-Remote) | ✅ |
+| **Block 2:** Begleiter während Abklingzeit: 0 Relikte, 625 Münzen (25 %), Abklingzeit unverändert | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.
 - **Echte Robux-Käufe:** bewusst nicht ausgelöst; die Gutschrift-Logik ist simuliert. Als Ersteller besitzt du deine Pässe automatisch, deshalb zeigt dein Shop „Besitzt du“, und deine Rate ist mit „Doppelte Münzen“ verdoppelt.
 - **8 Spieler gleichzeitig, Besuchs-Meldung zwischen zwei echten Spielern.**
 - **Smartphone-Bedienung** am Gerät.
+- **Expedition zu zweit** (Studio *Clients and Servers*) und echte Tasten-/Touch-Bedienung der Prompts: Mein Studio-Fenster rendert gerade nicht, deshalb habe ich die Prompts serverseitig über `DevTools prompt` ausgelöst (gleiche Reichweiten-, Mitglieds- und Rate-Prüfung wie echte Eingaben).
+- **Zeitlimit 8 min** nicht abgewartet (Logik geprüft, nicht ausgelöst).
 - **Glitzern bei seltenen Funden** im Spiel gesehen: Code-Pfad identisch zum Ausbau-Effekt, ein seltener Fund kam im Test nicht vor (wird mit der Expedition geprüft).
 - **Klang selbst anhören:** Ich kann Sounds nur technisch prüfen (lädt, spielt, Tonhöhe). Ob dir Auswahl und Lautstärken gefallen, hörst nur du. Austausch = eine Zeile in `Shared/Sounds.luau`.
 - **3D-Vorschau in den Karten:** In den letzten Bildern war die ganze 3D-Ansicht schwarz, auch ohne offenes Fenster. Das liegt offenbar am Rendern von Studio, nicht am Spiel. Bitte einmal selbst ansehen.

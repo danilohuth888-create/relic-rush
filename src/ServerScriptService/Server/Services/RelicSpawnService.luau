@@ -143,6 +143,18 @@ function RelicSpawnService.collect(player: Player, spawnId: any): (boolean, stri
 	end
 	state.active[spawnId] = nil
 	state.cooldown[spawnId] = os.clock() + point.respawn
+	local isNew = RelicSpawnService.grant(player, relicId, point.area)
+	return true, relicId, isNew
+end
+
+-- Puts a relic into the player's inventory and reports it like any find (quests, collection
+-- book, analytics). Used by pickups and by expedition rewards. Returns whether it was new.
+function RelicSpawnService.grant(player: Player, relicId: string, area: string): boolean
+	local data = PlayerDataService.get(player)
+	local def = RelicDefs.byId[relicId]
+	if not data or not def then
+		return false
+	end
 	data.inventory[relicId] = (data.inventory[relicId] or 0) + 1
 	data.stats.collected += 1
 	local isNew = not data.discovered[relicId]
@@ -152,17 +164,22 @@ function RelicSpawnService.collect(player: Player, spawnId: any): (boolean, stri
 		Analytics.onboarding(player, Analytics.Onboarding.FirstRelic)
 	end
 	Progress.bump(player, "collect", 1)
-	if point.area == "Forest" then
+	if area == "Forest" then
 		Progress.bump(player, "collectForest", 1)
 	end
-	if RelicVisuals.rarityRank(RelicDefs.byId[relicId].rarity) >= 2 then
+	if RelicVisuals.rarityRank(def.rarity) >= 2 then
 		Progress.bump(player, "collectUncommon", 1)
 	end
 	if isNew then
 		Progress.bump(player, "discover", 1, relicId)
 	end
 	PlayerDataService.replicate(player)
-	return true, relicId, isNew
+	return isNew
+end
+
+-- Relic ids an area can produce, grouped by rarity (read-only).
+function RelicSpawnService.pool(area: string): { [string]: { string } }
+	return poolsByArea[area] or {}
 end
 
 function RelicSpawnService.init()
