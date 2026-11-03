@@ -264,7 +264,7 @@ function PlotService.renderSlot(player: Player, slot: number, relicId: string?)
 	model.Name = "Display"
 	-- Displayed relics are the treasury's showpieces, so they stand larger than pickups.
 	model:ScaleTo(1.6)
-	model:PivotTo(top.CFrame * CFrame.new(0, 2.2, 0))
+	model:PivotTo(top.CFrame * CFrame.new(0, 1, 0))
 
 	local tag = Instance.new("BillboardGui")
 	tag.Size = UDim2.fromOffset(160, 40)
