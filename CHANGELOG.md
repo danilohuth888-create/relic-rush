@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 – UI-Überarbeitung (2026-11-03)
+- Einheitlicher Stil: warme Karten, violette Kopfleisten, Gold für Münzen, weiche Schatten, Farbverläufe.
+- Icons auf allen Navigations-Buttons, Seitenmenü als große quadratische Kacheln, Hinweis-Badge „!“.
+- Druck-Animation auf allen Buttons, Fenster öffnen mit kurzer Pop-Animation, Meldungen ploppen auf.
+- Münzanzeige mit gezeichneter Münze, Raten-Chip und Glücksrunen-Timer.
+- Relikt-Karten mit Seltenheits-Farbverlauf, Anzahl-Chip und Seltenheits-Badge; Aufgaben mit Icon, Balken und Belohnung; Shop-Karten mit Icon-Banner und Robux-Symbol.
+- Solange ein Fenster offen ist, werden Navigation und Lumi-Hinweis ausgeblendet (Platz auf kleinen Handys).
+- Ausgestellte Relikte 1,6× größer und auf dem Podest statt darüber, Relikt-Lichter sanfter.
+- Behoben: Farbverlauf färbte die Schrift von Pill-Buttons ein (Text unsichtbar), „✕“ wurde in der Schrift nicht angezeigt.
+- Launch-Material: Spielicon, 3 Thumbnails, Store-Texte DE/EN.
+
 ## 0.2.0 – Sammel-MVP, Langzeitziele, Shop-Architektur (2026-11-02)
 - Schatzkammer-Stufen 2 und 3 am Ausbau-Stein, Geister-Podeste, Deko pro Stufe.
 - Tutorial-Geist Lumi mit Lichtstrahl-Führung, Abschluss und Überspringen gespeichert.
