@@ -16,6 +16,7 @@ local FUNCTIONS = {
 	"ClaimQuest",
 	"SkipTutorial",
 	"BuyLuck",
+	"SaveSettings",
 }
 
 local folder: Instance

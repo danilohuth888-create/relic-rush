@@ -1,11 +1,24 @@
 # Status
 
-Stand: 2026-11-02 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 125952423660999 (**privat**)
+Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 125952423660999 (live, Altersfreigabe „Minimal“)
 
 ## Aktueller Meilenstein
 
-**M2 (Sammel-MVP) fertig, M3 (Inhalte und Langzeitmotivation) und M5 (Shop-Architektur) größtenteils fertig.**
-Alles im Studio-Playtest geprüft. Offen ist vor allem der Speichertest: Der Studio-API-Zugriff ist noch aus (BUGS #1).
+**Release-Qualität nach `docs/NEXT_SESSION.md`.** Blöcke:
+
+| Block | Inhalt | Stand |
+|---|---|---|
+| 1 | Sound und Spielgefühl, Einstellungen (Schema v3) | ✅ fertig, im Playtest geprüft |
+| 2 | Expedition „Vergessene Ruinen“ (M4) | offen |
+| 3 | Optik auf Profi-Niveau | offen |
+| 4 | Englisch, Bestenliste, Wochenziel | offen |
+| 5 | Release-Prüfung (M6) | offen |
+
+### Block 1 – Sound und Spielgefühl
+- **Musik pro Gebiet** (Kristallplatz, Flüsterwald, Schatzkammer, Ruinen) mit 1,8 s Überblendung; ausgeblendete Stücke pausieren und laufen später weiter.
+- **Soundeffekte** für Einsammeln (Tonhöhe nach Seltenheit, ab „selten“ Glitzern, ab „episch“ Fanfare), Buttons, Fenster, Ausstellen/Zurücklegen, Ausbau, Abholen, Kauf, Fehler, Besuch. Nur lizenzierte Roblox-Audiobibliothek (APM, Pro Sound Effects), siehe `docs/CREDITS.md`.
+- **Effekte:** goldene „+X“-Zahlen über ausgestellten Relikten der eigenen Schatzkammer (alle 3 s, versetzt), Funkenregen und Kamera-Kick beim Ausbau, Glitzerwolke in Reliktfarbe bei seltenen Funden, Kamera-Kick ab „episch“.
+- **Einstellungen (Zahnrad unter „Shop“):** Lautstärke Musik und Effekte in 10 %-Schritten, Lumi-Hinweise an/aus, Credits. Gespeichert im Profil (**Schema v3**, Migration von v2), serverseitig geprüft und rate-limitiert.
 
 ## Fertig
 
@@ -82,10 +95,22 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Session-Lock:** fremder, frischer Lock → Spieler nach ~20 s mit Hinweis abgewiesen, fremde Daten unverändert | automatisiert | ✅ |
 | **Veralteter Lock** (Absturz vor 4 min) → übernommen, Daten vollständig | automatisiert | ✅ |
 | **Shop mit echten IDs:** alle 6 Preise live von Roblox, Pass-Besitz erkannt | Playtest | ✅ |
+| **Block 1:** Migration v2 → v3 auf echtem gespeicherten Profil (Einstellungen mit Standardwerten) | automatisiert | ✅ |
+| **Block 1:** 17 Audio-Assets laden in Studio (Länge > 0) | automatisiert | ✅ |
+| **Block 1:** Platz-Musik läuft; Wechsel zu Wald und Schatzkammer blendet über (alte Spur 0 und pausiert) | Playtest | ✅ |
+| **Block 1:** Zahnrad → Einstellungen; Musik −2, Effekte −1, Lumi aus per echten Klicks → Lautstärken 0,4/0,7, Lumi weg, Server hat die Werte | Playtest (echte Klicks) | ✅ |
+| **Block 1:** Einstellungen nach Speichern + Neustart (Rejoin) unverändert | Playtest | ✅ |
+| **Block 1:** `SaveSettings` mit String, NaN, 5, −1, `hints="yes"`, fehlenden Feldern → `bad_settings`; 10× Spam → `rate` | automatisiert (Client-Remote) | ✅ |
+| **Block 1:** Einsammeln eines ungewöhnlichen Relikts → Triangel mit Tonhöhe 1,12 + Meldung | Playtest (Hineinlaufen) | ✅ |
+| **Block 1:** „+22“ über dem Silberkelch (3,6/s × 2 Pass × 3 s) | Playtest | ✅ |
+| **Block 1:** Ausbau-Meldung → Fanfare, Funkenregen über dem Grundstück, Kamera-Kick | Playtest | ✅ |
+| **Block 1:** Credits-Ansicht und Zurück | Playtest (echte Klicks) + Screenshot | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.
 - **Echte Robux-Käufe:** bewusst nicht ausgelöst; die Gutschrift-Logik ist simuliert. Als Ersteller besitzt du deine Pässe automatisch, deshalb zeigt dein Shop „Besitzt du“, und deine Rate ist mit „Doppelte Münzen“ verdoppelt.
 - **8 Spieler gleichzeitig, Besuchs-Meldung zwischen zwei echten Spielern.**
 - **Smartphone-Bedienung** am Gerät.
+- **Glitzern bei seltenen Funden** im Spiel gesehen: Code-Pfad identisch zum Ausbau-Effekt, ein seltener Fund kam im Test nicht vor (wird mit der Expedition geprüft).
+- **Klang selbst anhören:** Ich kann Sounds nur technisch prüfen (lädt, spielt, Tonhöhe). Ob dir Auswahl und Lautstärken gefallen, hörst nur du. Austausch = eine Zeile in `Shared/Sounds.luau`.
 - **3D-Vorschau in den Karten:** In den letzten Bildern war die ganze 3D-Ansicht schwarz, auch ohne offenes Fenster. Das liegt offenbar am Rendern von Studio, nicht am Spiel. Bitte einmal selbst ansehen.

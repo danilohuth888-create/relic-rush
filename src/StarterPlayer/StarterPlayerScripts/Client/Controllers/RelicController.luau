@@ -6,13 +6,14 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local SoundService = game:GetService("SoundService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
+local Audio = require(script.Parent.Parent.Audio)
+local FxController = require(script.Parent.FxController)
 
 -- armed: walking in only collects after the player was outside the radius once, so standing
 -- on a spawn point does not farm every respawn (the prompt still works).
@@ -26,11 +27,6 @@ local folder: Folder
 local pickups: { [string]: Pickup } = {}
 local floating: { [Model]: CFrame } = {}
 local spinning: { [Instance]: CFrame } = {}
-
-local collectSound = Instance.new("Sound")
-collectSound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
-collectSound.Volume = 0.6
-collectSound.Parent = SoundService
 
 local function burst(model: Model)
 	local start = model:GetPivot()
@@ -77,9 +73,18 @@ local function tryCollect(id: string)
 	end)
 	if ok and success == true then
 		local def = RelicDefs.byId[relicId] or RelicDefs.byId[pickup.model.Name]
+		local position = pickup.model:GetPivot().Position
 		remove(id, true)
-		SoundService:PlayLocalSound(collectSound)
 		if def then
+			-- Feedback grows with rarity: brighter chime, then glitter, then a camera kick.
+			local rank = RelicVisuals.rarityRank(def.rarity)
+			Audio.collect(rank)
+			if rank >= 3 then
+				FxController.glitter(position, Config.Rarities[def.rarity].color, 30 + rank * 15)
+			end
+			if rank >= 4 then
+				FxController.cameraKick(5, rank >= 5)
+			end
 			hud.relicCollected(def, isNew == true)
 		end
 	else

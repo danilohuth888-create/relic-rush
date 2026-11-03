@@ -12,7 +12,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 2
+local SCHEMA_VERSION = 3
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -20,6 +20,7 @@ local MAX_ATTEMPTS = 5
 local MAX_RECEIPTS = 50
 
 export type Quest = { id: string, goal: number, progress: number, claimed: boolean }
+export type Settings = { music: number, sfx: number, hints: boolean }
 export type Data = {
 	version: number,
 	coins: number,
@@ -32,6 +33,7 @@ export type Data = {
 	milestones: number, -- how many Config.Milestones are already paid out
 	quests: { day: number, list: { Quest } },
 	receipts: { string }, -- last processed Developer Product purchase ids
+	settings: Settings,
 	lastSeen: number,
 }
 
@@ -57,6 +59,7 @@ local function defaultData(): Data
 		milestones = 0,
 		quests = { day = 0, list = {} },
 		receipts = {},
+		settings = table.clone(Config.DefaultSettings),
 		lastSeen = 0,
 	}
 end
@@ -73,6 +76,10 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 		end
 		data.tutorial = { done = false }
 	end,
+	[3] = function(data)
+		-- v3 added player settings; earlier profiles start with the defaults.
+		data.settings = table.clone(Config.DefaultSettings)
+	end,
 }
 
 local function reconcile(data: any): Data
@@ -82,7 +89,7 @@ local function reconcile(data: any): Data
 			data[key] = value
 		end
 	end
-	for _, group in { "stats", "tutorial", "quests" } do
+	for _, group in { "stats", "tutorial", "quests", "settings" } do
 		for key, value in fresh[group] do
 			if data[group][key] == nil then
 				data[group][key] = value
@@ -290,6 +297,7 @@ function PlayerDataService.snapshot(player: Player): any
 		discovered = data.discovered,
 		milestones = data.milestones,
 		quests = data.quests.list,
+		settings = data.settings,
 		persistent = PlayerDataService.persistent,
 	}
 end

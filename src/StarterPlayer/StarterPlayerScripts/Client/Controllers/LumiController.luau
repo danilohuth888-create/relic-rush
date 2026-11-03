@@ -10,6 +10,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local ClientState = require(script.Parent.Parent.ClientState)
+local Settings = require(script.Parent.Parent.Settings)
 
 local player = Players.LocalPlayer
 local LumiController = {}
@@ -150,7 +151,12 @@ local function evaluate()
 			hud.setGuide(nil, false)
 		end
 	end
-	local show = active or os.clock() < farewellUntil
+	-- With hints switched off Lumi stays hidden; the tutorial still completes on the server.
+	if not Settings.values.hints then
+		target = nil
+		hud.setGuide(nil, false)
+	end
+	local show = (active or os.clock() < farewellUntil) and Settings.values.hints
 	if show ~= visible then
 		visible = show
 		model.Parent = if show then Workspace else nil

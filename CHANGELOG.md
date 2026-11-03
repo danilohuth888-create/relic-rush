@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 – Sound und Spielgefühl (in Arbeit)
+- Musik pro Gebiet (Kristallplatz, Flüsterwald, Schatzkammer, Ruinen) mit sanfter Überblendung.
+- Soundeffekte für Einsammeln (nach Seltenheit gestaffelt), Buttons, Fenster, Ausstellen, Ausbau, Abholen, Kauf, Fehler und Besuche. Nur lizenzierte Roblox-Audiobibliothek.
+- „+X“-Münzzahlen über ausgestellten Relikten, Funkenregen beim Ausbau, Glitzern bei seltenen Funden, kurzer Kamera-Kick.
+- Einstellungen (Zahnrad): Lautstärke Musik/Effekte, Lumi-Hinweise an/aus, Credits. Gespeichert im Profil.
+- Datenschema v3 mit Migration.
+- Behoben: Der alte Einsammel-Sound (`rbxasset://sounds/electronicpingshort.wav`) existiert im Live-Client nicht und war dort stumm.
+
 ## 0.3.0 – UI-Überarbeitung (2026-11-03)
 - Einheitlicher Stil: warme Karten, violette Kopfleisten, Gold für Münzen, weiche Schatten, Farbverläufe.
 - Icons auf allen Navigations-Buttons, Seitenmenü als große quadratische Kacheln, Hinweis-Badge „!“.

@@ -71,6 +71,17 @@ Config.LuckRune = {
 	multiplier = 2,
 }
 
+-- Player settings (stored in the profile). Volumes are 0..1 in steps of SettingsStep.
+Config.DefaultSettings = { music = 0.6, sfx = 0.8, hints = true }
+Config.SettingsStep = 0.1
+
+-- Areas for music and ambience, as horizontal circles (y is ignored). Plots are found by name.
+Config.Zones = {
+	Forest = { center = Vector3.new(0, 0, 140), radius = 66 },
+	Ruins = { center = Vector3.new(140, 0, 118), radius = 34 },
+}
+Config.PlotZoneRadius = 27
+
 -- Robux catalogue. An id of 0 means "not created yet": the shop shows the item as coming soon
 -- and no purchase can be prompted. Prices are set in the Creator Dashboard, not here.
 Config.Shop = {

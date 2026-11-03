@@ -14,10 +14,13 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Credits = require(ReplicatedStorage.Shared.Credits)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
+local Audio = require(script.Parent.Parent.Audio)
 local ClientState = require(script.Parent.Parent.ClientState)
+local Settings = require(script.Parent.Parent.Settings)
 
 local player = Players.LocalPlayer
 
@@ -70,6 +73,13 @@ local NOTIFY_COLORS: { [string]: Color3 } = {
 	purchase = THEME.gold,
 	visit = C(255, 200, 230),
 	offline = THEME.gold,
+}
+local NOTIFY_SOUNDS: { [string]: string } = {
+	upgrade = "upgrade",
+	milestone = "claim",
+	purchase = "purchase",
+	visit = "sparkle",
+	offline = "claim",
 }
 local QUEST_ICONS: { [string]: string } = {
 	collect = "🔮",
@@ -238,6 +248,9 @@ local function pressable(button: GuiButton, target: GuiObject)
 	button.MouseLeave:Connect(function()
 		to(1)
 	end)
+	button.Activated:Connect(function()
+		Audio.play("click")
+	end)
 end
 
 -- A layout slot holding a soft drop shadow and the surface on top of it. Children render above
@@ -402,6 +415,7 @@ function Hud.toast(text: string, color: Color3?)
 end
 
 function Hud.showError(code: any)
+	Audio.play("error")
 	Hud.toast(ERRORS[tostring(code)] or "Das hat nicht geklappt.", C(255, 200, 200))
 end
 
@@ -466,6 +480,9 @@ end
 -- What the open panel shows, so state pushes that change nothing visible skip the rebuild.
 local lastSignature = ""
 local function signature(kind: string, state: any): string
+	if kind == "settings" or kind == "credits" then
+		return kind
+	end
 	local parts = { kind, tostring(state.tier) }
 	if kind == "quests" then
 		for _, quest in state.quests or {} do
@@ -637,6 +654,7 @@ local function renderPedestal(state: any, slot: number)
 				return Net.func("Place"):InvokeServer(slot, row.def.id)
 			end)
 			if ok and success then
+				Audio.play("place")
 				Hud.toast(("%s ausgestellt! +%s/s"):format(row.def.name, formatRate(row.def.rate)), THEME.gold)
 				Hud.close()
 			else
@@ -720,6 +738,7 @@ local function renderQuests(state: any)
 				return Net.func("ClaimQuest"):InvokeServer(index)
 			end)
 			if ok and success then
+				Audio.play("claim")
 				Hud.toast("+" .. reward .. " Münzen!", THEME.gold)
 			else
 				Hud.showError(err)
@@ -803,6 +822,7 @@ local function renderShop(state: any)
 				return Net.func("BuyLuck"):InvokeServer()
 			end)
 			if ok and success then
+				Audio.play("purchase")
 				Hud.toast("Die Glücksrune leuchtet! Seltene Relikte erscheinen öfter.", THEME.gold)
 				Hud.close()
 			else
@@ -832,6 +852,126 @@ local function renderShop(state: any)
 	end
 end
 
+-- Settings row: icon bubble, title and subtitle on the left, controls on the right.
+local function settingsRow(name: string, icon: string, title: string, subtitle: string): Frame
+	local row = cardSurface(name)
+	local bubble = new("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 14, 0.5, 0),
+		Size = UDim2.fromOffset(54, 54),
+		BackgroundColor3 = THEME.white,
+		Parent = row,
+	}, { round(), gradient(THEME.violet:Lerp(THEME.white, 0.45), THEME.violetDeep) })
+	label(bubble, { Size = UDim2.fromScale(1, 1), Text = icon, TextScaled = true })
+	new("UIPadding", { PaddingTop = UDim.new(0, 11), PaddingBottom = UDim.new(0, 11), PaddingLeft = UDim.new(0, 11), PaddingRight = UDim.new(0, 11), Parent = bubble })
+	label(row, { Position = UDim2.fromOffset(82, 12), Size = UDim2.new(0.5, -82, 0, 28), Text = title, Font = TITLE, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Left })
+	label(row, {
+		Name = "Subtitle",
+		Position = UDim2.fromOffset(82, 42),
+		Size = UDim2.new(0.5, -82, 0, 20),
+		Text = subtitle,
+		TextColor3 = THEME.subtle,
+		TextSize = 16,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	return row
+end
+
+-- − [■■■■■□□□□□] + for a 0..1 volume in Config.SettingsStep steps.
+local function volumeRow(key: string, icon: string, title: string)
+	local value = (Settings.values :: any)[key] :: number
+	local row = settingsRow("Setting_" .. key, icon, title, if value <= 0 then "Stumm" else ("%d %%"):format(math.floor(value * 100 + 0.5)))
+	local steps = math.floor(1 / Config.SettingsStep + 0.5)
+	local filled = math.floor(value / Config.SettingsStep + 0.5)
+	local controls = new("Frame", {
+		Name = "Controls",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -12, 0.5, 0),
+		Size = UDim2.fromOffset(300, 48),
+		BackgroundTransparency = 1,
+		Parent = row,
+	}, { hlist(10) })
+	local function step(delta: number)
+		Settings.set(key, value + delta * Config.SettingsStep)
+	end
+	pillButton(controls, "Minus", "−", THEME.violet, THEME.violetDeep, true, { Size = UDim2.fromOffset(48, 48), TextSize = 30, LayoutOrder = 1 }, function()
+		step(-1)
+	end)
+	local bar = new("Frame", { Name = "Bar", Size = UDim2.fromOffset(184, 22), BackgroundTransparency = 1, LayoutOrder = 2, Parent = controls }, { hlist(3) })
+	for i = 1, steps do
+		new("Frame", {
+			Size = UDim2.fromOffset(15.7, 22),
+			BackgroundColor3 = if i <= filled then THEME.white else THEME.locked,
+			LayoutOrder = i,
+			Parent = bar,
+		}, { corner(5), if i <= filled then gradient(THEME.teal:Lerp(THEME.white, 0.2), THEME.tealDeep) else nil :: any })
+	end
+	pillButton(controls, "Plus", "+", THEME.violet, THEME.violetDeep, true, { Size = UDim2.fromOffset(48, 48), TextSize = 30, LayoutOrder = 3 }, function()
+		step(1)
+	end)
+end
+
+local function renderSettings()
+	setCells(UDim2.new(1, -8, 0, 78))
+	setHeader("⚙️", "Einstellungen", "Wird in deinem Profil gespeichert.")
+	volumeRow("music", "🎵", "Musik")
+	volumeRow("sfx", "🔔", "Effekte")
+	local hints = Settings.values.hints
+	local lumi = settingsRow("Setting_hints", "✨", "Lumi-Hinweise", if hints then "Lumi zeigt dir den Weg." else "Lumi ist ausgeblendet.")
+	local top, bottom = THEME.teal, THEME.tealDeep
+	if not hints then
+		top, bottom = THEME.locked, THEME.lockedDeep
+	end
+	pillButton(lumi, "Toggle", if hints then "An" else "Aus", top, bottom, true, {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -12, 0.5, 0),
+		Size = UDim2.fromOffset(120, 48),
+		TextColor3 = if hints then THEME.white else THEME.subtle,
+	}, function()
+		Settings.set("hints", not Settings.values.hints)
+	end)
+	local credits = settingsRow("Setting_credits", "📜", "Credits", "Musik, Sounds und Mitwirkende")
+	pillButton(credits, "Open", "Ansehen", THEME.goldLight, THEME.amberDeep, true, {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -12, 0.5, 0),
+		Size = UDim2.fromOffset(120, 48),
+		TextColor3 = C(110, 58, 8),
+	}, function()
+		Hud.openCredits()
+	end)
+end
+
+local function renderCredits()
+	setHeader("📜", "Credits", "Danke an alle, deren Werke Aetheria lebendig machen.")
+	local lines = {}
+	for _, section in Credits.sections() do
+		table.insert(lines, ('<font color="#%s"><b>%s</b></font>'):format(THEME.violetDeep:ToHex(), section.title))
+		for _, line in section.lines do
+			table.insert(lines, "   " .. line)
+		end
+		table.insert(lines, "")
+	end
+	setCells(UDim2.new(1, -8, 0, 64 + #lines * 21))
+	local card = cardSurface("CreditsText")
+	pillButton(card, "Back", "‹ Zurück", THEME.violet, THEME.violetDeep, true, {
+		Position = UDim2.fromOffset(14, 12),
+		Size = UDim2.fromOffset(130, 38),
+		TextSize = 18,
+	}, function()
+		Hud.openSettings()
+	end)
+	label(card, {
+		Position = UDim2.fromOffset(18, 58),
+		Size = UDim2.new(1, -36, 1, -64),
+		Text = table.concat(lines, "\n"),
+		RichText = true,
+		TextWrapped = true,
+		TextSize = 17,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+	})
+end
+
 local function renderPanel()
 	local mode = panelMode
 	local state = ClientState.data
@@ -847,6 +987,10 @@ local function renderPanel()
 		renderQuests(state)
 	elseif mode.kind == "shop" then
 		renderShop(state)
+	elseif mode.kind == "settings" then
+		renderSettings()
+	elseif mode.kind == "credits" then
+		renderCredits()
 	else
 		renderCollection(state)
 	end
@@ -872,6 +1016,7 @@ local function open(kind: string, slot: number?)
 	grid.CanvasPosition = Vector2.zero
 	renderPanel()
 	if not wasOpen then
+		Audio.play("whoosh")
 		panelPop.Scale = 0.9
 		TweenService:Create(panelPop, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	end
@@ -895,6 +1040,14 @@ end
 
 function Hud.openShop()
 	open("shop")
+end
+
+function Hud.openSettings()
+	open("settings")
+end
+
+function Hud.openCredits()
+	open("credits")
 end
 
 function Hud.close()
@@ -930,6 +1083,29 @@ local function buildCoins()
 	coinLabel = label(coins, { Size = UDim2.fromOffset(0, 40), AutomaticSize = Enum.AutomaticSize.X, Text = "0", Font = TITLE, TextSize = 32, LayoutOrder = 2 })
 	rateLabel = chip(coins, "+0/s", C(255, 232, 180), THEME.amberDeep, { Size = UDim2.fromOffset(0, 26), TextSize = 17, LayoutOrder = 3, Font = TITLE })
 	luckLabel = chip(coins, "", C(205, 245, 215), C(30, 130, 80), { Size = UDim2.fromOffset(0, 26), TextSize = 17, LayoutOrder = 4, Font = TITLE, Visible = false })
+end
+
+-- Settings gear, a small round button under the side menu (the top corners belong to Roblox).
+local function buildGear(parent: Instance)
+	local holder = new("Frame", { Name = "GearSlot", Size = UDim2.fromOffset(96, 64), BackgroundTransparency = 1, LayoutOrder = 3, Parent = parent })
+	local slot, button = shadowed("TextButton", {
+		Name = "Gear",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.fromOffset(64, 64),
+		Parent = holder,
+	}, {
+		Name = "Button",
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = THEME.white,
+	}, 30)
+	gradient(C(190, 180, 215), C(120, 105, 160)).Parent = button
+	stroke(THEME.white, 3, 0.15).Parent = button
+	label(button, { Size = UDim2.fromScale(1, 1), Text = "⚙️", TextScaled = true, Font = TITLE })
+	new("UIPadding", { PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = button })
+	button.Activated:Connect(Hud.openSettings)
+	pressable(button, slot)
 end
 
 local function buildGuide()
@@ -1004,7 +1180,7 @@ local function buildNavigation()
 		Name = "Side",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 14, 0.5, 0),
-		Size = UDim2.fromOffset(96, 210),
+		Size = UDim2.fromOffset(96, 288),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, { new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }) }))
@@ -1012,6 +1188,7 @@ local function buildNavigation()
 	local quests = bigButton("NavQuests", "📜", "Aufgaben", THEME.teal, THEME.tealDeep, Vector2.new(96, 96), 1, true, Hud.openQuests)
 	quests.Parent = side
 	bigButton("NavShop", "🛒", "Shop", THEME.pink, THEME.pinkDeep, Vector2.new(96, 96), 2, true, Hud.openShop).Parent = side
+	buildGear(side)
 	questBadge = new("Frame", {
 		Name = "Badge",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1111,6 +1288,7 @@ local function buildPanel()
 			return Net.func("Unplace"):InvokeServer(mode.slot)
 		end)
 		if ok and success then
+			Audio.play("place", 0.85)
 			Hud.toast("Zurück im Inventar.")
 			Hud.close()
 		else
@@ -1185,8 +1363,17 @@ function Hud.start()
 			renderPanel()
 		end
 	end)
+	Settings.Changed:Connect(function()
+		if panelMode and panelMode.kind == "settings" then
+			renderPanel()
+		end
+	end)
 	Net.event("Notify").OnClientEvent:Connect(function(message: any)
 		if type(message) == "table" and type(message.text) == "string" then
+			local sound = NOTIFY_SOUNDS[message.kind]
+			if sound then
+				Audio.play(sound)
+			end
 			Hud.toast(message.text, NOTIFY_COLORS[message.kind])
 		end
 	end)
