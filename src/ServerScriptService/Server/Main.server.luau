@@ -84,6 +84,19 @@ if RunService:IsStudio() then
 			return "unknown product"
 		elseif action == "save" then
 			return PlayerDataService.saveNow(player)
+		elseif action == "showcase" then
+			-- Fills the treasury for screenshots without ever saving the result.
+			PlayerDataService.setNoSave(userId)
+			data.tier = #Config.Tiers
+			table.clear(data.display)
+			for slot, relicId in args[1] do
+				data.display[tostring(slot)] = relicId
+				data.discovered[relicId] = true
+			end
+			PlotService.applyTier(player, data.tier)
+			PlotService.renderAll(player, data.display)
+			EconomyService.recompute(player)
+			PlayerDataService.replicate(player)
 		end
 		return {
 			data = data,

@@ -262,11 +262,13 @@ function PlotService.renderSlot(player: Player, slot: number, relicId: string?)
 	end
 	local model = RelicVisuals.build(def, { effects = true })
 	model.Name = "Display"
-	model:PivotTo(top.CFrame * CFrame.new(0, 1.6, 0))
+	-- Displayed relics are the treasury's showpieces, so they stand larger than pickups.
+	model:ScaleTo(1.6)
+	model:PivotTo(top.CFrame * CFrame.new(0, 2.2, 0))
 
 	local tag = Instance.new("BillboardGui")
 	tag.Size = UDim2.fromOffset(160, 40)
-	tag.StudsOffsetWorldSpace = Vector3.new(0, 2.4, 0)
+	tag.StudsOffsetWorldSpace = Vector3.new(0, 3, 0)
 	tag.MaxDistance = 40
 	tag.LightInfluence = 0
 	local label = Instance.new("TextLabel")

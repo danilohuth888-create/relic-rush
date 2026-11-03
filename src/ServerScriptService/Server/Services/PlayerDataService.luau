@@ -42,6 +42,7 @@ local store: DataStore? = nil
 local memory: { [number]: Data } = {}
 local profiles: { [Player]: Data } = {}
 local saving: { [number]: boolean } = {}
+local noSave: { [number]: boolean } = {} -- Studio showcase sessions that must not touch saved data
 
 local function defaultData(): Data
 	return {
@@ -147,6 +148,9 @@ local function lockAndRead(userId: number): (boolean, any)
 end
 
 local function writeRecord(userId: number, data: Data, release: boolean): boolean
+	if noSave[userId] then
+		return true
+	end
 	data.lastSeen = os.time()
 	if not store then
 		memory[userId] = deepCopy(data)
@@ -297,6 +301,13 @@ function PlayerDataService.saveNow(player: Player): boolean
 		return false
 	end
 	return writeRecord(player.UserId, data, false)
+end
+
+-- Studio only: stops all writes for this player until the session ends (marketing shots).
+function PlayerDataService.setNoSave(userId: number)
+	if RunService:IsStudio() then
+		noSave[userId] = true
+	end
 end
 
 -- Remembers a processed purchase id; returns false if it was already processed.

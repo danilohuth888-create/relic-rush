@@ -150,8 +150,9 @@ function RelicVisuals.build(def: RelicDefs.RelicDef, opts: BuildOptions?): Model
 	if opts and opts.effects and rank >= 2 then
 		local light = Instance.new("PointLight")
 		light.Color = def.color
-		light.Brightness = 0.8 + rank * 0.4
-		light.Range = 6 + rank * 2
+		-- Kept soft: many lights on the pale treasury floors otherwise wash out to white.
+		light.Brightness = 0.4 + rank * 0.25
+		light.Range = 5 + rank * 1.5
 		light.Shadows = false
 		light.Parent = core
 	end
