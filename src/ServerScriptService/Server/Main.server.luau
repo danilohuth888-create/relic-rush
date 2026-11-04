@@ -17,6 +17,7 @@ local UpgradeService = require(Services.UpgradeService)
 local QuestService = require(Services.QuestService)
 local ShopService = require(Services.ShopService)
 local SettingsService = require(Services.SettingsService)
+local TycoonService = require(Services.TycoonService)
 local ExpeditionService = require(Services.ExpeditionService)
 
 PlayerDataService.init()
@@ -28,6 +29,7 @@ UpgradeService.init()
 QuestService.init()
 ShopService.init()
 SettingsService.init()
+TycoonService.init()
 ExpeditionService.init()
 
 local function onPlayerAdded(player: Player)
@@ -37,7 +39,7 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	PlotService.assign(player)
-	PlotService.applyTier(player, data.tier)
+	PlotService.applyBuilds(player, data.builds)
 	PlotService.renderAll(player, data.display)
 	ShopService.startPlayer(player)
 	EconomyService.setup(player)
@@ -65,6 +67,7 @@ end
 -- Studio-only test hook for the command bar / MCP. Lives in ServerStorage, so clients can
 -- never reach it, and is not created on live servers.
 if RunService:IsStudio() then
+	local Builds = require(ReplicatedStorage.Shared.Builds)
 	local Config = require(ReplicatedStorage.Shared.Config)
 	local tools = Instance.new("BindableFunction")
 	tools.Name = "DevTools"
@@ -96,18 +99,27 @@ if RunService:IsStudio() then
 				data_.expedition.cooldownUntil = 0
 			end
 			return data_ and data_.expedition
+		elseif action == "nosave" then
+			-- Everything after this stays in this Studio session only (free testing).
+			PlayerDataService.setNoSave(userId)
+		elseif action == "build" then
+			-- Buys a build as if the player stepped on its button (all checks apply).
+			return TycoonService.buy(player, args[1])
 		elseif action == "save" then
 			return PlayerDataService.saveNow(player)
 		elseif action == "showcase" then
 			-- Fills the treasury for screenshots without ever saving the result.
 			PlayerDataService.setNoSave(userId)
+			for _, build in Builds.list do
+				data.builds[build.id] = true
+			end
 			data.tier = #Config.Tiers
 			table.clear(data.display)
 			for slot, relicId in args[1] do
 				data.display[tostring(slot)] = relicId
 				data.discovered[relicId] = true
 			end
-			PlotService.applyTier(player, data.tier)
+			PlotService.applyBuilds(player, data.builds)
 			PlotService.renderAll(player, data.display)
 			EconomyService.recompute(player)
 			PlayerDataService.replicate(player)

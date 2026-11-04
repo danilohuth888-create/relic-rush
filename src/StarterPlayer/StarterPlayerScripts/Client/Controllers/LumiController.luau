@@ -8,7 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
-local Config = require(ReplicatedStorage.Shared.Config)
+local Builds = require(ReplicatedStorage.Shared.Builds)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Settings = require(script.Parent.Parent.Settings)
 
@@ -109,18 +109,20 @@ local function step(state: any, coins: number, rootPos: Vector3): (string?, Vect
 	for _, n in state.inventory do
 		held += n
 	end
-	local capacity = Config.Tiers[state.tier].pedestals
-	local nextTier = Config.Tiers[state.tier + 1]
+	local owned = state.builds or {}
+	local capacity = Builds.unlockedSlots(owned)
+	local cheapest = Builds.available(owned)[1]
+	local firstBuild = next(owned) == nil and cheapest ~= nil
 	if state.collected == 0 then
 		return "Hallo, ich bin Lumi! Lauf zum leuchtenden Relikt vor dir.", relics.nearest(rootPos)
 	elseif displayed == 0 then
 		return "Super! Tippe auf »Schatzkammer« und stelle dein Relikt auf ein Podest.", plots.target("pedestal")
-	elseif state.tier == 1 and nextTier and coins >= nextTier.cost then
-		return "Genug Münzen! Halte E am Ausbau-Stein deiner Schatzkammer.", plots.target("upgrade")
+	elseif firstBuild and coins >= cheapest.cost then
+		return "Genug Münzen! Stell dich auf eine grüne Bau-Taste in deiner Schatzkammer.", plots.target("button")
 	elseif held > 0 and displayed < capacity then
 		return "Stelle auch dein neues Relikt aus – jedes erzeugt Münzen.", plots.target("pedestal")
-	elseif state.tier == 1 and nextTier then
-		return ("Sammle mehr Relikte. Bei %d Münzen kannst du ausbauen."):format(nextTier.cost), relics.nearest(rootPos)
+	elseif firstBuild then
+		return ("Sammle mehr Relikte. Bei %d Münzen kannst du anbauen."):format(cheapest.cost), relics.nearest(rootPos)
 	elseif not state.forestVisited then
 		return "Toll! Im Flüsterwald im Süden warten seltenere Relikte.", FOREST_ENTRANCE
 	end

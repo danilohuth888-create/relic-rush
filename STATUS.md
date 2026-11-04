@@ -10,6 +10,9 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 |---|---|---|
 | 1 | Sound und Spielgefühl, Einstellungen (Schema v3) | ✅ fertig, im Playtest geprüft |
 | 2 | Expedition „Vergessene Ruinen“ (M4) | ✅ solo im Playtest geprüft; Zweier-Test mit dir offen |
+| 2b | Tycoon-Ausbau mit Kauftasten (dein Wunsch) | ✅ im Playtest geprüft |
+| 2c | Wächter-Geister fangen (ersetzt die Lichtsäulen) | offen |
+| 2d | Schatzkarten-Rätsel | offen |
 | 3 | Optik auf Profi-Niveau | offen |
 | 4 | Englisch, Bestenliste, Wochenziel | offen |
 | 5 | Release-Prüfung (M6) | offen |
@@ -30,6 +33,14 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 - **Abklingzeit 10 min pro Spieler** (im Profil, Schema v4). Wer sie noch hat, kann als Begleiter helfen und bekommt 25 % der Münzen, keine Relikte.
 - Zeitlimit 8 min, Stürze und Respawns bringen zum letzten Kontrollpunkt, „Verlassen“-Knopf in der Ziel-Leiste.
 - Arena-Vorlage: `ServerStorage.ExpeditionArena`, gebaut von `tools/world/BuildExpedition.luau`.
+
+### Block 2b – Tycoon-Ausbau
+- Statt drei großer Ausbaustufen kauft man die Schatzkammer **Stück für Stück an leuchtenden Bau-Tasten** (6 Tasten an den Seiten des Grundstücks; draufstellen = kaufen, grün = bezahlbar). Danach erscheinen die nächsten Tasten.
+- **22 Bauteile** (`Shared/Builds.luau`, zusammen 131.090 Münzen): Podeste 5–12, Laternen, Goldteppich, Münzbrunnen, Wächterstatuen, Glasvitrinen, Kristalllüster, Schatzkrone, die Hallen „Runensaal“ und „Aetherhalle“ (= Stufe 2 und 3) und eine **Galerie mit 4 Extra-Podesten (13–16)**.
+- **Einkommens-Boni** von Laternen, Teppich, Brunnen, Statuen, Vitrinen, Lüster, Krone: zusammen bis ×1,75.
+- Bauteile wachsen mit Animation, Funkeln und Sound ins Bild; der alte Ausbau-Stein zeigt jetzt „Bauplan x / 22 gebaut“.
+- **Schema v5:** Wer schon Stufe 2/3 hatte, behält alle Podeste und Hallen.
+- Kaufen läuft komplett auf dem Server (Positionsprüfung), es gibt keine Kauf-Remote mehr.
 
 ## Fertig
 
@@ -127,6 +138,11 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Block 2:** Nach allen Truhen → Rückkehr zum Portal, Arena gelöscht, Attribute leer | Playtest | ✅ |
 | **Block 2:** „Verlassen“ per Client-Remote mitten im Kampf → Portal, Arena gelöscht | automatisiert (Client-Remote) | ✅ |
 | **Block 2:** Begleiter während Abklingzeit: 0 Relikte, 625 Münzen (25 %), Abklingzeit unverändert | Playtest | ✅ |
+| **Tycoon:** Migration v4 → v5 (Stufe 2 → Podeste 5–8 + Runensaal), 8 Podeste aktiv, 3 Tasten mit Angeboten | automatisiert | ✅ |
+| **Tycoon:** Auf Taste stellen → genau ein Kauf (Laternen −220, Rate 9,2 → 9,66); erst nach Runtergehen kauft die Taste wieder | Playtest | ✅ |
+| **Tycoon:** Krone ohne Voraussetzungen → `locked_build`, falsche ID → `bad_build`, doppelt → `owned` | automatisiert | ✅ |
+| **Tycoon:** Alle 22 Bauteile nacheinander (Testmünzen, Profil nicht gespeichert): Stufe 3, 16/16 Podeste, Rate ×1,75 | automatisiert | ✅ |
+| **Tycoon:** Relikt auf Galerie-Podest 13 ausgestellt, 16 Client-Prompts aktiv | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.
@@ -134,6 +150,7 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 - **8 Spieler gleichzeitig, Besuchs-Meldung zwischen zwei echten Spielern.**
 - **Smartphone-Bedienung** am Gerät.
 - **Expedition zu zweit** (Studio *Clients and Servers*) und echte Tasten-/Touch-Bedienung der Prompts: Mein Studio-Fenster rendert gerade nicht, deshalb habe ich die Prompts serverseitig über `DevTools prompt` ausgelöst (gleiche Reichweiten-, Mitglieds- und Rate-Prüfung wie echte Eingaben).
+- **Tycoon-Optik:** Bauteile nur per Abfrage geprüft, Screenshots liefen ins Timeout (Studio-Fenster nicht sichtbar). Sieht sich in Block 3 an.
 - **Zeitlimit 8 min** nicht abgewartet (Logik geprüft, nicht ausgelöst).
 - **Glitzern bei seltenen Funden** im Spiel gesehen: Code-Pfad identisch zum Ausbau-Effekt, ein seltener Fund kam im Test nicht vor (wird mit der Expedition geprüft).
 - **Klang selbst anhören:** Ich kann Sounds nur technisch prüfen (lädt, spielt, Tonhöhe). Ob dir Auswahl und Lautstärken gefallen, hörst nur du. Austausch = eine Zeile in `Shared/Sounds.luau`.

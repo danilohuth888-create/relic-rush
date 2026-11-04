@@ -5,6 +5,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Builds = require(ReplicatedStorage.Shared.Builds)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
@@ -42,7 +43,7 @@ local function check(player: Player, slot: any): (PlayerDataService.Data?, Model
 	if not validSlot(slot) then
 		return nil, nil, "bad_slot"
 	end
-	if slot > Config.Tiers[data.tier].pedestals then
+	if not Builds.slotUnlocked(data.builds, slot) then
 		return nil, nil, "locked_slot"
 	end
 	local pedestal = PlotService.getPedestal(player, slot)

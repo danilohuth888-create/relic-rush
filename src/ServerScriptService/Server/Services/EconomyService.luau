@@ -5,6 +5,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Builds = require(ReplicatedStorage.Shared.Builds)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
@@ -50,7 +51,7 @@ function EconomyService.recompute(player: Player)
 		rates[player] = nil
 		return
 	end
-	local rate = EconomyService.rateFor(data.display) * multiplier(player)
+	local rate = EconomyService.rateFor(data.display) * multiplier(player) * Builds.multiplier(data.builds)
 	rates[player] = rate
 	player:SetAttribute("CoinRate", rate)
 end
@@ -99,7 +100,7 @@ function EconomyService.setup(player: Player)
 	-- Offline earnings for returning players, at a reduced and capped rate.
 	if data.lastSeen > 0 then
 		local away = math.clamp(os.time() - data.lastSeen, 0, Config.OfflineCapSeconds)
-		local earned = math.floor(away * EconomyService.rateFor(data.display) * Config.OfflineRate)
+		local earned = math.floor(away * EconomyService.rateFor(data.display) * Builds.multiplier(data.builds) * Config.OfflineRate)
 		if earned > 0 then
 			EconomyService.grant(player, earned, "offline")
 			Net.event("Notify"):FireClient(player, {

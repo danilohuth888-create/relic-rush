@@ -5,13 +5,14 @@ local Config = {}
 
 Config.MaxPlots = 8
 
--- Treasury tiers: pedestal count and coin cost to unlock (tier 1 is free).
+-- Treasury tiers, reached through the hall builds in Shared/Builds. Many rewards and prices
+-- scale with the tier.
 Config.Tiers = {
-	{ pedestals = 4, cost = 0, name = "Kleine Schatzkammer" },
-	{ pedestals = 8, cost = 500, name = "Runensaal" },
-	{ pedestals = 12, cost = 5000, name = "Aetherhalle" },
+	{ name = "Kleine Schatzkammer" },
+	{ name = "Runensaal" },
+	{ name = "Aetherhalle" },
 }
-Config.MaxPedestals = 12
+Config.MaxPedestals = 16
 
 Config.RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 Config.Rarities = {

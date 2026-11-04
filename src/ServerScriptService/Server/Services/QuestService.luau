@@ -79,7 +79,7 @@ local function checkMilestones(player: Player, data: PlayerDataService.Data)
 end
 
 local function finishTutorial(player: Player, data: PlayerDataService.Data)
-	if not data.tutorial.done and data.tier >= 2 and data.stats.forestVisited then
+	if not data.tutorial.done and data.stats.upgrades >= 1 and data.stats.forestVisited then
 		data.tutorial.done = true
 		Analytics.onboarding(player, Analytics.Onboarding.TutorialDone)
 		PlayerDataService.replicate(player)

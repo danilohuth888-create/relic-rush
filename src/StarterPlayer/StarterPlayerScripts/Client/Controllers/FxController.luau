@@ -213,6 +213,9 @@ function FxController.start()
 				FxController.glitter(root.Position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 200, 90), 90)
 			end
 			FxController.cameraKick(6, true)
+		elseif type(message) == "table" and message.kind == "build" and typeof(message.position) == "Vector3" then
+			FxController.glitter(message.position + Vector3.new(0, 3, 0), Color3.fromRGB(255, 210, 90), 60)
+			FxController.cameraKick(3)
 		elseif type(message) == "table" and message.kind == "upgrade" then
 			local plot = ownPlot()
 			if plot then

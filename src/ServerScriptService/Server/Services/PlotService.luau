@@ -5,15 +5,19 @@
 --   PlotN (Model, attrs PlotIndex, OwnerUserId)
 --     Sign.Board.SurfaceGui.OwnerLabel   SpawnPoint (Part)   Accents (Folder of Neon parts)
 --     Pedestals.PedestalK (Model, attrs Slot, RequiredTier) with Base + Top parts
+-- At runtime each plot also gets Buttons.Pad1..6 (tycoon build buttons, see TycoonService)
+-- and Builds.<id> (bought decoration, see Util/Blueprints).
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local Builds = require(ReplicatedStorage.Shared.Builds)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
+local Blueprints = require(script.Parent.Parent.Util.Blueprints)
 local RateLimiter = require(script.Parent.Parent.Util.RateLimiter)
 
 local PlotService = {}
@@ -21,6 +25,10 @@ local PlotService = {}
 local plotsFolder: Instance
 local owners: { [number]: Player } = {}
 local homeLimiter = RateLimiter.new(2, 0.5)
+-- Build buttons on the side strips of every plot (plot-local x, z).
+local BUTTON_SPOTS = { { -16.5, -5 }, { 16.5, -5 }, { -16.5, 1 }, { 16.5, 1 }, { -16.5, 7 }, { 16.5, 7 } }
+local BUTTON_READY = Color3.fromRGB(90, 230, 130)
+local BUTTON_LOCKED = Color3.fromRGB(150, 140, 165)
 
 local function plotModel(index: number): Model?
 	return plotsFolder:FindFirstChild("Plot" .. index) :: Model?
@@ -82,18 +90,93 @@ local function setDecor(plot: Model, tier: number)
 	end
 end
 
-local function setUpgradeLabel(plot: Model, tier: number, owned: boolean)
+-- The old upgrade stone now shows how much of the building plan is done.
+local function setPlanLabel(plot: Model, owned: { [string]: boolean }?)
 	local label = plot:FindFirstChild("UpgradeLabel", true)
 	if not (label and label:IsA("TextLabel")) then
 		return
 	end
-	local nextTier = Config.Tiers[tier + 1]
 	if not owned then
-		label.Text = "Ausbau-Stein"
-	elseif nextTier then
-		label.Text = ("%s\n%d Münzen"):format(nextTier.name, nextTier.cost)
+		label.Text = "Bauplan"
 	else
-		label.Text = "Voll ausgebaut!"
+		label.Text = ("Bauplan\n%d / %d gebaut"):format(Builds.count(owned), #Builds.list)
+	end
+end
+
+local function formatCost(n: number): string
+	local digits = tostring(math.floor(n))
+	local out = digits:reverse():gsub("(%d%d%d)", "%1."):reverse()
+	return if out:sub(1, 1) == "." then out:sub(2) else out
+end
+
+local function tagLabel(gui: Instance, name: string, y: number, h: number, color: Color3)
+	local l = Instance.new("TextLabel")
+	l.Name = name
+	l.Position = UDim2.fromScale(0, y)
+	l.Size = UDim2.fromScale(1, h)
+	l.BackgroundTransparency = 1
+	l.TextScaled = true
+	l.Font = Enum.Font.FredokaOne
+	l.TextColor3 = color
+	l.TextStrokeTransparency = 0.3
+	l.Parent = gui
+end
+
+-- Six glowing pads offering the cheapest builds whose requirements are met.
+local function createButtons(plot: Model)
+	local floor = plot:FindFirstChild("Floor") :: BasePart?
+	if not floor or plot:FindFirstChild("Buttons") then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "Buttons"
+	for i, spot in BUTTON_SPOTS do
+		local pad = Instance.new("Part")
+		pad.Name = "Pad" .. i
+		pad.Size = Vector3.new(3.4, 0.3, 3.4)
+		pad.CFrame = floor.CFrame * CFrame.new(spot[1], 0.75, spot[2])
+		pad.Anchored = true
+		pad.CanCollide = false
+		pad.CanQuery = false
+		pad.CanTouch = false
+		pad.CastShadow = false
+		pad.Material = Enum.Material.Neon
+		pad.Transparency = 1
+		local gui = Instance.new("BillboardGui")
+		gui.Name = "Tag"
+		gui.Size = UDim2.fromOffset(170, 64)
+		gui.StudsOffsetWorldSpace = Vector3.new(0, 3.2, 0)
+		gui.MaxDistance = 70
+		gui.LightInfluence = 0
+		gui.Enabled = false
+		tagLabel(gui, "BuildName", 0, 0.55, Color3.new(1, 1, 1))
+		tagLabel(gui, "Cost", 0.55, 0.45, Color3.fromRGB(255, 215, 90))
+		gui.Parent = pad
+		pad.Parent = folder
+	end
+	folder.Parent = plot
+end
+
+local function setButtons(plot: Model, owned: { [string]: boolean }?)
+	local folder = plot:FindFirstChild("Buttons")
+	if not folder then
+		return
+	end
+	local offers = if owned then Builds.available(owned) else {}
+	for i = 1, #BUTTON_SPOTS do
+		local pad = folder:FindFirstChild("Pad" .. i) :: BasePart?
+		if pad then
+			local build = offers[i]
+			local gui = pad:FindFirstChild("Tag") :: BillboardGui
+			pad:SetAttribute("BuildId", if build then build.id else nil)
+			pad.Transparency = if build then 0.2 else 1
+			gui.Enabled = build ~= nil
+			if build then
+				(gui:FindFirstChild("BuildName") :: TextLabel).Text = build.name
+				local boost = if build.boost then (" · +%d %%"):format(math.floor(build.boost * 100 + 0.5)) else ""
+				(gui:FindFirstChild("Cost") :: TextLabel).Text = formatCost(build.cost) .. " Münzen" .. boost
+			end
+		end
 	end
 end
 
@@ -125,17 +208,19 @@ local function clearDisplay(pedestal: Instance)
 	end
 end
 
-local function applyTierTo(plot: Model, tier: number)
+-- owned = nil means a free plot: only the starter pedestals, no buttons.
+local function applyBuildsTo(plot: Model, owned: { [string]: boolean }?, animate: boolean)
+	local builds = owned or {}
+	Blueprints.sync(plot, builds, animate)
 	local pedestals = plot:FindFirstChild("Pedestals")
-	if not pedestals then
-		return
+	for _, pedestal in (if pedestals then pedestals:GetChildren() else {}) do
+		local slot = pedestal:GetAttribute("Slot") :: number? or 1
+		setPedestalVisible(pedestal, Builds.slotUnlocked(builds, slot))
 	end
-	for _, pedestal in pedestals:GetChildren() do
-		local required = pedestal:GetAttribute("RequiredTier") :: number? or 1
-		setPedestalVisible(pedestal, required <= tier)
-	end
+	local tier = Builds.tier(builds)
 	setDecor(plot, tier)
-	setUpgradeLabel(plot, tier, (plot:GetAttribute("OwnerUserId") :: number? or 0) ~= 0)
+	setButtons(plot, owned)
+	setPlanLabel(plot, owned)
 	plot:SetAttribute("Tier", tier)
 end
 
@@ -150,7 +235,7 @@ local function resetPlot(plot: Model)
 			clearDisplay(pedestal)
 		end
 	end
-	applyTierTo(plot, 1)
+	applyBuildsTo(plot, nil, false)
 end
 
 -- Lowest free index; kept pure so assignment logic is testable without real players.
@@ -168,6 +253,7 @@ function PlotService.init()
 	for i = 1, Config.MaxPlots do
 		local plot = plotModel(i)
 		assert(plot, "missing Plot" .. i)
+		createButtons(plot)
 		resetPlot(plot)
 	end
 
@@ -222,11 +308,40 @@ function PlotService.getPedestal(player: Player, slot: number): Model?
 	return if pedestals then pedestals:FindFirstChild("Pedestal" .. slot) :: Model? else nil
 end
 
-function PlotService.applyTier(player: Player, tier: number)
+function PlotService.applyBuilds(player: Player, owned: { [string]: boolean }, animate: boolean?)
 	local plot = PlotService.getPlot(player)
 	if plot then
-		applyTierTo(plot, tier)
+		applyBuildsTo(plot, owned, animate == true)
 	end
+end
+
+-- Colours the owner's buttons green when affordable, grey otherwise.
+function PlotService.tintButtons(player: Player, coins: number)
+	local plot = PlotService.getPlot(player)
+	local folder = plot and plot:FindFirstChild("Buttons")
+	for _, pad in (if folder then folder:GetChildren() else {}) do
+		local id = pad:GetAttribute("BuildId")
+		local build = type(id) == "string" and Builds.byId[id]
+		if build and pad:IsA("BasePart") then
+			local color = if coins >= build.cost then BUTTON_READY else BUTTON_LOCKED
+			if pad.Color ~= color then
+				pad.Color = color
+			end
+		end
+	end
+end
+
+-- The owner's active build buttons (pads with a BuildId).
+function PlotService.buttons(player: Player): { BasePart }
+	local plot = PlotService.getPlot(player)
+	local folder = plot and plot:FindFirstChild("Buttons")
+	local result = {}
+	for _, pad in (if folder then folder:GetChildren() else {}) do
+		if pad:IsA("BasePart") and pad:GetAttribute("BuildId") then
+			table.insert(result, pad)
+		end
+	end
+	return result
 end
 
 function PlotService.setVip(player: Player, vip: boolean)

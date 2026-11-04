@@ -1,14 +1,15 @@
 --!strict
--- Adds local prompts to the player's own plot: "Ausstellen" on each unlocked pedestal and
--- "Ausbauen" on the upgrade stone. The prompts only exist on this client, so visitors never
--- see buttons for someone else's treasury.
+-- Adds local "Ausstellen" prompts to the unlocked pedestals of the player's own plot. The
+-- prompts only exist on this client, so visitors never see buttons for someone else's treasury.
+-- Building happens by stepping on the plot's build buttons (TycoonService, server-side);
+-- gallery pedestals appear later, so new pedestals are picked up as they are added.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local Builds = require(ReplicatedStorage.Shared.Builds)
 local Config = require(ReplicatedStorage.Shared.Config)
-local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local ClientState = require(script.Parent.Parent.ClientState)
 
@@ -16,7 +17,7 @@ local player = Players.LocalPlayer
 local PlotController = {}
 
 local prompts: { [number]: ProximityPrompt } = {}
-local upgradePrompt: ProximityPrompt? = nil
+local connections: { RBXScriptConnection } = {}
 local currentPlot: Instance? = nil
 
 local function refresh()
@@ -24,21 +25,12 @@ local function refresh()
 	if not state then
 		return
 	end
-	local unlocked = Config.Tiers[state.tier].pedestals
 	for slot, prompt in prompts do
 		local occupant = state.display[tostring(slot)]
 		local def = occupant and RelicDefs.byId[occupant]
-		prompt.Enabled = slot <= unlocked
+		prompt.Enabled = Builds.slotUnlocked(state.builds or {}, slot)
 		prompt.ActionText = if def then "Tauschen" else "Ausstellen"
 		prompt.ObjectText = if def then def.name else "Podest " .. slot
-	end
-	if upgradePrompt then
-		local nextTier = Config.Tiers[state.tier + 1]
-		upgradePrompt.Enabled = nextTier ~= nil
-		if nextTier then
-			upgradePrompt.ActionText = ("Ausbauen (%d Münzen)"):format(nextTier.cost)
-			upgradePrompt.ObjectText = nextTier.name
-		end
 	end
 end
 
@@ -47,21 +39,11 @@ local function clear()
 		prompt:Destroy()
 	end
 	table.clear(prompts)
-	if upgradePrompt then
-		upgradePrompt:Destroy()
-		upgradePrompt = nil
+	for _, connection in connections do
+		connection:Disconnect()
 	end
+	table.clear(connections)
 	currentPlot = nil
-end
-
-local function newPrompt(parent: Instance, hold: number): ProximityPrompt
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.HoldDuration = hold
-	prompt.MaxActivationDistance = Config.PedestalRange
-	prompt.RequiresLineOfSight = false
-	prompt.KeyboardKeyCode = Enum.KeyCode.E
-	prompt.Parent = parent
-	return prompt
 end
 
 -- Persistent plot models stream in shortly after the client starts; wait quietly for them.
@@ -75,45 +57,54 @@ local function waitFor(parent: Instance, name: string, stillWanted: () -> boolea
 	return nil
 end
 
+local function addPedestal(hud: any, pedestal: Instance)
+	local slot = pedestal:GetAttribute("Slot")
+	if type(slot) ~= "number" or prompts[slot] then
+		return
+	end
+	local anchor = pedestal:WaitForChild("Base", 5)
+	if not anchor or not pedestal.Parent then
+		return
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = Config.PedestalRange
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.Parent = anchor
+	prompt.Triggered:Connect(function()
+		hud.openPedestal(slot)
+	end)
+	prompts[slot] = prompt
+	refresh()
+end
+
 local function setup(hud: any, index: number)
 	clear()
 	local function wanted()
 		return player:GetAttribute("PlotIndex") == index
 	end
-	local plots = waitFor(Workspace, "Aetheria", wanted)
-	plots = plots and waitFor(plots, "Plots", wanted)
+	local aetheria = waitFor(Workspace, "Aetheria", wanted)
+	local plots = aetheria and waitFor(aetheria, "Plots", wanted)
 	local plot = plots and waitFor(plots, "Plot" .. index, wanted)
 	local pedestals = plot and waitFor(plot, "Pedestals", wanted)
 	if not plot or not pedestals then
 		return
 	end
 	currentPlot = plot
-	for slot = 1, Config.MaxPedestals do
-		local pedestal = pedestals:WaitForChild("Pedestal" .. slot, 10)
-		local anchor = pedestal and pedestal:FindFirstChild("Base")
-		if anchor then
-			local prompt = newPrompt(anchor, 0)
-			prompt.Triggered:Connect(function()
-				hud.openPedestal(slot)
-			end)
-			prompts[slot] = prompt
+	table.insert(connections, pedestals.ChildAdded:Connect(function(child)
+		addPedestal(hud, child)
+	end))
+	table.insert(connections, pedestals.ChildRemoved:Connect(function(child)
+		local slot = child:GetAttribute("Slot")
+		if type(slot) == "number" and prompts[slot] then
+			prompts[slot]:Destroy()
+			prompts[slot] = nil
 		end
+	end))
+	for _, pedestal in pedestals:GetChildren() do
+		task.spawn(addPedestal, hud, pedestal)
 	end
-	local stone = plot:WaitForChild("UpgradeStone", 10)
-	local stonePart = stone and stone:FindFirstChild("Stone")
-	if stonePart then
-		local prompt = newPrompt(stonePart, 0.6)
-		prompt.Triggered:Connect(function()
-			local ok, success, err = pcall(function()
-				return Net.func("Upgrade"):InvokeServer()
-			end)
-			if not (ok and success) then
-				hud.showError(err)
-			end
-		end)
-		upgradePrompt = prompt
-	end
-	refresh()
 end
 
 -- World position of the own plot's pieces, for Lumi's guidance.
@@ -122,14 +113,21 @@ function PlotController.target(name: string): Vector3?
 	if not plot then
 		return nil
 	end
-	local target: Instance? = nil
 	if name == "pedestal" then
 		local pedestals = plot:FindFirstChild("Pedestals")
-		target = pedestals and pedestals:FindFirstChild("Pedestal1")
-	elseif name == "upgrade" then
-		target = plot:FindFirstChild("UpgradeStone")
+		local first = pedestals and pedestals:FindFirstChild("Pedestal1")
+		return if first and first:IsA("Model") then first:GetPivot().Position else nil
+	elseif name == "button" then
+		local buttons = plot:FindFirstChild("Buttons")
+		local best: BasePart? = nil
+		for _, pad in (if buttons then buttons:GetChildren() else {}) do
+			if pad:IsA("BasePart") and pad:GetAttribute("BuildId") and (not best or pad.Name < best.Name) then
+				best = pad
+			end
+		end
+		return if best then best.Position else nil
 	end
-	return if target and target:IsA("Model") then target:GetPivot().Position else nil
+	return nil
 end
 
 function PlotController.start(hud: any)

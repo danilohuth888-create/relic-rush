@@ -12,7 +12,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 4
+local SCHEMA_VERSION = 5
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -36,6 +36,7 @@ export type Data = {
 	receipts: { string }, -- last processed Developer Product purchase ids
 	settings: Settings,
 	expedition: Expedition,
+	builds: { [string]: boolean }, -- tycoon builds on the plot (Shared/Builds)
 	lastSeen: number,
 }
 
@@ -63,6 +64,7 @@ local function defaultData(): Data
 		receipts = {},
 		settings = table.clone(Config.DefaultSettings),
 		expedition = { cooldownUntil = 0, runs = 0, wins = 0 },
+		builds = {},
 		lastSeen = 0,
 	}
 end
@@ -86,6 +88,20 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 	[4] = function(data)
 		-- v4 added the expedition (cooldown and run counters).
 		data.expedition = { cooldownUntil = 0, runs = 0, wins = 0 }
+	end,
+	[5] = function(data)
+		-- v5 replaced the three bought tiers with tycoon builds: keep what each tier gave.
+		data.builds = {}
+		if data.tier >= 2 then
+			for _, id in { "ped5", "ped6", "ped7", "ped8", "hall2" } do
+				data.builds[id] = true
+			end
+		end
+		if data.tier >= 3 then
+			for _, id in { "ped9", "ped10", "ped11", "ped12", "hall3" } do
+				data.builds[id] = true
+			end
+		end
 	end,
 }
 
@@ -306,6 +322,7 @@ function PlayerDataService.snapshot(player: Player): any
 		quests = data.quests.list,
 		settings = data.settings,
 		expeditionCooldown = data.expedition.cooldownUntil,
+		builds = data.builds,
 		persistent = PlayerDataService.persistent,
 	}
 end

@@ -56,7 +56,7 @@ local ROBUX = utf8.char(0xE002) -- Roblox fonts draw this private-use glyph as t
 local ERRORS: { [string]: string } = {
 	too_far = "Geh etwas näher heran.",
 	not_owned = "Dieses Relikt hast du gerade nicht im Inventar.",
-	locked_slot = "Dieses Podest ist noch gesperrt – baue deine Schatzkammer aus.",
+	locked_slot = "Dieses Podest ist noch nicht gebaut – kauf es an einer Bau-Taste.",
 	rate = "Nicht so schnell!",
 	gone = "Dieses Relikt ist schon eingesammelt.",
 	no_plot = "Du hast noch keine Schatzkammer.",
@@ -69,6 +69,7 @@ local ERRORS: { [string]: string } = {
 }
 local NOTIFY_COLORS: { [string]: Color3 } = {
 	upgrade = THEME.gold,
+	build = THEME.gold,
 	milestone = C(150, 230, 255),
 	purchase = THEME.gold,
 	visit = C(255, 200, 230),
@@ -82,6 +83,7 @@ local NOTIFY_COLORS: { [string]: Color3 } = {
 }
 local NOTIFY_SOUNDS: { [string]: string } = {
 	upgrade = "upgrade",
+	build = "purchase",
 	milestone = "claim",
 	purchase = "purchase",
 	visit = "sparkle",
