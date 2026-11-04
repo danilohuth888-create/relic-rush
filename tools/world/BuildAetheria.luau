@@ -280,7 +280,7 @@ for i = 1, 8 do
 	P(accents, "RuneStrip", BLOCK, Vector3.new(34, 0.5, 0.3), at(0, 11.2, 18.3), accent)
 	for _, x in { -19, 19 } do
 		P(plot, "Pillar", BLOCK, Vector3.new(2.4, 9, 2.4), at(x, 5.1, -19), PAL.stoneDark)
-		P(accents, "Crystal", BLOCK, Vector3.one * 2, at(x, 11, -19) * ON_CORNER, accent)
+		P(accents, "Crystal", BLOCK, Vector3.one * 2, at(x, 11, -21.6) * ON_CORNER, accent)
 	end
 	sign(plot, at(-12, 0.6, -21.5), 13, "Freie Schatzkammer", "Schatzkammer " .. i, "OwnerLabel")
 	P(plot, "SpawnPoint", BLOCK, Vector3.new(4, 1, 4), at(0, 0.2, -15) * CFrame.Angles(0, math.pi, 0), accent, SMOOTH, HIDDEN)

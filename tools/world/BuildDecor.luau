@@ -504,11 +504,11 @@ for _, plot in plotCenters do
 	local function at(x, z)
 		return (plot.cf * CFrame.new(x, 0, z)).Position * Vector3.new(1, 0, 1)
 	end
-	for x = -18, 18, 6 do
+	for x = -12, 12, 6 do
 		bush(hedges, at(x, 22.5), 4.4, PAL.leafDark)
 	end
 	for _, x in { -22.5, 22.5 } do
-		for _, z in { 10, 17 } do
+		for _, z in { 2, 9 } do
 			bush(hedges, at(x, z), 4, PAL.leafDark)
 		end
 	end

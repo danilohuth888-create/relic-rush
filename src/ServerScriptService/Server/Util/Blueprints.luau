@@ -52,17 +52,141 @@ local function light(part: BasePart, color: Color3, range: number, brightness: n
 end
 
 local DECOR = { CanCollide = false, CastShadow = false }
+-- Roof parts never block the camera or clicks; the owner's client fades them while inside.
+local ROOF = { CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false }
+local ROOF_TAG = "TreasuryRoof"
+
+-- The treasury building: walls 12 studs high (top at y = 12.6), a gabled roof with its ridge
+-- along local Z at y = 20, eaves overhanging the side walls.
+local WALL_TOP = 12.6
+local RIDGE = 20
+local SLOPE = math.atan((RIDGE - WALL_TOP) / 20)
+local WINDOW_Z = { -10, 0, 10 }
+
+local function wedge(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3): WedgePart
+	local w = Instance.new("WedgePart")
+	w.Name = name
+	w.Size = size
+	w.CFrame = cf
+	w.Color = color
+	w.Material = Enum.Material.SmoothPlastic
+	w.Anchored = true
+	w.Parent = parent
+	return w
+end
+
+local function roofColor(accent: Color3): Color3
+	return accent:Lerp(C(60, 50, 90), 0.45)
+end
+
+local function tagRoof(part: BasePart)
+	part:AddTag(ROOF_TAG)
+end
 
 local MAKERS: { [string]: Maker } = {
-	-- Warm lanterns on the side walls.
+	-- Warm lamp posts in the four corners of the hall.
 	lanterns = function(folder, at)
-		for i, pos in { { -19.2, -8 }, { 19.2, -8 }, { -19.2, 12 }, { 19.2, 12 } } do
-			P(folder, "Post", BLOCK, Vector3.new(0.5, 4, 0.5), at(pos[1], 5.6, pos[2]), WOOD)
-			P(folder, "Cap", BLOCK, Vector3.new(1.4, 0.3, 1.4), at(pos[1], 8.9, pos[2]), WOOD)
-			local lamp = P(folder, "Lamp", BALL, Vector3.one * 1.1, at(pos[1], 8.1, pos[2]), WARM, Enum.Material.Neon, DECOR)
+		for i, pos in { { -17.6, -16 }, { 17.6, -16 }, { -17.6, 15 }, { 17.6, 15 } } do
+			P(folder, "Post", BLOCK, Vector3.new(0.5, 5, 0.5), at(pos[1], 3.1, pos[2]), WOOD)
+			P(folder, "Foot", BLOCK, Vector3.new(1.2, 0.4, 1.2), at(pos[1], 0.8, pos[2]), WOOD)
+			P(folder, "Cap", BLOCK, Vector3.new(1.4, 0.3, 1.4), at(pos[1], 6.95, pos[2]), WOOD)
+			local lamp = P(folder, "Lamp", BALL, Vector3.one * 1.1, at(pos[1], 6.2, pos[2]), WARM, Enum.Material.Neon, DECOR)
 			if i <= 2 then
 				light(lamp, WARM, 16, 1.1)
 			end
+		end
+	end,
+	-- The side walls rise to full height with three window openings each.
+	walls = function(folder, at)
+		for _, side in { -1, 1 } do
+			local x = side * 19.2
+			P(folder, "WallBand", BLOCK, Vector3.new(1.6, 1.4, 36.2), at(x, 4.3, 0.3), STONE_DARK)
+			P(folder, "WallTop", BLOCK, Vector3.new(1.6, 2.6, 36.2), at(x, 11.3, 0.3), STONE_DARK)
+			P(folder, "Trim", BLOCK, Vector3.new(2.1, 0.4, 36.8), at(x, 12.8, 0.3), STONE)
+			for _, range in { { -17.8, -12 }, { -8, -2 }, { 2, 8 }, { 12, 18.4 } } do
+				P(folder, "Pier", BLOCK, Vector3.new(1.6, 5, range[2] - range[1]), at(x, 7.5, (range[1] + range[2]) / 2), STONE_DARK)
+			end
+			for _, z in WINDOW_Z do
+				P(folder, "Sill", BLOCK, Vector3.new(2.1, 0.3, 4.6), at(x, 5.15, z), STONE)
+			end
+			P(folder, "CornerCap", BLOCK, Vector3.new(2.6, 3.4, 2.6), at(side * 19, 11.3, -19), STONE_DARK)
+		end
+		P(folder, "BackTrim", BLOCK, Vector3.new(40.4, 0.4, 2.1), at(0, 12.8, 19.2), STONE)
+	end,
+	-- A stone front with a wide doorway, a keystone and two hanging banners.
+	gate = function(folder, at, accent)
+		for _, side in { -1, 1 } do
+			P(folder, "Facade", BLOCK, Vector3.new(8.3, 12, 1.2), at(side * 13.65, 6.6, -19.6), STONE_DARK)
+			P(folder, "Plinth", BLOCK, Vector3.new(8.3, 1, 1.6), at(side * 13.65, 1.1, -19.6), STONE)
+			P(folder, "DoorTrim", BLOCK, Vector3.new(0.4, 11, 0.3), at(side * 9.6, 6.1, -20.3), GOLD, Enum.Material.Metal, DECOR)
+			P(folder, "Banner", BLOCK, Vector3.new(3.4, 5, 0.2), at(side * 15.4, 9.2, -20.3), accent, nil, DECOR)
+			P(folder, "BannerRod", BLOCK, Vector3.new(4, 0.3, 0.3), at(side * 15.4, 11.8, -20.35), GOLD, Enum.Material.Metal, DECOR)
+		end
+		P(folder, "Lintel", BLOCK, Vector3.new(19.4, 1.2, 1.4), at(0, 12, -19.6), STONE)
+		P(folder, "Keystone", BLOCK, Vector3.new(2, 1.6, 0.4), at(0, 12, -20.4), accent, Enum.Material.Neon, DECOR)
+	end,
+	-- The rune hall: gables front and back and a tiled roof with a golden ridge.
+	hall2 = function(folder, at, accent)
+		local roof = roofColor(accent)
+		local rise = RIDGE - WALL_TOP
+		for _, z in { -19.6, 19.2 } do
+			for _, side in { -1, 1 } do
+				wedge(folder, "Gable", Vector3.new(1.2, rise, 20), at(side * 10, WALL_TOP + rise / 2, z) * CFrame.Angles(0, -side * math.pi / 2, 0), STONE_DARK)
+			end
+		end
+		local face = CFrame.Angles(0, math.pi / 2, 0)
+		P(folder, "RoseRing", CYL, Vector3.new(0.3, 4.4, 4.4), at(0, 15.4, -20.25) * face, GOLD, Enum.Material.Metal, DECOR)
+		P(folder, "RoseWindow", CYL, Vector3.new(0.3, 3.6, 3.6), at(0, 15.4, -20.4) * face, accent, Enum.Material.Neon, DECOR)
+		local run = 21.6
+		for _, side in { -1, 1 } do
+			local slab = at(side * run / 2, RIDGE - run / 2 * math.tan(SLOPE) + 0.45, 0) * CFrame.Angles(0, 0, -side * SLOPE)
+			tagRoof(P(folder, "Roof", BLOCK, Vector3.new(run / math.cos(SLOPE), 0.9, 43.4), slab, roof, nil, ROOF))
+			for _, d in { -7.5, -2.5, 2.5, 7.5 } do
+				tagRoof(P(folder, "Tiles", BLOCK, Vector3.new(0.6, 0.25, 43.4), slab * CFrame.new(d, 0.55, 0), roof:Lerp(Color3.new(0, 0, 0), 0.18), nil, ROOF))
+			end
+		end
+		tagRoof(P(folder, "Ridge", CYL, Vector3.new(43.8, 1.2, 1.2), at(0, RIDGE + 0.6, 0) * face, GOLD, Enum.Material.Metal, ROOF))
+	end,
+	-- Stained glass in the six wall windows.
+	windows = function(folder, at, accent)
+		for _, side in { -1, 1 } do
+			for _, z in WINDOW_Z do
+				P(folder, "Glass", BLOCK, Vector3.new(0.3, 4.8, 3.8), at(side * 19.2, 7.6, z), accent:Lerp(Color3.new(1, 1, 1), 0.35), Enum.Material.Glass, { Transparency = 0.25 })
+				P(folder, "MullionV", BLOCK, Vector3.new(0.5, 4.8, 0.25), at(side * 19.2, 7.6, z), GOLD, Enum.Material.Metal, DECOR)
+				P(folder, "MullionH", BLOCK, Vector3.new(0.5, 0.25, 3.8), at(side * 19.2, 7.6, z), GOLD, Enum.Material.Metal, DECOR)
+			end
+		end
+	end,
+	-- Two round towers at the back corners with pointed roofs and flags.
+	towers = function(folder, at, accent)
+		local roof = roofColor(accent)
+		for _, side in { -1, 1 } do
+			local base = at(side * 20.5, 0.6, 19.5)
+			cyl(folder, "Tower", 22, 6, base * CFrame.new(0, 11, 0), STONE)
+			cyl(folder, "Band", 0.8, 6.5, base * CFrame.new(0, 12, 0), STONE_DARK)
+			cyl(folder, "Crown", 1.2, 7, base * CFrame.new(0, 21.6, 0), STONE_DARK)
+			local out = (base.Position - at(0, 0.6, 0).Position) * Vector3.new(1, 0, 1)
+			for _, y in { 7, 16 } do
+				local p = base.Position + Vector3.new(0, y, 0) + out.Unit * 2.95
+				P(folder, "Slit", BLOCK, Vector3.new(0.8, 2.2, 0.3), CFrame.lookAt(p, p + out), accent, Enum.Material.Neon, DECOR)
+			end
+			for i, d in { 7.4, 6, 4.6, 3.2, 1.8 } do
+				cyl(folder, "Cone", 1.8, d, base * CFrame.new(0, 22.2 + 0.9 + (i - 1) * 1.8, 0), roof)
+			end
+			P(folder, "Pole", BLOCK, Vector3.new(0.25, 4, 0.25), base * CFrame.new(0, 33.2, 0), GOLD, Enum.Material.Metal, DECOR)
+			P(folder, "Flag", BLOCK, Vector3.new(0.15, 1.6, 2.6), base * CFrame.new(0, 34.3, 1.4), accent, nil, DECOR)
+		end
+	end,
+	-- The aether hall: a glass cupola with a crystal on the ridge and golden eaves.
+	hall3 = function(folder, at, accent)
+		tagRoof(P(folder, "CupolaBase", BLOCK, Vector3.new(6, 2.4, 6), at(0, RIDGE + 1, 2), STONE, nil, ROOF))
+		tagRoof(P(folder, "Dome", BALL, Vector3.one * 6.4, at(0, RIDGE + 2.4, 2), accent:Lerp(Color3.new(1, 1, 1), 0.3), Enum.Material.Glass, { Transparency = 0.35, CanCollide = false, CanQuery = false, CastShadow = false }))
+		local crystal = P(folder, "Crystal", BLOCK, Vector3.one * 2.2, at(0, RIDGE + 3, 2) * ON_CORNER, CRYSTAL, Enum.Material.Neon, ROOF)
+		tagRoof(crystal)
+		light(crystal, CRYSTAL, 20, 1)
+		tagRoof(P(folder, "Finial", BLOCK, Vector3.new(0.5, 3, 0.5), at(0, RIDGE + 6.8, 2), GOLD, Enum.Material.Metal, ROOF))
+		for _, side in { -1, 1 } do
+			tagRoof(P(folder, "Eave", BLOCK, Vector3.new(0.6, 0.6, 43.6), at(side * 21.4, 12, 0), GOLD, Enum.Material.Metal, ROOF))
 		end
 	end,
 	-- Gold border around the carpet and a runner from the entrance to the pedestals.
@@ -147,9 +271,9 @@ local MAKERS: { [string]: Maker } = {
 			ped.Parent = pedestals
 		end
 	end,
-	-- The treasury crown floating above the golden arch.
+	-- The treasury crown floating above the front gable.
 	crown = function(folder, at, accent)
-		local c = at(0, 18.5, -20)
+		local c = at(0, 22.4, -20)
 		cyl(folder, "Band", 1.4, 6, c, GOLD, Enum.Material.Metal, DECOR)
 		for i = 0, 5 do
 			local a = i / 6 * math.pi * 2

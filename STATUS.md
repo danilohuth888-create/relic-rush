@@ -183,6 +183,11 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Welt-Deko:** `tools/world/BuildDecor.luau` baut `Workspace.Aetheria.Decor` (1.854 Teile, 11 Lichter): Randfelsen, 4 Wasserfälle mit Gischt, Wiesenflecken, Gras, Blumen, Büsche, Blütenbäume, 26 Weglaternen, Hecken um die Schatzkammern, Blumenbeete am Platz, dichterer Flüsterwald mit Glühwürmchen, Ruinenhof mit Bodenplatten, Säulenresten und blauen Fackeln, Kristalle und Ranken an der Inselunterseite | Screenshots Edit-Modus | ✅ |
 | **Welt-Deko:** hält Abstand zu Plätzen, Wegen, Schatzkammern, Grab-Verstecken, Geister-Spawns und Hügeln (liest das Layout live) | Code + Screenshots | ✅ |
 | **Geister-Optik:** neu gestaltet (Körper, Leuchtrand, Gesicht, Ärmchen, Schweif, Augen je Zustand), im Playtest von vorn und seitlich angesehen | Playtest-Screenshots | ✅ |
+| **Tycoon-Gebäude:** Bauabschnitte nebeneinander auf 4 Grundstücken angesehen (Mauern → Portal → Dach → Fenster/Türme) und Vollausbau von außen und innen; Dach blendet beim Betreten aus (17/17 Dachteile) | Playtest-Screenshots | ✅ |
+| **Tycoon-Gebäude:** Kauf „Buntglasfenster“ per Bau-Logik, bereits besessene Teile abgelehnt („owned“), Optik erscheint | Playtest | ✅ |
+| **Migration v8:** v7-Profil mit Runensaal → Mauern + Portal ergänzt; mit Aetherhalle → zusätzlich Fenster + Türme; ohne Halle unverändert | Playtest (`PlayerDataService.reconcile`) | ✅ |
+| **Schatzkarte:** X auf der Karte sichtbar, Lichtstrahl in der Nähe, Graben mit echter E-Taste (+1.600 Münzen, Relikt), Truhe springt auf | Playtest mit Laufsteuerung | ✅ |
+| **Geister fangen mit echter Laufsteuerung** (Humanoid läuft dem Geist nach): gewöhnlich nach 6,6 s inkl. 94 Studs Anlauf, ungewöhnlich nach ~8,5 s Jagd | Playtest | ✅ |
 | **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
@@ -191,8 +196,7 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 - **8 Spieler gleichzeitig, Besuchs-Meldung zwischen zwei echten Spielern.**
 - **Smartphone-Bedienung** am Gerät.
 - **Expedition zu zweit** (Studio *Clients and Servers*) und echte Tasten-/Touch-Bedienung der Prompts: Mein Studio-Fenster rendert gerade nicht, deshalb habe ich die Prompts serverseitig über `DevTools prompt` ausgelöst (gleiche Reichweiten-, Mitglieds- und Rate-Prüfung wie echte Eingaben).
-- **Geister mit echter Steuerung fangen** (Tastatur/Touch): Bei verdecktem Studio-Fenster bewegt sich die Spielfigur nur per Teleport; ein Versuch mit Client-Teleports fing nichts. Serverseitig bewegt klappt es. Bitte einmal live jagen – wenn es zäh ist, stelle ich die Tempos in `Config.Spirits` ein.
-- **Kartenfenster ansehen:** Klicks liefen bei verdecktem Fenster ins Timeout, daher ist das gezeichnete Kartenfenster noch nicht auf einem Bild geprüft.
+- ~~Geister mit echter Steuerung fangen~~ (jetzt mit Laufsteuerung geprüft; Touch noch offen): Bei verdecktem Studio-Fenster bewegt sich die Spielfigur nur per Teleport; ein Versuch mit Client-Teleports fing nichts. Serverseitig bewegt klappt es. Bitte einmal live jagen – wenn es zäh ist, stelle ich die Tempos in `Config.Spirits` ein.
 - **Tycoon-Optik:** Bauteile nur per Abfrage geprüft, Screenshots liefen ins Timeout (Studio-Fenster nicht sichtbar). Sieht sich in Block 3 an.
 - **Relikt-Modelle aus Blender:** Selbst hochladen ging nicht (`AssetService:CreateAssetAsync` ist in Studio gesperrt; EditableMesh im Live-Spiel bräuchte deine Ausweis-Verifizierung und einen Sicherheitsschalter). Upload über *Import 3D* nach `assets/relics/README.md`.
 - **Bildrate auf schwachem Handy** mit der neuen Deko.

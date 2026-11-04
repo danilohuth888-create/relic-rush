@@ -1105,17 +1105,27 @@ local function renderMap(state: any)
 		stroke(THEME.white, 2).Parent = me
 	end
 	if spot then
-		local x = label(paper, {
+		-- Two crossed bars (the title font has no "✕" glyph).
+		local mark = new("Frame", {
 			Name = "X",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = mapPoint(spot.position),
 			Size = UDim2.fromOffset(30, 30),
-			Text = "✕",
-			Font = TITLE,
-			TextSize = 30,
-			TextColor3 = C(220, 40, 40),
+			BackgroundTransparency = 1,
+			ZIndex = 5,
+			Parent = paper,
 		})
-		textStroke(THEME.white, 2).Parent = x
+		for _, angle in { 45, -45 } do
+			new("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromOffset(30, 7),
+				Rotation = angle,
+				BackgroundColor3 = C(220, 40, 40),
+				ZIndex = 5,
+				Parent = mark,
+			}, { corner(3), stroke(THEME.white, 2) })
+		end
 	else
 		-- Torn, unreadable map until all pieces are together.
 		new("Frame", { Name = "Fog", Size = UDim2.fromScale(1, 1), BackgroundColor3 = C(244, 228, 190), BackgroundTransparency = 0.25, Parent = paper })

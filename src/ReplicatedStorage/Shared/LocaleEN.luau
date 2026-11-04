@@ -39,6 +39,10 @@ return {
 	["Kleine Schatzkammer"] = "Small Treasury",
 	["Runensaal"] = "Rune Hall",
 	["Aetherhalle"] = "Aether Hall",
+	["Steinmauern"] = "Stone Walls",
+	["Eingangsportal"] = "Entrance Portal",
+	["Buntglasfenster"] = "Stained Glass",
+	["Ecktürme"] = "Corner Towers",
 
 	["Podest 5"] = "Pedestal 5",
 	["Podest 6"] = "Pedestal 6",

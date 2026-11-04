@@ -1,15 +1,23 @@
 --!strict
 -- Draws the dig mound of the player's open treasure map (only this player sees it) with a
--- "Graben" prompt. The server checks the map and the distance and pays the treasure.
+-- "Graben" prompt. A golden light beam rises once the player is close. The server checks the
+-- map and the distance and pays the treasure; this client then lets a chest burst open.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Audio = require(script.Parent.Parent.Audio)
 local ClientState = require(script.Parent.Parent.ClientState)
+local FxController = require(script.Parent.FxController)
+
+local GOLD = Color3.fromRGB(255, 205, 90)
+local WOOD = Color3.fromRGB(140, 92, 60)
+local BEAM_RANGE = 50 -- the beam shows from this distance, so the riddle still matters
 
 local TreasureController = {}
 
@@ -20,6 +28,7 @@ end
 
 local hud: any
 local mound: Model? = nil
+local beamConnection: RBXScriptConnection? = nil
 local shownSpot = 0
 local digging = false
 
@@ -37,6 +46,78 @@ local function part(parent: Instance, name: string, shape: Enum.PartType, size: 
 	p.CanTouch = false
 	p.Parent = parent
 	return p
+end
+
+-- A chest rises out of the ground, flips its lid open and showers gold.
+local function chestReveal(position: Vector3)
+	local model = Instance.new("Model")
+	model.Name = "TreasureChest"
+	local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local facing = if root then Vector3.new(root.Position.X, position.Y, root.Position.Z) else position + Vector3.new(0, 0, -1)
+	local base = CFrame.lookAt(position, facing)
+	local pieces: { { part: BasePart, offset: CFrame, lid: boolean } } = {}
+	local function piece(name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material, lid: boolean)
+		local p = part(model, name, Enum.PartType.Block, size, base * offset, color, material)
+		table.insert(pieces, { part = p, offset = offset, lid = lid })
+		return p
+	end
+	piece("Box", Vector3.new(3, 1.8, 2.2), CFrame.new(0, 0.9, 0), WOOD, Enum.Material.Wood, false)
+	for _, x in { -1.1, 1.1 } do
+		piece("Band", Vector3.new(0.3, 1.85, 2.3), CFrame.new(x, 0.9, 0), GOLD, Enum.Material.Metal, false)
+	end
+	piece("Lock", Vector3.new(0.5, 0.6, 0.2), CFrame.new(0, 1.3, -1.15), GOLD, Enum.Material.Metal, false)
+	local glow = piece("Gold", Vector3.new(2.6, 0.3, 1.8), CFrame.new(0, 1.7, 0), GOLD, Enum.Material.Neon, false)
+	local light = Instance.new("PointLight")
+	light.Color = GOLD
+	light.Range = 14
+	light.Brightness = 2
+	light.Parent = glow
+	-- Lid pieces are given relative to the hinge on the back top edge.
+	piece("Lid", Vector3.new(3, 0.8, 2.2), CFrame.new(0, 0.4, -1.1), WOOD, Enum.Material.Wood, true)
+	piece("LidBand", Vector3.new(3.05, 0.25, 2.3), CFrame.new(0, 0.82, -1.1), GOLD, Enum.Material.Metal, true)
+	model.Parent = Workspace
+
+	local hinge = CFrame.new(0, 1.8, 1.1)
+	local t0 = os.clock()
+	local burst = false
+	local connection: RBXScriptConnection
+	connection = RunService.Heartbeat:Connect(function()
+		local t = os.clock() - t0
+		local rise = math.clamp(t / 0.5, 0, 1)
+		local lift = CFrame.new(0, -2.2 * (1 - rise) ^ 2, 0)
+		local open = math.clamp((t - 0.6) / 0.35, 0, 1)
+		local angle = math.rad(115) * (1 - (1 - open) ^ 3)
+		local fade = math.clamp((t - 3.2) / 0.6, 0, 1)
+		for _, info in pieces do
+			local offset = if info.lid then hinge * CFrame.Angles(angle, 0, 0) * info.offset else info.offset
+			info.part.CFrame = base * lift * offset
+			info.part.LocalTransparencyModifier = fade
+		end
+		if open > 0 and not burst then
+			burst = true
+			Audio.play("claim")
+			FxController.glitter(position + Vector3.new(0, 2, 0), GOLD, 60)
+			FxController.cameraKick(3, false)
+		end
+		if fade >= 1 then
+			connection:Disconnect()
+			model:Destroy()
+		end
+	end)
+end
+
+-- A tall golden beam over the mound that fades in when the player gets close.
+local function watchBeam(beam: BasePart, position: Vector3)
+	if beamConnection then
+		beamConnection:Disconnect()
+	end
+	beamConnection = RunService.Heartbeat:Connect(function()
+		local character = Players.LocalPlayer.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local distance = if root then (Vector3.new(root.Position.X, position.Y, root.Position.Z) - position).Magnitude else math.huge
+		local target = if distance < BEAM_RANGE then 0.45 else 1
+		beam.Transparency += (target - beam.Transparency) * 0.08
+	end)
 end
 
 local function build(position: Vector3): Model
@@ -61,6 +142,10 @@ local function build(position: Vector3): Model
 	sparkle.SpreadAngle = Vector2.new(40, 40)
 	sparkle.LightEmission = 1
 	sparkle.Parent = dirt
+	local beam = part(model, "Beam", Enum.PartType.Cylinder, Vector3.new(60, 1.6, 1.6), base * CFrame.new(0, 31, 0) * CFrame.Angles(0, 0, math.rad(90)), GOLD, Enum.Material.Neon)
+	beam.Transparency = 1
+	beam.CastShadow = false
+	watchBeam(beam, position)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = L("Graben")
@@ -79,7 +164,9 @@ local function build(position: Vector3): Model
 			return Net.func("DigTreasure"):InvokeServer()
 		end)
 		digging = false
-		if not (ok and success) then
+		if ok and success then
+			chestReveal(position)
+		else
 			hud.showError(err)
 		end
 	end)
@@ -97,6 +184,10 @@ local function refresh(state: any)
 	if mound then
 		mound:Destroy()
 		mound = nil
+	end
+	if beamConnection then
+		beamConnection:Disconnect()
+		beamConnection = nil
 	end
 	local info = Config.Maps.spots[spot]
 	if info then

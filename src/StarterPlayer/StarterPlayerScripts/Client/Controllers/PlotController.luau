@@ -4,6 +4,7 @@
 -- Building happens by stepping on the plot's build buttons (TycoonService, server-side);
 -- gallery pedestals appear later, so new pedestals are picked up as they are added.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -136,7 +137,41 @@ function PlotController.target(name: string): Vector3?
 	return nil
 end
 
+-- Fades the roof of whichever treasury the player stands in, so the hall stays visible from
+-- the usual camera height. Roof parts carry the "TreasuryRoof" tag (Server/Util/Blueprints).
+local ROOF_FADE = 0.85
+local function fadeRoofs()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local inside: Instance? = nil
+	local aetheria = Workspace:FindFirstChild("Aetheria")
+	local plots = aetheria and aetheria:FindFirstChild("Plots")
+	if root and plots then
+		for _, plot in plots:GetChildren() do
+			local floor = plot:FindFirstChild("Floor") :: BasePart?
+			if floor then
+				local rel = floor.CFrame:PointToObjectSpace(root.Position)
+				if math.abs(rel.X) < 21 and math.abs(rel.Z) < 21 and rel.Y < 20 then
+					inside = plot
+					break
+				end
+			end
+		end
+	end
+	for _, part in CollectionService:GetTagged("TreasuryRoof") do
+		if part:IsA("BasePart") then
+			part.LocalTransparencyModifier = if inside and part:IsDescendantOf(inside) then ROOF_FADE else 0
+		end
+	end
+end
+
 function PlotController.start(hud: any)
+	task.spawn(function()
+		while true do
+			fadeRoofs()
+			task.wait(0.2)
+		end
+	end)
 	ClientState.Changed:Connect(refresh)
 	local function onIndex()
 		local index = player:GetAttribute("PlotIndex")

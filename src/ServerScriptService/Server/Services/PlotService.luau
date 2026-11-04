@@ -376,10 +376,11 @@ function PlotService.renderSlot(player: Player, slot: number, relicId: string?)
 	model:ScaleTo(1.6)
 	model:PivotTo(top.CFrame * CFrame.new(0, 1, 0))
 
+	-- Sized in studs so far labels shrink with distance instead of piling up over the hall.
 	local tag = Instance.new("BillboardGui")
-	tag.Size = UDim2.fromOffset(160, 40)
-	tag.StudsOffsetWorldSpace = Vector3.new(0, 3, 0)
-	tag.MaxDistance = 40
+	tag.Size = UDim2.fromScale(6, 1.1)
+	tag.StudsOffsetWorldSpace = Vector3.new(0, 2.8, 0)
+	tag.MaxDistance = 28
 	tag.LightInfluence = 0
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)

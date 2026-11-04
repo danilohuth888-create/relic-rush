@@ -13,7 +13,7 @@ local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 7
+local SCHEMA_VERSION = 8
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -117,6 +117,18 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 	[7] = function(data)
 		-- v7 added the weekly goal (QuestService picks one on the next check).
 		data.weekly = { week = 0, id = "", goal = 0, progress = 0, claimed = false }
+	end,
+	[8] = function(data)
+		-- v8 split the treasury building into walls, gate, windows and towers: halls already
+		-- built keep the building parts that now come before them.
+		if data.builds.hall2 then
+			data.builds.walls = true
+			data.builds.gate = true
+		end
+		if data.builds.hall3 then
+			data.builds.windows = true
+			data.builds.towers = true
+		end
 	end,
 }
 
@@ -391,5 +403,8 @@ function PlayerDataService.release(player: Player)
 	writeRecord(userId, data, true)
 	saving[userId] = nil
 end
+
+-- Fills defaults and runs migrations on a loaded record; exposed so migrations can be checked.
+PlayerDataService.reconcile = reconcile
 
 return PlayerDataService
