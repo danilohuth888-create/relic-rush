@@ -217,6 +217,10 @@ local function onPositions(batch: any)
 	for id, info in batch do
 		local spirit = spirits[id]
 		if spirit and type(info) == "table" and typeof(info[1]) == "Vector3" then
+			if (info[1] - spirit.target).Magnitude > 5 then
+				-- A blinking isle spirit hopped away: a puff where it was.
+				FxController.glitter(spirit.current, Color3.fromRGB(220, 200, 255), 14)
+			end
 			spirit.target = info[1]
 			local state = if type(info[2]) == "string" then info[2] else "idle"
 			if state ~= spirit.state then
@@ -322,6 +326,15 @@ function RelicController.start(hudController: any)
 	Net.event("SpawnAdded").OnClientEvent:Connect(add)
 	Net.event("Spirits").OnClientEvent:Connect(onPositions)
 	Net.event("Caught").OnClientEvent:Connect(onCaught)
+	Net.event("SpawnRemoved").OnClientEvent:Connect(function(ids: any)
+		if type(ids) == "table" then
+			for _, id in ids do
+				if type(id) == "string" then
+					remove(id)
+				end
+			end
+		end
+	end)
 	task.spawn(function()
 		local ok, list = pcall(function()
 			return Net.func("GetSpawns"):InvokeServer()

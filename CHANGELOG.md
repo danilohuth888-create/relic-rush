@@ -3,17 +3,17 @@
 ## 0.4.0 – Sound, Spielgefühl und Expedition (in Arbeit)
 - Expedition „Vergessene Ruinen“ für 1–4 Spieler: Druckplatten, Spiegelsaal mit Irrlicht, Rätselsteine, Kristallwächter, gemeinsame Truhe. Alle 25 Relikte sind jetzt erreichbar.
 - Abklingzeit 10 min pro Spieler, Begleiter bekommen Münzen. Datenschema v4.
-- Die Schatzkammer wird ein echtes Gebäude: Steinmauern mit Fensteröffnungen, Eingangsportal mit Bannern, Runensaal mit Giebeldach und Rosettenfenster, Buntglasfenster, Ecktürme mit Spitzdächern und Fahnen, Aetherhalle mit Glaskuppel. Das Dach blendet sich aus, solange man drinnen steht. 26 Bauteile, Datenschema v8 ergänzt die neuen Teile bei bestehenden Hallen.
-- Schatzkarte: rotes X auf der gezeichneten Insel (fehlte, weil die Schrift das Zeichen nicht hatte), Lichtstrahl über dem Versteck ab 50 Studs Nähe, Truhe springt beim Ausgraben auf.
+- Die Schatzkammer ist ein Haus, das mit den Podesten wächst: Start im Relikt-Raum (Podeste 1–4), dann Westzimmer (5–6), Ostzimmer (7–8), Große Halle (9–12) und Galerie-Empore als Obergeschoss mit zwei Treppen (13–16). Dazu Buntglasfenster, Ecktürme, Glaskuppel, Brunnen, Statuen, Vitrinen, Kronleuchter und Krone. Bau-Tasten stehen im Vorhof, Dächer blenden sich aus, solange man drinnen steht. Datenschema v9 gibt bestehenden Spielern die Räume zu ihren Podesten.
+- Schatzkarten führen jetzt zur **Schatzinsel**: 3 Kartenteile = eine Karte = ein Besuch von 4 Minuten (Reise über das Kartenfenster). Auf der Insel liegen pro Besuch 9 Schätze: 5 leichte im Freien (Lichtstrahl), 3 versteckte hinter Felsen, Ruinen und Büschen, 1 geheimer (hinter dem Wasserfall, auf dem Adlerfels, im hohlen Baum oder im Schiffswrack). Je versteckter, desto seltener das Relikt (bis Legendär). Dazu Insel-Geister: leichte, flinke mit Sprint und ein Meister-Geist, der wegspringt – alle bleiben fangbar. Datenschema v10.
 - Reliktnamen über den Podesten sind kleiner und nur aus der Nähe sichtbar, damit sie sich im Saal nicht überlagern.
 - Neues Aussehen der Wächter-Geister: runde Pastell-Geister mit Gesicht, Wangen, Ärmchen und wehendem Schweif, Leuchtrand in Seltenheitsfarbe; Augen zeigen den Zustand (ruhig, erschrocken, müde).
 - Welt-Optik: Wasserfälle am Inselrand, Randfelsen, Wiesen mit Gras, Blumen, Büschen und Blütenbäumen, Weglaternen, Hecken um die Schatzkammern, dichterer Flüsterwald mit Glühwürmchen, eigener Ruinenhof mit Fackeln, Kristalle und Ranken unter der Insel, schwebende Lichtpunkte am Kristallplatz.
 - Relikt-Modelle aus Blender vorbereitet (werden automatisch genutzt, sobald sie hochgeladen sind).
 - Englische Fassung aller Spieltexte, automatisch nach Spielersprache.
 - Wochenziel mit Münzen und Kartenteil (Schema v7) und Bestenliste „Größte Sammlung“ am Kristallplatz.
-- Schatzkarten: Geister verlieren Kartenteile, 3 Teile zeigen ein Versteck mit Rätselhinweis, dort gräbt man einen Schatz aus. Neuer Knopf „Karte“. Datenschema v6.
+- Kartenteile: Geister verlieren manchmal ein Teil, neuer Knopf „Karte“. Datenschema v6.
 - Wächter-Geister ersetzen die Lichtsäulen: Relikte fliehen, ermüden und werden durch Hineinlaufen gefangen (serverseitig simuliert, AFK-sicher).
-- Tycoon-Ausbau: 22 Bauteile an Kauftasten statt drei Ausbaustufen, Einkommens-Boni bis ×1,75, Galerie mit Podesten 13–16. Datenschema v5 übernimmt bisherige Stufen.
+- Tycoon-Ausbau: Bauteile an Kauftasten statt drei Ausbaustufen, Einkommens-Boni bis ×1,85. Datenschema v5 übernimmt bisherige Stufen.
 - Musik pro Gebiet (Kristallplatz, Flüsterwald, Schatzkammer, Ruinen) mit sanfter Überblendung.
 - Soundeffekte für Einsammeln (nach Seltenheit gestaffelt), Buttons, Fenster, Ausstellen, Ausbau, Abholen, Kauf, Fehler und Besuche. Nur lizenzierte Roblox-Audiobibliothek.
 - „+X“-Münzzahlen über ausgestellten Relikten, Funkenregen beim Ausbau, Glitzern bei seltenen Funden, kurzer Kamera-Kick.

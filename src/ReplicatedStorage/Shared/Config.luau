@@ -99,25 +99,38 @@ Config.LuckRune = {
 	multiplier = 2,
 }
 
--- Treasure maps: caught spirits sometimes drop a map piece; three pieces reveal one hidden
--- spot on the island where a personal treasure can be dug up. Spots sit on open ground.
+-- Treasure maps: caught spirits sometimes drop a map piece; three pieces make a complete map.
+-- Each complete map is one visit to the Treasure Isle (Config.Isle).
 Config.Maps = {
 	piecesNeeded = 3,
 	pieceChance = 0.2,
-	firstMapChance = 0.45, -- until the first treasure is found, pieces drop more often
+	firstMapChance = 0.45, -- until the first visit, pieces drop more often
+	maxCharts = 3, -- complete maps a player can hold; pieces stop dropping at the cap
+}
+
+-- The Treasure Isle: a timed visit with treasures and spirits. The more valuable a find, the
+-- harder it is to get: easy treasures lie in the open, hidden ones behind rocks and ruins,
+-- the secret one in a tricky place; spirits get faster ("dash") or sneakier ("blink").
+-- Every visit has a few easy finds, so it never ends empty-handed.
+Config.Isle = {
+	visitSeconds = 4 * 60,
 	digRange = 9,
-	luck = 4, -- treasure relics roll with this luck (rarer than spirits)
-	coinsByTier = { 400, 1600, 6000 },
-	spots = {
-		{ position = Vector3.new(-150, 0, 40), hint = "Im Westen, wo ein grüner Hügel über die Wiese wacht." },
-		{ position = Vector3.new(150, 0, -35), hint = "Im Osten, zwischen Hügel und Inselrand." },
-		{ position = Vector3.new(-42, 0, 172), hint = "Am Westrand des Flüsterwalds, hinter den Bäumen." },
-		{ position = Vector3.new(46, 0, 178), hint = "Am Südostrand des Flüsterwalds, wo das Gras endet." },
-		{ position = Vector3.new(55, 0, -172), hint = "Ganz im Norden, am Fuß des großen Hügels hinter den Schatzkammern." },
-		{ position = Vector3.new(-95, 0, -150), hint = "Im Nordwesten, weit hinter den Schatzkammern." },
-		{ position = Vector3.new(95, 0, 72), hint = "Am Weg zu den Ruinen, auf halber Strecke." },
-		{ position = Vector3.new(-125, 0, 118), hint = "Im Südwesten, auf der stillen Wiese." },
+	finds = {
+		-- tier = how many spots a visit hides, rarity weights, coins by treasury tier
+		easy = { count = 5, rarity = { Uncommon = 75, Rare = 25 }, coinsByTier = { 120, 450, 1600 } },
+		hidden = { count = 3, rarity = { Rare = 70, Epic = 30 }, coinsByTier = { 300, 1100, 4000 } },
+		secret = { count = 1, rarity = { Epic = 65, Legendary = 35 }, coinsByTier = { 800, 3000, 10000 } },
 	},
+	spirits = {
+		easy = { Uncommon = 65, Rare = 35 },
+		tricky = { Rare = 60, Epic = 40 },
+		master = { Epic = 70, Legendary = 30 },
+	},
+	dashSpeed = 1.7, -- speed multiplier during a dash
+	dashSeconds = 0.6,
+	blinkDistance = 7, -- studs a blinking spirit jumps away when the player gets close
+	blinkRange = 9, -- how close the player must be (catching happens at Config.Spirits.catchRange)
+	trickCooldown = 3,
 }
 
 -- "Forgotten Ruins" expedition: a 3-5 minute co-op run for 1-4 players. Relic rewards are

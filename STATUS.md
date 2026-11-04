@@ -12,7 +12,7 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 | 2 | Expedition „Vergessene Ruinen“ (M4) | ✅ solo im Playtest geprüft; Zweier-Test mit dir offen |
 | 2b | Tycoon-Ausbau mit Kauftasten (dein Wunsch) | ✅ im Playtest geprüft |
 | 2c | Wächter-Geister fangen (ersetzt die Lichtsäulen) | ✅ serverseitig geprüft; Live-Lauftest mit dir offen |
-| 2d | Schatzkarten-Rätsel | ✅ Logik geprüft; Kartenfenster noch nicht gesehen |
+| 2d | Schatzkarten → Schatzinsel | ✅ im Playtest geprüft (Reise, Graben aller Stufen, Insel-Geister, Verlassen) |
 | 3 | Optik auf Profi-Niveau | Welt-Deko ✅ (Screenshots, 60 FPS im Playtest); Relikt-Modelle warten auf deinen Upload (*Import 3D*) |
 | 4 | Englisch, Bestenliste, Wochenziel | ✅ im Playtest geprüft (Englisch per Testschalter) |
 | 5 | Release-Prüfung (M6) | offen |
@@ -34,27 +34,27 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 - Zeitlimit 8 min, Stürze und Respawns bringen zum letzten Kontrollpunkt, „Verlassen“-Knopf in der Ziel-Leiste.
 - Arena-Vorlage: `ServerStorage.ExpeditionArena`, gebaut von `tools/world/BuildExpedition.luau`.
 
-### Block 2b – Tycoon-Ausbau
-- Statt drei großer Ausbaustufen kauft man die Schatzkammer **Stück für Stück an leuchtenden Bau-Tasten** (6 Tasten an den Seiten des Grundstücks; draufstellen = kaufen, grün = bezahlbar). Danach erscheinen die nächsten Tasten.
-- **22 Bauteile** (`Shared/Builds.luau`, zusammen 131.090 Münzen): Podeste 5–12, Laternen, Goldteppich, Münzbrunnen, Wächterstatuen, Glasvitrinen, Kristalllüster, Schatzkrone, die Hallen „Runensaal“ und „Aetherhalle“ (= Stufe 2 und 3) und eine **Galerie mit 4 Extra-Podesten (13–16)**.
-- **Einkommens-Boni** von Laternen, Teppich, Brunnen, Statuen, Vitrinen, Lüster, Krone: zusammen bis ×1,75.
-- Bauteile wachsen mit Animation, Funkeln und Sound ins Bild; der alte Ausbau-Stein zeigt jetzt „Bauplan x / 22 gebaut“.
-- **Schema v5:** Wer schon Stufe 2/3 hatte, behält alle Podeste und Hallen.
-- Kaufen läuft komplett auf dem Server (Positionsprüfung), es gibt keine Kauf-Remote mehr.
+### Block 2b – Tycoon: das Haus
+- Jede Schatzkammer ist ein **Haus, das mit den Podesten wächst** (`Server/Util/Blueprints.luau`). Start: der **Relikt-Raum** mit Tür, Banner, Bauplan-Tafel und Podesten 1–4. Danach baut man an: **Westzimmer** (Podeste 5–6), **Ostzimmer** (7–8), die **Große Halle** dahinter (9–12, Brunnen, Kronleuchter, Rosettenfenster) und die **Galerie-Empore** als Obergeschoss mit zwei Treppen (13–16). Außen: Buntglasfenster, Ecktürme, Glaskuppel, Statuen am Eingang, Krone über dem Giebel.
+- **26 Bauteile** (`Shared/Builds.luau`) an **6 Bau-Tasten im Vorhof** (draufstellen = kaufen, grün = bezahlbar, günstigstes Angebot direkt vor der Tür). Einkommens-Boni bis ×1,85.
+- Räume bringen ihre Podeste selbst mit; gesperrte Podeste stehen als Schatten im Raum. Dächer blenden sich auf dem eigenen Bildschirm aus, solange man im Haus steht.
+- `tools/world/BuildAetheria.luau` legt nur noch Hof, Schild und Spawn an; das Haus entsteht zur Laufzeit. **Schema v9:** Wer Podeste 5–8 oder die Halle hatte, bekommt die passenden Zimmer.
+- Kaufen läuft komplett auf dem Server (Positionsprüfung), es gibt keine Kauf-Remote.
 
 ### Block 2c – Wächter-Geister
-- Die Lichtsäulen sind weg. An jedem Fundort schwebt ein **eigener Wächter-Geist** (schimmernder Körper, Augen, Schweif) und trägt ein Relikt.
+- Die Lichtsäulen sind weg. An jedem Fundort schwebt ein **eigener Wächter-Geist** (runder Pastell-Geist mit Gesicht, Wangen, Ärmchen, wehendem Schweif und Leuchtrand in Seltenheitsfarbe) und trägt ein Relikt. Die Augen zeigen den Zustand.
 - Kommt man näher als 18 Studs, **flieht** er („!“), weicht als seltener Geist kurz vor dem Fangen seitlich aus und bleibt an seinem Fundort (Leine 22 Studs). Nach 2,5–6 s Flucht ist er **erschöpft** („💤“, 30 % Tempo).
 - **Fangen = hineinlaufen.** Seltenere Geister sind schneller und ausdauernder (6,5 bis 13,5 Studs/s, Spieler laufen 16).
 - Lumis erster Geist ist extra langsam. Glücksrune würfelt die getragenen Relikte neu.
 - Alles läuft auf dem Server (5×/s); der Client zeichnet nur. Die Einsammel-Remote gibt es nicht mehr, Stillstehen fängt nichts.
 
-### Block 2d – Schatzkarten
-- Gefangene Geister verlieren mit 20 % (bis zum ersten Schatz 45 %) ein **Kartenteil** (nach dem Tutorial).
-- Mit **3 Teilen** ist die Karte lesbar: unten gibt es den neuen Knopf **„Karte“** (rotes „!“ bei offener Karte). Das Fenster zeigt die gezeichnete Insel mit Platz, Wald, Ruinen, Schatzkammern, deiner Position, dem **roten X** und einem **Rätselhinweis** („Im Südwesten, auf der stillen Wiese“).
-- Am Ziel erscheint nur für dich ein Erdhügel mit rotem Kreuz und Funkeln: **E halten (1,2 s) = graben**.
-- Schatz: mindestens ungewöhnliches Relikt (Glück ×4) und Münzen nach Stufe (400/1.600/6.000). 8 Verstecke auf der Insel (`Config.Maps.spots`).
-- **Schema v6.** Graben prüft der Server (Karte offen, Entfernung, Rate-Limit).
+### Block 2d – Schatzkarten und Schatzinsel
+- Gefangene Geister verlieren mit 20 % (bis zum ersten Inselbesuch 45 %) ein **Kartenteil** (nach dem Tutorial). **3 Teile = eine fertige Karte** (höchstens 3 auf Vorrat).
+- Das Fenster **„Karte“** zeigt die gezeichnete Schatzinsel; fehlende Teile sind als abgerissene Streifen zu sehen. Mit einer fertigen Karte: Knopf **„Zur Schatzinsel reisen“** (rotes „!“ am Knopf „Karte“).
+- **Jede Karte = ein Besuch von 4 Minuten** auf der Schatzinsel (`Workspace.TreasureIsle`, gebaut von `tools/world/BuildTreasureIsle.luau`): Strand, Lagune mit Wasserfall, Adlerfels mit Trittsteinen, hohler Uraltbaum, Schiffswrack, Wachturm-Ruine, Felsbogen, Palmen, Rückkehr-Portal. Oben läuft die Leiste mit Zeit, Funden und „Verlassen“.
+- **Je wertvoller, desto versteckter:** pro Besuch 9 Schätze nur für dich – 5 **leichte** im Freien (Lichtstrahl, rotes X; ungewöhnlich/selten), 3 **versteckte** hinter Felsen, Ruinen, Büschen (erst ab 30 Studs sichtbar; selten/episch), 1 **geheimer** hinter dem Wasserfall, auf dem Adlerfels, im hohlen Baum oder im Wrack (erst ab 11 Studs; episch/legendär). Dazu Münzen nach Stufe. E halten = graben, eine Truhe springt auf.
+- **Insel-Geister** (nur während des Besuchs): 3 leichte, 2 flinke mit **Sprint** (kurz ×1,7), 1 **Meister-Geist**, der kurz vor dem Fangen **wegspringt** (7 Studs, alle 3 s). Erschöpfte Geister tricksen nicht, also bleibt jeder fangbar.
+- Server prüft alles (Karte, Besuch, Stelle, Entfernung, Rate-Limits). **Schema v10:** offene alte Karten werden zu einer fertigen Karte.
 
 ### Block 4 – Reichweite und Langzeit
 - **Wochenziel** (Montag 00:00 UTC): eins aus 4 Arten (Geister fangen, Schätze, Expeditionen, Münzen), Ziel nach Stufe, Belohnung 1.500/6.000/20.000 Münzen **plus ein Kartenteil**. Steht als lila Karte oben im Aufgaben-Fenster, ohne Ablaufdruck innerhalb der Woche. Schema v7.
@@ -188,6 +188,13 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Migration v8:** v7-Profil mit Runensaal → Mauern + Portal ergänzt; mit Aetherhalle → zusätzlich Fenster + Türme; ohne Halle unverändert | Playtest (`PlayerDataService.reconcile`) | ✅ |
 | **Schatzkarte:** X auf der Karte sichtbar, Lichtstrahl in der Nähe, Graben mit echter E-Taste (+1.600 Münzen, Relikt), Truhe springt auf | Playtest mit Laufsteuerung | ✅ |
 | **Geister fangen mit echter Laufsteuerung** (Humanoid läuft dem Geist nach): gewöhnlich nach 6,6 s inkl. 94 Studs Anlauf, ungewöhnlich nach ~8,5 s Jagd | Playtest | ✅ |
+| **Haus:** Ausbaustufen nebeneinander (Relikt-Raum → +Westzimmer → beide Zimmer → Halle) und Vollausbau außen; innen Halle, Empore, Treppen, Vitrinen; 42 Dachteile blenden beim Betreten aus | Playtest-Screenshots | ✅ |
+| **Haus:** Treppe mit Laufsteuerung hoch, über die Empore zu Podest 15, Prompt aktiv; alle 16 Podeste mit Relikten belegt | Playtest | ✅ |
+| **Migration v9:** Podeste 5/6 → Westzimmer; Halle → beide Zimmer; v8-Teile „walls/gate“ entfernt; neuer Spieler: Angebote Laternen + Westzimmer | Playtest (`reconcile`) | ✅ |
+| **Schatzinsel:** 3 Teile → „Fertige Karten: 1“, Kartenfenster mit Inselzeichnung, Klick auf „Zur Schatzinsel reisen“ → Insel, Leiste „0 von 9“ | Playtest mit Klicks | ✅ |
+| **Schatzinsel:** Versteckte Stelle aus 75 Studs unsichtbar, aus 7 Studs sichtbar; mit E gegraben → episches Relikt + 1.100 Münzen; geheime Stelle im Wrack mit Laufsteuerung erreicht und gegraben → episch + 3.000 | Playtest | ✅ |
+| **Schatzinsel:** Geist mit Sprint (selten) in 13 s, Meister-Geist (episch) gefangen; Teleport-Trick löst aus (Sprung 4,8 Studs bei 7,3 Studs Abstand) | Playtest mit Laufsteuerung + Server-Protokoll | ✅ |
+| **Schatzinsel:** „Verlassen“-Knopf → zurück am eigenen Spawn, Leiste weg, Grabstellen und Insel-Geister entfernt | Playtest mit Klicks | ✅ |
 | **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen

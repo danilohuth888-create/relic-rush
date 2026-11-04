@@ -6,6 +6,8 @@
 -- and a player standing still never catches anything (fresh spirits appear away from them).
 -- Spawn points are parts in Workspace.Aetheria.RelicSpawns with attributes
 --   SpawnId (string), Area (string), Starter (bool), RespawnSeconds (number)
+-- The Treasure Isle adds Workspace.TreasureIsle.IsleSpawns (Area "Isle", plus Pool and Trick);
+-- those spirits only exist while the player is visiting the isle (startIsle / stopIsle).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -19,10 +21,11 @@ local Progress = require(script.Parent.Parent.Util.Progress)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 
 local SPIRITS = Config.Spirits
+local ISLE = Config.Isle
 local TICK = 0.2
 local HOVER = 2.5 -- studs above the spawn point
 
-type SpawnPoint = { id: string, position: Vector3, area: string, starter: boolean, respawn: number }
+type SpawnPoint = { id: string, position: Vector3, area: string, starter: boolean, respawn: number, pool: string?, trick: string? }
 type Spirit = {
 	relicId: string,
 	pos: Vector3,
@@ -33,18 +36,23 @@ type Spirit = {
 	state: string, -- "idle" | "flee" | "tired"
 	phase: number,
 	starter: boolean,
+	trickAt: number, -- isle spirits: next time a dash or blink is allowed
+	dashUntil: number,
 }
-type PlayerSpawns = { active: { [string]: Spirit }, cooldown: { [string]: number } }
+type PlayerSpawns = { active: { [string]: Spirit }, cooldown: { [string]: number }, isle: boolean }
 
 local RelicSpawnService = {}
 
 local points: { [string]: SpawnPoint } = {}
 local states: { [Player]: PlayerSpawns } = {}
 local poolsByArea: { [string]: { [string]: { string } } } = {} -- area -> rarity -> relic ids
+local byRarity: { [string]: { string } } = {} -- every relic of a rarity, whatever its source
 local rng = Random.new()
 
 local function buildPools()
 	for _, def in RelicDefs.list do
+		byRarity[def.rarity] = byRarity[def.rarity] or {}
+		table.insert(byRarity[def.rarity], def.id)
 		for _, area in def.sources do
 			local pool = poolsByArea[area] or {}
 			poolsByArea[area] = pool
@@ -83,9 +91,39 @@ function RelicSpawnService.roll(area: string, random: Random?, luck: number?): s
 	return fallback[1]
 end
 
+-- A relic by rarity weights (e.g. Config.Isle.spirits.easy), from all relics of that rarity.
+function RelicSpawnService.rollWeighted(weights: { [string]: number }, random: Random?): string
+	local r = random or rng
+	local total = 0
+	for _, w in weights do
+		total += w
+	end
+	local pick = r:NextNumber() * total
+	local chosen = Config.RarityOrder[2]
+	for _, rarity in Config.RarityOrder do
+		local w = weights[rarity]
+		if w then
+			pick -= w
+			chosen = rarity
+			if pick <= 0 then
+				break
+			end
+		end
+	end
+	local ids = byRarity[chosen]
+	return ids[r:NextInteger(1, #ids)]
+end
+
 local function luckFor(player: Player): number
 	local untilTime = player:GetAttribute("LuckUntil")
 	return if type(untilTime) == "number" and untilTime > os.time() then Config.LuckRune.multiplier else 1
+end
+
+local function rollFor(point: SpawnPoint, player: Player): string
+	if point.area == "Isle" then
+		return RelicSpawnService.rollWeighted(ISLE.spirits[point.pool or "easy"] or ISLE.spirits.easy)
+	end
+	return RelicSpawnService.roll(point.area, nil, luckFor(player))
 end
 
 local function rootOf(player: Player): BasePart?
@@ -117,6 +155,8 @@ local function newSpirit(player: Player, point: SpawnPoint, relicId: string, sta
 		state = "idle",
 		phase = rng:NextNumber() * math.pi * 2,
 		starter = starter,
+		trickAt = 0,
+		dashUntil = 0,
 	}
 end
 
@@ -140,15 +180,55 @@ function RelicSpawnService.startPlayer(player: Player)
 	if not data then
 		return
 	end
-	local state: PlayerSpawns = { active = {}, cooldown = {} }
+	local state: PlayerSpawns = { active = {}, cooldown = {}, isle = false }
 	for id, point in points do
-		if point.starter and data.stats.collected == 0 then
+		if point.area == "Isle" then
+			continue
+		elseif point.starter and data.stats.collected == 0 then
 			state.active[id] = newSpirit(player, point, Config.StarterRelic, true)
 		else
-			state.active[id] = newSpirit(player, point, RelicSpawnService.roll(point.area, nil, luckFor(player)), false)
+			state.active[id] = newSpirit(player, point, rollFor(point, player), false)
 		end
 	end
 	states[player] = state
+end
+
+-- The Treasure Isle's spirits appear for the player while visiting and vanish afterwards.
+function RelicSpawnService.startIsle(player: Player)
+	local state = states[player]
+	if not state or state.isle then
+		return
+	end
+	state.isle = true
+	local spawnAdded = Net.event("SpawnAdded")
+	for id, point in points do
+		if point.area == "Isle" then
+			local spirit = newSpirit(player, point, rollFor(point, player), false)
+			state.active[id] = spirit
+			spawnAdded:FireClient(player, entry(point, spirit))
+		end
+	end
+end
+
+function RelicSpawnService.stopIsle(player: Player)
+	local state = states[player]
+	if not state or not state.isle then
+		return
+	end
+	state.isle = false
+	local removed = {}
+	for id, point in points do
+		if point.area == "Isle" then
+			if state.active[id] then
+				table.insert(removed, id)
+			end
+			state.active[id] = nil
+			state.cooldown[id] = nil
+		end
+	end
+	if #removed > 0 and player.Parent then
+		Net.event("SpawnRemoved"):FireClient(player, removed)
+	end
 end
 
 function RelicSpawnService.stopPlayer(player: Player)
@@ -163,8 +243,8 @@ function RelicSpawnService.reroll(player: Player)
 	end
 	local spawnAdded = Net.event("SpawnAdded")
 	for id, spirit in state.active do
-		if not spirit.starter then
-			spirit.relicId = RelicSpawnService.roll(points[id].area, nil, luckFor(player))
+		if not spirit.starter and points[id].area ~= "Isle" then
+			spirit.relicId = rollFor(points[id], player)
 			spawnAdded:FireClient(player, entry(points[id], spirit))
 		end
 	end
@@ -257,7 +337,21 @@ local function move(spirit: Spirit, point: SpawnPoint, rootPos: Vector3?, now: n
 			end
 		end
 		local side = Vector3.new(-away.Z, 0, away.X) * spirit.dodge * (if distance < 8 then (rank - 1) * 0.3 else 0)
-		goal = spirit.pos + (away + side).Unit * speed * dt
+		-- Isle tricks: a short sprint, or a hop a few studs away. Both have a cooldown and stop
+		-- while the spirit is tired, so every spirit stays catchable.
+		if point.trick == "dash" and distance < 10 and now > spirit.trickAt then
+			spirit.trickAt = now + ISLE.trickCooldown
+			spirit.dashUntil = now + ISLE.dashSeconds
+		end
+		if now < spirit.dashUntil then
+			speed *= ISLE.dashSpeed
+		end
+		if point.trick == "blink" and distance < ISLE.blinkRange and now > spirit.trickAt then
+			spirit.trickAt = now + ISLE.trickCooldown
+			goal = spirit.pos + (away + side * 2).Unit * ISLE.blinkDistance
+		else
+			goal = spirit.pos + (away + side).Unit * speed * dt
+		end
 	else
 		spirit.state = "idle"
 		spirit.stamina = math.min(SPIRITS.staminaByRank[rank], spirit.stamina + dt * 0.5)
@@ -292,9 +386,9 @@ local function step(dt: number)
 			end
 		end
 		for id, readyAt in state.cooldown do
-			if now >= readyAt then
+			if now >= readyAt and (state.isle or points[id].area ~= "Isle") then
 				state.cooldown[id] = nil
-				local spirit = newSpirit(player, points[id], RelicSpawnService.roll(points[id].area, nil, luckFor(player)), false)
+				local spirit = newSpirit(player, points[id], rollFor(points[id], player), false)
 				state.active[id] = spirit
 				spawnAdded:FireClient(player, entry(points[id], spirit))
 			end
@@ -307,17 +401,27 @@ end
 
 function RelicSpawnService.init()
 	buildPools()
-	local folder = Workspace:WaitForChild("Aetheria"):WaitForChild("RelicSpawns")
-	for _, part in folder:GetChildren() do
-		if part:IsA("BasePart") then
-			local id = part:GetAttribute("SpawnId") :: string? or part.Name
-			points[id] = {
-				id = id,
-				position = part.Position,
-				area = part:GetAttribute("Area") :: string? or "Plaza",
-				starter = part:GetAttribute("Starter") == true,
-				respawn = part:GetAttribute("RespawnSeconds") :: number? or Config.DefaultRespawnSeconds,
-			}
+	local folders = { Workspace:WaitForChild("Aetheria"):WaitForChild("RelicSpawns") }
+	local isle = Workspace:FindFirstChild("TreasureIsle")
+	local isleSpawns = isle and isle:FindFirstChild("IsleSpawns")
+	if isleSpawns then
+		table.insert(folders, isleSpawns)
+	end
+	for _, folder in folders do
+		for _, part in folder:GetChildren() do
+			if part:IsA("BasePart") then
+				local id = part:GetAttribute("SpawnId") :: string? or part.Name
+				local trick = part:GetAttribute("Trick") :: string?
+				points[id] = {
+					id = id,
+					position = part.Position,
+					area = part:GetAttribute("Area") :: string? or "Plaza",
+					starter = part:GetAttribute("Starter") == true,
+					respawn = part:GetAttribute("RespawnSeconds") :: number? or Config.DefaultRespawnSeconds,
+					pool = part:GetAttribute("Pool") :: string?,
+					trick = if trick and trick ~= "" then trick else nil,
+				}
+			end
 		end
 	end
 

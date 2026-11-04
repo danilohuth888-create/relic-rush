@@ -13,10 +13,10 @@ Ich mache Screenshots und klicke selbst. Du musst nur hinsehen und sagen, was di
 
 | # | Was | Worauf achten |
 |---|---|---|
-| 1.1 | Grundstück mit allen 22 Bauteilen (Testmodus, wird nicht gespeichert) | Wirkt es hochwertig? Stört etwas? |
+| 1.1 | Haus vom Relikt-Raum bis zum Vollausbau (Testmodus, wird nicht gespeichert) | Wirkt es wie ein Haus? Treppe zur Empore gut begehbar? |
 | 1.2 | Bau-Tasten an den Seiten | Lesbar, grün/grau verständlich? |
 | 1.3 | Wächter-Geister auf Platz und im Wald | Sichtbar? Niedlich oder gruselig? |
-| 1.4 | Kartenfenster („Karte“) | Gezeichnete Insel verständlich, X gut sichtbar? |
+| 1.4 | Kartenfenster („Karte“) und Reise zur Schatzinsel | Verständlich? Macht die Suche nach versteckten und geheimen Schätzen Spaß? |
 | 1.5 | Einstellungen, Credits, Aufgaben mit Wochenziel | Layout ok? |
 | 1.6 | Expedition solo durchspielen | Räume verständlich? Wächter fair? |
 | 1.7 | Englisch (Testschalter) | Texte passen in die Knöpfe? |
@@ -24,7 +24,8 @@ Ich mache Screenshots und klicke selbst. Du musst nur hinsehen und sagen, was di
 ## 2. Du spielst selbst (10 min)
 1. **Geister jagen** mit WASD (oder Touch-Emulation): Fühlt sich das Fangen gut an? Zu schnell, zu langsam?
 2. **Eine Bau-Taste** draufstellen: Kauf verständlich?
-3. **Hören:** Musik pro Gebiet, Einsammel-Sound, Ausbau-Fanfare. Gefällt dir die Auswahl? (Austausch = eine Zeile in `Shared/Sounds.luau`.)
+3. **Schatzinsel:** einmal hinreisen, den geheimen Schatz suchen (Wasserfall, Adlerfels, hohler Baum, Wrack) und den Meister-Geist jagen. Zu schwer, zu leicht?
+4. **Hören:** Musik pro Gebiet, Einsammel-Sound, Ausbau-Fanfare. Gefällt dir die Auswahl? (Austausch = eine Zeile in `Shared/Sounds.luau`.)
 
 ## 3. Mehrspieler (10 min, *Test → Clients and Servers*)
 Einstellung: **3 Spieler**. Studio öffnet einen Server und 3 Client-Fenster; ich steuere über MCP, du musst ggf. ein Client-Fenster anklicken.

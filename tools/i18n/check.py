@@ -24,6 +24,7 @@ PATTERNS = [
     r'"§"\s*\.\.\s*' + LUA_STRING,
     r'notify\(\w+,\s*"\w+",\s*' + LUA_STRING,
     r'setObjective\(run,\s*' + LUA_STRING,
+    r'\btext\(player,\s*' + LUA_STRING,
     r'setSign\(plot,\s*' + LUA_STRING,
     r'(?:ActionText|ObjectText)\s*=\s*' + LUA_STRING,
     r'prompt\(run,[^,]+,\s*' + LUA_STRING + r',\s*' + LUA_STRING,

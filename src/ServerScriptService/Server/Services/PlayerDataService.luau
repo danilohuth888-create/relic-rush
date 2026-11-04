@@ -13,7 +13,7 @@ local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 9
+local SCHEMA_VERSION = 10
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -23,7 +23,7 @@ local MAX_RECEIPTS = 50
 export type Quest = { id: string, goal: number, progress: number, claimed: boolean }
 export type Settings = { music: number, sfx: number, hints: boolean }
 export type Expedition = { cooldownUntil: number, runs: number, wins: number }
-export type Maps = { pieces: number, spot: number, found: number } -- spot 0 = no open map
+export type Maps = { pieces: number, charts: number, visits: number, found: number } -- charts = complete maps
 export type Weekly = { week: number, id: string, goal: number, progress: number, claimed: boolean }
 export type Data = {
 	version: number,
@@ -70,7 +70,7 @@ local function defaultData(): Data
 		settings = table.clone(Config.DefaultSettings),
 		expedition = { cooldownUntil = 0, runs = 0, wins = 0 },
 		builds = {},
-		maps = { pieces = 0, spot = 0, found = 0 },
+		maps = { pieces = 0, charts = 0, visits = 0, found = 0 },
 		weekly = { week = 0, id = "", goal = 0, progress = 0, claimed = false },
 		lastSeen = 0,
 	}
@@ -142,6 +142,13 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 		end
 		b.walls = nil
 		b.gate = nil
+	end,
+	[10] = function(data)
+		-- v10: complete maps lead to the Treasure Isle; an open dig spot becomes one map.
+		local maps = data.maps
+		maps.charts = if (tonumber(maps.spot) or 0) ~= 0 then 1 else 0
+		maps.visits = if (tonumber(maps.found) or 0) > 0 then 1 else 0
+		maps.spot = nil
 	end,
 }
 

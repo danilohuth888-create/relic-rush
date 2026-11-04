@@ -888,7 +888,7 @@ function ExpeditionService.join(player: Player): (boolean, string?)
 	if not data then
 		return false, "not_loaded"
 	end
-	if runOf[player] then
+	if runOf[player] or player:GetAttribute("ExpRun") ~= nil then
 		return false, "in_run"
 	end
 	if not nearPortal(player, SETTINGS.portalRange) then

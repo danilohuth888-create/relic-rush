@@ -35,3 +35,9 @@
 
 ## 9 Aufgabe „Ausstellen“ per Tauschen
 - Jedes Ausstellen zählt, auch wenn man dasselbe Relikt hin- und hertauscht. Das betrifft nur eine kleine Tagesaufgabe pro Tag und schadet niemandem. Falls gewünscht: nur neu belegte Podeste zählen.
+
+## #17 Inselbesuch einmal ohne Rückreise beendet (beobachtet, nicht reproduziert)
+- **Gesehen:** In einem Studio-Test war der Besuch nach gut einer Minute beendet (Leiste weg), die Figur stand aber noch auf der Schatzinsel; das Bild war schwarz.
+- **Nachtest:** Besuch 25 s ohne Aktion, Zeitablauf nach 4 min (Rückreise zum eigenen Spawn) und „Verlassen“ funktionieren. Ursache unklar, evtl. Studio-Fenster minimiert/Streaming.
+- **Schutz:** Wer ohne laufenden Besuch auf der Insel steht, kommt über das Rückkehr-Portal oder „Schatzkammer“ jederzeit zurück.
+- **Status:** beobachten.

@@ -1,7 +1,9 @@
 --!strict
--- Draws the dig mound of the player's open treasure map (only this player sees it) with a
--- "Graben" prompt. A golden light beam rises once the player is close. The server checks the
--- map and the distance and pays the treasure; this client then lets a chest burst open.
+-- Draws the treasures of the player's Treasure Isle visit (only this player sees them) with a
+-- "Graben" prompt each. How easy a treasure is to spot depends on its tier: easy ones glitter
+-- under a small light beam, hidden ones only show up close, secret ones barely shimmer until the
+-- player stands next to them. The server picks the spots, checks the distance and pays; this
+-- client then lets a chest burst open.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,12 +14,19 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Audio = require(script.Parent.Parent.Audio)
-local ClientState = require(script.Parent.Parent.ClientState)
 local FxController = require(script.Parent.FxController)
 
 local GOLD = Color3.fromRGB(255, 205, 90)
 local WOOD = Color3.fromRGB(140, 92, 60)
-local BEAM_RANGE = 50 -- the beam shows from this distance, so the riddle still matters
+local DIRT = Color3.fromRGB(150, 110, 70)
+
+-- Per tier: mound size, sparkle rate, and the distance from which the mound fades in
+-- (nil = always visible).
+local LOOK = {
+	easy = { size = 6, sparkle = 6, showFrom = nil, beam = true, mark = true },
+	hidden = { size = 4.4, sparkle = 2, showFrom = 30, beam = false, mark = false },
+	secret = { size = 3.4, sparkle = 1, showFrom = 11, beam = false, mark = false },
+}
 
 local TreasureController = {}
 
@@ -26,11 +35,12 @@ local function L(source: string, ...: any): string
 	return Locale.format(LANG, source, ...)
 end
 
+type Mound = { model: Model, position: Vector3, fade: { BasePart }, showFrom: number?, emitter: ParticleEmitter }
+
 local hud: any
-local mound: Model? = nil
-local beamConnection: RBXScriptConnection? = nil
-local shownSpot = 0
+local mounds: { [string]: Mound } = {}
 local digging = false
+local folder: Folder
 
 local function part(parent: Instance, name: string, shape: Enum.PartType, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material): Part
 	local p = Instance.new("Part")
@@ -106,52 +116,53 @@ local function chestReveal(position: Vector3)
 	end)
 end
 
--- A tall golden beam over the mound that fades in when the player gets close.
-local function watchBeam(beam: BasePart, position: Vector3)
-	if beamConnection then
-		beamConnection:Disconnect()
+local function removeMound(id: string)
+	local mound = mounds[id]
+	if mound then
+		mounds[id] = nil
+		mound.model:Destroy()
 	end
-	beamConnection = RunService.Heartbeat:Connect(function()
-		local character = Players.LocalPlayer.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		local distance = if root then (Vector3.new(root.Position.X, position.Y, root.Position.Z) - position).Magnitude else math.huge
-		local target = if distance < BEAM_RANGE then 0.45 else 1
-		beam.Transparency += (target - beam.Transparency) * 0.08
-	end)
 end
 
-local function build(position: Vector3): Model
+local function build(id: string, tier: string, position: Vector3): Mound
+	local look = LOOK[tier] or LOOK.easy
 	local model = Instance.new("Model")
-	model.Name = "TreasureMound"
-	local base = CFrame.new(position)
-	local dirt = part(model, "Dirt", Enum.PartType.Ball, Vector3.new(6, 2.2, 6), base * CFrame.new(0, 0.2, 0), Color3.fromRGB(150, 110, 70), Enum.Material.Ground)
-	for i, offset in { Vector3.new(-1.2, 1, 0.6), Vector3.new(1, 0.9, -0.8), Vector3.new(0.2, 1.2, 1.1) } do
-		part(model, "Stone" .. i, Enum.PartType.Block, Vector3.one * 0.7, base * CFrame.new(offset) * CFrame.Angles(i, i * 2, 0), Color3.fromRGB(120, 112, 130), Enum.Material.Slate)
+	model.Name = "Treasure_" .. id
+	local base = CFrame.new(position - Vector3.new(0, 0.5, 0))
+	local s = look.size
+	local fade = {}
+	local dirt = part(model, "Dirt", Enum.PartType.Ball, Vector3.new(s, s * 0.36, s), base * CFrame.new(0, 0.2, 0), DIRT, Enum.Material.Ground)
+	table.insert(fade, dirt)
+	for i, offset in { Vector3.new(-0.2, 0.17, 0.1), Vector3.new(0.17, 0.15, -0.13), Vector3.new(0.03, 0.2, 0.18) } do
+		table.insert(fade, part(model, "Stone" .. i, Enum.PartType.Block, Vector3.one * s * 0.12, base * CFrame.new(offset * s) * CFrame.Angles(i, i * 2, 0), Color3.fromRGB(120, 112, 130), Enum.Material.Slate))
 	end
-	-- A red X marks the spot.
-	for _, angle in { 45, -45 } do
-		part(model, "Mark", Enum.PartType.Block, Vector3.new(0.5, 0.1, 3.4), base * CFrame.new(0, 1.35, 0) * CFrame.Angles(0, math.rad(angle), 0), Color3.fromRGB(230, 60, 60), Enum.Material.Neon)
+	if look.mark then
+		-- A red X marks the easy spots.
+		for _, angle in { 45, -45 } do
+			table.insert(fade, part(model, "Mark", Enum.PartType.Block, Vector3.new(0.5, 0.1, 3.4), base * CFrame.new(0, s * 0.22 + 0.1, 0) * CFrame.Angles(0, math.rad(angle), 0), Color3.fromRGB(230, 60, 60), Enum.Material.Neon))
+		end
+	end
+	if look.beam then
+		local beam = part(model, "Beam", Enum.PartType.Cylinder, Vector3.new(16, 0.9, 0.9), base * CFrame.new(0, 8.5, 0) * CFrame.Angles(0, 0, math.rad(90)), GOLD, Enum.Material.Neon)
+		beam.Transparency = 0.55
+		beam.CastShadow = false
 	end
 	local sparkle = Instance.new("ParticleEmitter")
 	sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
 	sparkle.Color = ColorSequence.new(Color3.fromRGB(255, 220, 120))
-	sparkle.Size = NumberSequence.new(0.6, 0)
+	sparkle.Size = NumberSequence.new(if tier == "secret" then 0.35 else 0.6, 0)
 	sparkle.Lifetime = NumberRange.new(1, 1.6)
-	sparkle.Rate = 5
-	sparkle.Speed = NumberRange.new(1.5, 3)
+	sparkle.Rate = look.sparkle
+	sparkle.Speed = NumberRange.new(1, 2.5)
 	sparkle.SpreadAngle = Vector2.new(40, 40)
 	sparkle.LightEmission = 1
 	sparkle.Parent = dirt
-	local beam = part(model, "Beam", Enum.PartType.Cylinder, Vector3.new(60, 1.6, 1.6), base * CFrame.new(0, 31, 0) * CFrame.Angles(0, 0, math.rad(90)), GOLD, Enum.Material.Neon)
-	beam.Transparency = 1
-	beam.CastShadow = false
-	watchBeam(beam, position)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = L("Graben")
 	prompt.ObjectText = L("Schatz")
 	prompt.HoldDuration = 1.2
-	prompt.MaxActivationDistance = Config.Maps.digRange
+	prompt.MaxActivationDistance = Config.Isle.digRange
 	prompt.RequiresLineOfSight = false
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.Parent = dirt
@@ -161,44 +172,59 @@ local function build(position: Vector3): Model
 		end
 		digging = true
 		local ok, success, err = pcall(function()
-			return Net.func("DigTreasure"):InvokeServer()
+			return Net.func("DigTreasure"):InvokeServer(id)
 		end)
 		digging = false
 		if ok and success then
-			chestReveal(position)
+			removeMound(id)
+			chestReveal(position - Vector3.new(0, 0.5, 0))
 		else
-			hud.showError(err)
+			hud.showError(if ok then err else "rate")
 		end
 	end)
 	model.PrimaryPart = dirt
-	model.Parent = Workspace
-	return model
+	model.Parent = folder
+	return { model = model, position = position, fade = fade, showFrom = look.showFrom, emitter = sparkle }
 end
 
-local function refresh(state: any)
-	local spot = if state and state.maps then state.maps.spot else 0
-	if spot == shownSpot then
+local function onIsle(payload: any)
+	for id in mounds do
+		removeMound(id)
+	end
+	if type(payload) ~= "table" or type(payload.spots) ~= "table" then
 		return
 	end
-	shownSpot = spot
-	if mound then
-		mound:Destroy()
-		mound = nil
+	for _, spot in payload.spots do
+		if type(spot) == "table" and type(spot.id) == "string" and typeof(spot.position) == "Vector3" then
+			mounds[spot.id] = build(spot.id, tostring(spot.tier), spot.position)
+		end
 	end
-	if beamConnection then
-		beamConnection:Disconnect()
-		beamConnection = nil
-	end
-	local info = Config.Maps.spots[spot]
-	if info then
-		mound = build(info.position)
+end
+
+-- Hidden and secret treasures fade in as the player gets close.
+local function step()
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	for _, mound in mounds do
+		local showFrom = mound.showFrom
+		if showFrom then
+			local distance = if root then (root.Position - mound.position).Magnitude else math.huge
+			local visible = math.clamp((showFrom - distance) / (showFrom * 0.4), 0, 1)
+			for _, p in mound.fade do
+				p.LocalTransparencyModifier = 1 - visible
+			end
+			mound.emitter.Enabled = distance < showFrom * 1.6
+		end
 	end
 end
 
 function TreasureController.start(hudController: any)
 	hud = hudController
-	ClientState.Changed:Connect(refresh)
-	refresh(ClientState.data)
+	folder = Instance.new("Folder")
+	folder.Name = "IsleTreasures"
+	folder.Parent = Workspace
+	Net.event("Isle").OnClientEvent:Connect(onIsle)
+	RunService.Heartbeat:Connect(step)
 end
 
 return TreasureController

@@ -74,6 +74,10 @@ local ERRORS: { [string]: string } = {
 	not_done = "Diese Aufgabe ist noch nicht erledigt.",
 	claimed = "Diese Belohnung hast du schon abgeholt.",
 	no_map = "Du hast gerade keine vollständige Schatzkarte.",
+	busy = "Beende erst deine Expedition oder deinen Inselbesuch.",
+	closed = "Die Schatzinsel ist gerade nicht erreichbar.",
+	bad_spot = "Diesen Schatz hast du schon ausgegraben.",
+	no_character = "Warte kurz, bis deine Figur da ist.",
 	bad_quest = "Diese Aufgabe gibt es nicht mehr.",
 }
 local NOTIFY_COLORS: { [string]: Color3 } = {
@@ -475,7 +479,7 @@ local function refreshGuide()
 	guideLabel.Text = text or ""
 	skipButton.Visible = guideIsTutorial and guideText ~= nil
 	questBadge.Visible = state ~= nil and claimableQuests(state) > 0
-	mapBadge.Visible = state ~= nil and state.maps ~= nil and state.maps.spot ~= 0
+	mapBadge.Visible = state ~= nil and state.maps ~= nil and (state.maps.charts or 0) > 0 and player:GetAttribute("ExpRun") == nil
 end
 
 -- Lumi sets the tutorial line here; nil hides it (quest hints may still show).
@@ -529,7 +533,7 @@ local function signature(kind: string, state: any): string
 	end
 	if kind == "map" then
 		local maps = state.maps or {}
-		return ("map|%s|%s|%s"):format(tostring(maps.pieces), tostring(maps.spot), tostring(maps.found))
+		return ("map|%s|%s|%s|%s"):format(tostring(maps.pieces), tostring(maps.charts), tostring(maps.found), tostring(player:GetAttribute("ExpRun")))
 	end
 	local parts = { kind, tostring(state.tier) }
 	if kind == "quests" then
@@ -1051,20 +1055,20 @@ local function renderCredits()
 	})
 end
 
--- Treasure map: a drawn island with the plaza, forest, ruins and plots, the player's
--- position and - once the map is complete - the red X of the hidden treasure.
+-- Treasure map: a drawing of the Treasure Isle on parchment. The map is torn into strips; each
+-- piece reveals one, and a complete map is a ticket for one visit to the isle.
 local MAP_SIZE = 300
-local MAP_SCALE = MAP_SIZE / 470
+local MAP_SCALE = MAP_SIZE / 290
 
-local function mapPoint(position: Vector3): UDim2
-	return UDim2.fromOffset(MAP_SIZE / 2 + position.X * MAP_SCALE, MAP_SIZE / 2 + position.Z * MAP_SCALE)
+local function mapPoint(x: number, z: number): UDim2
+	return UDim2.fromOffset(MAP_SIZE / 2 + x * MAP_SCALE, MAP_SIZE / 2 + z * MAP_SCALE)
 end
 
-local function mapDot(parent: Instance, position: Vector3, size: number, color: Color3, name: string?): Frame
+local function mapDot(parent: Instance, x: number, z: number, size: number, color: Color3, name: string?): Frame
 	return new("Frame", {
 		Name = name or "Dot",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = mapPoint(position),
+		Position = mapPoint(x, z),
 		Size = UDim2.fromOffset(size, size),
 		BackgroundColor3 = color,
 		Parent = parent,
@@ -1072,10 +1076,11 @@ local function mapDot(parent: Instance, position: Vector3, size: number, color: 
 end
 
 local function renderMap(state: any)
-	local maps = state.maps or { pieces = 0, spot = 0, found = 0 }
-	local spot = Config.Maps.spots[maps.spot]
+	local maps = state.maps or { pieces = 0, charts = 0, found = 0 }
+	local charts = maps.charts or 0
+	local visiting = player:GetAttribute("ExpRun") == "isle"
 	setCells(UDim2.new(1, -8, 0, MAP_SIZE + 28))
-	setHeader("🗺️", L("Schatzkarte"), if spot then L("Die Karte ist vollständig – grab den Schatz aus!") else L("Wächter-Geister verlieren manchmal ein Kartenteil."))
+	setHeader("🗺️", L("Schatzkarte"), if charts > 0 then L("Die Karte führt zur Schatzinsel!") else L("Wächter-Geister verlieren manchmal ein Kartenteil."))
 	local card = cardSurface("MapCard")
 	local paper = new("Frame", {
 		Name = "Paper",
@@ -1085,70 +1090,55 @@ local function renderMap(state: any)
 		ClipsDescendants = true,
 		Parent = card,
 	}, { corner(18), stroke(C(170, 130, 80), 3) })
-	mapDot(paper, Vector3.zero, 214 * 2 * MAP_SCALE, C(160, 210, 140), "Island")
-	mapDot(paper, Vector3.new(0, 0, 140), 124 * MAP_SCALE, C(80, 150, 100), "Forest")
-	mapDot(paper, Vector3.zero, 100 * MAP_SCALE, C(225, 215, 200), "Plaza")
-	mapDot(paper, Vector3.zero, 9, C(170, 110, 240), "Crystal")
-	mapDot(paper, Vector3.new(140, 0, 118), 14, C(90, 100, 170), "Ruins")
-	for i = 1, Config.MaxPlots do
-		local theta = math.rad(-78.75 + (i - 1) * 22.5)
-		local plot = mapDot(paper, Vector3.new(math.sin(theta) * 120, 0, -math.cos(theta) * 120), 12, C(200, 175, 140), "Plot")
-		plot:FindFirstChildOfClass("UICorner"):Destroy()
-		if i == player:GetAttribute("PlotIndex") then
-			plot.BackgroundColor3 = THEME.gold
-		end
+	-- The isle as drawn by an old treasure hunter (positions match the real island).
+	mapDot(paper, 0, 0, 256 * MAP_SCALE, C(236, 214, 160), "Beach")
+	mapDot(paper, 0, 0, 224 * MAP_SCALE, C(160, 210, 140), "Grass")
+	mapDot(paper, 40, -2, 26 * MAP_SCALE, C(110, 190, 235), "Lagoon")
+	mapDot(paper, -55, -30, 12, C(150, 120, 100), "EagleRock")
+	mapDot(paper, -30, 45, 14, C(80, 140, 90), "HollowTree")
+	local wreck = mapDot(paper, -104, 24, 12, C(120, 82, 60), "Wreck")
+	wreck.Size = UDim2.fromOffset(8, 18)
+	wreck.Rotation = 25
+	mapDot(paper, 62, 62, 10, C(170, 150, 130), "Tower")
+	mapDot(paper, 0, 104, 12, C(120, 220, 255), "Portal")
+	for _, xz in { { -20, 70 }, { 72, -18 }, { 42, -36 }, { -55, -30 }, { -104, 24 } } do
+		-- Little crosses hint at where treasure hunters dug before.
+		label(paper, { AnchorPoint = Vector2.new(0.5, 0.5), Position = mapPoint(xz[1], xz[2]), Size = UDim2.fromOffset(16, 16), Text = "x", Font = TITLE, TextSize = 16, TextColor3 = C(200, 60, 50) })
 	end
 	label(paper, { Position = UDim2.fromOffset(8, 6), Size = UDim2.fromOffset(60, 20), Text = L("N ↑"), Font = TITLE, TextSize = 16, TextColor3 = C(130, 90, 50) })
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if root then
-		local me = mapDot(paper, root.Position, 12, C(60, 140, 255), "You")
-		stroke(THEME.white, 2).Parent = me
-	end
-	if spot then
-		-- Two crossed bars (the title font has no "✕" glyph).
-		local mark = new("Frame", {
-			Name = "X",
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = mapPoint(spot.position),
-			Size = UDim2.fromOffset(30, 30),
-			BackgroundTransparency = 1,
-			ZIndex = 5,
-			Parent = paper,
-		})
-		for _, angle in { 45, -45 } do
-			new("Frame", {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.fromOffset(30, 7),
-				Rotation = angle,
-				BackgroundColor3 = C(220, 40, 40),
-				ZIndex = 5,
-				Parent = mark,
-			}, { corner(3), stroke(THEME.white, 2) })
+	if charts == 0 then
+		-- Strips still missing stay torn off.
+		local strip = MAP_SIZE / Config.Maps.piecesNeeded
+		for i = maps.pieces + 1, Config.Maps.piecesNeeded do
+			local torn = new("Frame", {
+				Name = "Missing",
+				Position = UDim2.fromOffset((i - 1) * strip, 0),
+				Size = UDim2.fromOffset(strip, MAP_SIZE),
+				BackgroundColor3 = C(214, 196, 160),
+				Parent = paper,
+			}, { stroke(C(170, 130, 80), 2, 0.3) })
+			label(torn, { Size = UDim2.fromScale(1, 1), Text = "?", Font = TITLE, TextSize = 60, TextColor3 = C(170, 130, 80) })
 		end
-	else
-		-- Torn, unreadable map until all pieces are together.
-		new("Frame", { Name = "Fog", Size = UDim2.fromScale(1, 1), BackgroundColor3 = C(244, 228, 190), BackgroundTransparency = 0.25, Parent = paper })
-		label(paper, { Size = UDim2.fromScale(1, 1), Text = "?", Font = TITLE, TextSize = 90, TextColor3 = C(170, 130, 80) })
 	end
 
 	local dots = {}
 	for i = 1, Config.Maps.piecesNeeded do
-		table.insert(dots, if spot or i <= maps.pieces then "●" else "○")
+		table.insert(dots, if i <= maps.pieces then "●" else "○")
 	end
 	local lines = {
 		L("<b>Kartenteile:</b> %s", table.concat(dots, " ")),
+		L("<b>Fertige Karten:</b> %d", charts),
 		"",
-		if spot then L("<b>Hinweis:</b> %s", L(spot.hint)) else L("Fang Wächter-Geister auf dem Platz und im Flüsterwald. Mit %d Teilen wird die Karte lesbar.", Config.Maps.piecesNeeded),
-		"",
-		if spot then L("Am Ziel erscheint ein Erdhügel mit rotem Kreuz – halte dort E (oder tippe), um zu graben.") else "",
+		if charts > 0
+			then L("Jede fertige Karte ist ein Besuch auf der Schatzinsel (%d Minuten). Je wertvoller ein Schatz, desto besser ist er versteckt.", Config.Isle.visitSeconds // 60)
+			else L("Fang Wächter-Geister auf dem Platz und im Flüsterwald. %d Teile ergeben eine Karte zur Schatzinsel.", Config.Maps.piecesNeeded),
 		"",
 		L("Gefundene Schätze: %d", maps.found),
 	}
 	label(card, {
 		Name = "Info",
 		Position = UDim2.fromOffset(MAP_SIZE + 34, 18),
-		Size = UDim2.new(1, -(MAP_SIZE + 52), 1, -36),
+		Size = UDim2.new(1, -(MAP_SIZE + 52), 1, -96),
 		Text = table.concat(lines, "\n"),
 		RichText = true,
 		TextWrapped = true,
@@ -1156,6 +1146,25 @@ local function renderMap(state: any)
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 	})
+	local canTravel = charts > 0 and player:GetAttribute("ExpRun") == nil
+	pillButton(card, "Travel", if visiting then L("Du bist auf der Insel") else L("Zur Schatzinsel reisen"), THEME.teal, THEME.tealDeep, canTravel, {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, MAP_SIZE + 34, 1, -18),
+		Size = UDim2.fromOffset(250, 52),
+		TextSize = 20,
+	}, function()
+		if not canTravel then
+			return
+		end
+		local ok, success, err = pcall(function()
+			return Net.func("TravelIsle"):InvokeServer()
+		end)
+		if ok and success then
+			Hud.close()
+		else
+			Hud.showError(if ok then err else "rate")
+		end
+	end)
 end
 
 local function renderPanel()
@@ -1379,7 +1388,11 @@ local function buildExpedition()
 		LayoutOrder = 3,
 	}, function()
 		pcall(function()
-			Net.func("LeaveExpedition"):InvokeServer()
+			if player:GetAttribute("ExpRun") == "isle" then
+				Net.func("LeaveIsle"):InvokeServer()
+			else
+				Net.func("LeaveExpedition"):InvokeServer()
+			end
 		end)
 	end)
 end

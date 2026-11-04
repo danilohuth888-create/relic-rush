@@ -56,6 +56,7 @@ end
 
 local function onPlayerRemoving(player: Player)
 	ExpeditionService.stopPlayer(player)
+	MapService.stopPlayer(player)
 	LeaderboardService.stopPlayer(player)
 	RelicSpawnService.stopPlayer(player)
 	QuestService.stopPlayer(player)
@@ -116,6 +117,12 @@ if RunService:IsStudio() then
 			PlayerDataService.replicate(player)
 		elseif action == "mappiece" then
 			return MapService.addPiece(player)
+		elseif action == "isle" then
+			-- args: "travel" starts a visit (needs a complete map), otherwise lists its spots.
+			if args[1] == "travel" then
+				return MapService.travel(player)
+			end
+			return MapService.debug(player)
 		elseif action == "spirits" then
 			return RelicSpawnService.debug(player)
 		elseif action == "nosave" then
