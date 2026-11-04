@@ -1,6 +1,11 @@
 --!strict
 -- Builds a small low-poly model for a relic from its catalogue row. Pickups, pedestals and UI
 -- previews all use this, so a new relic needs no hand-made model (def.shape picks the builder).
+-- When the Blender models from assets/relics are imported into ReplicatedStorage.RelicMeshes
+-- (one Model per shape, MeshParts named "<shape>.Main/Gold/Glow/Dark/Leaf"), those are used
+-- instead and coloured per relic; otherwise the procedural part models below stay in use.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(script.Parent.Config)
 local RelicDefs = require(script.Parent.RelicDefs)
@@ -126,6 +131,57 @@ local BUILDERS: { [string]: (Model, Color3, Enum.Material) -> Part } = {
 	end,
 }
 
+-- Colours per mesh role; Main takes the relic's own colour.
+local MESH_LOOK: { [string]: { color: Color3?, material: Enum.Material } } = {
+	Gold = { color = GOLD, material = METAL },
+	Dark = { color = DARK, material = Enum.Material.SmoothPlastic },
+	Leaf = { color = Color3.fromRGB(110, 190, 100), material = Enum.Material.SmoothPlastic },
+}
+local MESH_SIZE = 2.2 -- longest side in studs, like the part models
+
+-- A copy of the imported mesh model for this shape, centred, scaled and coloured, or nil.
+local function meshModel(def: RelicDefs.RelicDef, rank: number): (Model?, BasePart?)
+	local folder = ReplicatedStorage:FindFirstChild("RelicMeshes")
+	local source = folder and folder:FindFirstChild(def.shape)
+	if not (source and source:IsA("Model")) then
+		return nil, nil
+	end
+	local model = source:Clone()
+	local core: BasePart? = nil
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.Anchored = true
+			p.CanCollide = false
+			p.CanTouch = false
+			p.CanQuery = false
+			p.CastShadow = false
+			local role = p.Name:match("([^%.]+)$") or p.Name
+			local look = MESH_LOOK[role]
+			if role == "Glow" then
+				p.Color = def.color:Lerp(Color3.new(1, 1, 1), 0.3)
+				p.Material = Enum.Material.Neon
+			elseif look then
+				p.Color = look.color or def.color
+				p.Material = look.material
+			else
+				p.Color = def.color
+				p.Material = if rank >= 4 then Enum.Material.Glass else Enum.Material.SmoothPlastic
+				p.Reflectance = if rank >= 2 then 0.15 else 0
+				core = core or p
+			end
+		end
+	end
+	if not core then
+		model:Destroy()
+		return nil, nil
+	end
+	local box, size = model:GetBoundingBox()
+	model.WorldPivot = CFrame.new(box.Position)
+	model:ScaleTo(model:GetScale() * MESH_SIZE / math.max(size.X, size.Y, size.Z))
+	model:PivotTo(CFrame.identity)
+	return model, core
+end
+
 local function rarityRank(rarity: string): number
 	return table.find(Config.RarityOrder, rarity) or 1
 end
@@ -136,12 +192,18 @@ export type BuildOptions = { effects: boolean? }
 
 -- effects adds light and particles; leave it off for UI previews (ViewportFrames ignore them).
 function RelicVisuals.build(def: RelicDefs.RelicDef, opts: BuildOptions?): Model
-	local model = Instance.new("Model")
-	model.Name = def.id
 	local rank = rarityRank(def.rarity)
-	local material = if rank == 1 then Enum.Material.SmoothPlastic else Enum.Material.Neon
-	local builder = BUILDERS[def.shape] or BUILDERS.orb
-	local core = builder(model, def.color, material)
+	local meshed, meshCore = meshModel(def, rank)
+	local model: Model, core: BasePart
+	if meshed and meshCore then
+		model, core = meshed, meshCore
+	else
+		model = Instance.new("Model")
+		local material = if rank == 1 then Enum.Material.SmoothPlastic else Enum.Material.Neon
+		local builder = BUILDERS[def.shape] or BUILDERS.orb
+		core = builder(model, def.color, material)
+	end
+	model.Name = def.id
 	model.PrimaryPart = core
 	-- Pivot at the build origin, not the (often rotated) core, so PivotTo keeps the design.
 	core.PivotOffset = core.CFrame:Inverse()

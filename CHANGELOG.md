@@ -3,6 +3,7 @@
 ## 0.4.0 – Sound, Spielgefühl und Expedition (in Arbeit)
 - Expedition „Vergessene Ruinen“ für 1–4 Spieler: Druckplatten, Spiegelsaal mit Irrlicht, Rätselsteine, Kristallwächter, gemeinsame Truhe. Alle 25 Relikte sind jetzt erreichbar.
 - Abklingzeit 10 min pro Spieler, Begleiter bekommen Münzen. Datenschema v4.
+- Relikt-Modelle aus Blender vorbereitet (werden automatisch genutzt, sobald sie hochgeladen sind).
 - Englische Fassung aller Spieltexte, automatisch nach Spielersprache.
 - Wochenziel mit Münzen und Kartenteil (Schema v7) und Bestenliste „Größte Sammlung“ am Kristallplatz.
 - Schatzkarten: Geister verlieren Kartenteile, 3 Teile zeigen ein Versteck mit Rätselhinweis, dort gräbt man einen Schatz aus. Neuer Knopf „Karte“. Datenschema v6.
