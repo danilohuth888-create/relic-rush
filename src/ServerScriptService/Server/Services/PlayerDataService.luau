@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
@@ -298,7 +299,7 @@ function PlayerDataService.load(player: Player): Data?
 			task.wait(attempt * 2)
 		end
 		if store and not loaded then
-			player:Kick("Deine Spieldaten konnten gerade nicht geladen werden. Bitte tritt erneut bei.")
+			player:Kick(Locale.format(Locale.of(player), "Deine Spieldaten konnten gerade nicht geladen werden. Bitte tritt erneut bei."))
 			return nil
 		end
 	end

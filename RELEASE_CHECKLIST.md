@@ -24,6 +24,12 @@ Nichts davon wird ohne deine ausdrückliche Freigabe öffentlich geschaltet.
 - [x] Alle 25 Relikte erreichbar (Expedition)
 - [x] Musik und mehr Soundeffekte
 
+## Reichweite
+- [x] Englische Fassung, automatisch nach Spielersprache
+- [x] Bestenliste „Größte Sammlung“ (OrderedDataStore, eigener Studio-Store)
+- [x] Wochenziel
+- [ ] Store-Texte DE/EN im Creator Dashboard eintragen (Entwürfe in `docs/LAUNCH.md`)
+
 ## Technik und Sicherheit
 - [x] Alle Remotes serverseitig validiert, Rate-Limits
 - [x] Duplikationsschutz bei Ausstellen/Tauschen nachgewiesen

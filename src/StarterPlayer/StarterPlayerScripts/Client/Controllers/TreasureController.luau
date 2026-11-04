@@ -2,14 +2,21 @@
 -- Draws the dig mound of the player's open treasure map (only this player sees it) with a
 -- "Graben" prompt. The server checks the map and the distance and pays the treasure.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local ClientState = require(script.Parent.Parent.ClientState)
 
 local TreasureController = {}
+
+local LANG = Locale.of(Players.LocalPlayer)
+local function L(source: string, ...: any): string
+	return Locale.format(LANG, source, ...)
+end
 
 local hud: any
 local mound: Model? = nil
@@ -56,8 +63,8 @@ local function build(position: Vector3): Model
 	sparkle.Parent = dirt
 
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Graben"
-	prompt.ObjectText = "Schatz"
+	prompt.ActionText = L("Graben")
+	prompt.ObjectText = L("Schatz")
 	prompt.HoldDuration = 1.2
 	prompt.MaxActivationDistance = Config.Maps.digRange
 	prompt.RequiresLineOfSight = false

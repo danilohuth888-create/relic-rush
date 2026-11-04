@@ -12,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local Analytics = require(script.Parent.Parent.Util.Analytics)
@@ -84,24 +85,28 @@ local function list(run: Run): { Player }
 	return result
 end
 
-local function notify(target: Player | Run, kind: string, text: string, extra: { [string]: any }?)
-	local message: { [string]: any } = { kind = kind, text = text }
-	for k, v in extra or {} do
-		message[k] = v
-	end
+-- Sends a message, translated for each recipient. source is the German text/format.
+local function notify(target: Player | Run, kind: string, source: string, args: { any }?, extra: { [string]: any }?)
 	local remote = Net.event("Notify")
+	local function send(player: Player)
+		local message: { [string]: any } = { kind = kind, text = Locale.format(Locale.of(player), source, table.unpack(args or {})) }
+		for k, v in extra or {} do
+			message[k] = v
+		end
+		remote:FireClient(player, message)
+	end
 	if typeof(target) == "Instance" then
-		remote:FireClient(target :: Player, message)
+		send(target :: Player)
 	else
 		for player in (target :: Run).members do
-			remote:FireClient(player, message)
+			send(player)
 		end
 	end
 end
 
-local function setObjective(run: Run, text: string)
+local function setObjective(run: Run, source: string, ...: any)
 	for player in run.members do
-		player:SetAttribute("ExpObjective", text)
+		player:SetAttribute("ExpObjective", Locale.format(Locale.of(player), source, ...))
 	end
 end
 
@@ -228,7 +233,7 @@ local function platesStage(run: Run)
 					lit[i] = true
 					light(i, true)
 					nextIndex += 1
-					notify(run, "step", ("Richtig! %d von 4"):format(nextIndex - 1))
+					notify(run, "step", "Richtig! %d von 4", { nextIndex - 1 })
 				else
 					for k in lit do
 						light(k, false)
@@ -499,12 +504,12 @@ local function guardianStage(run: Run)
 			task.delay(0.25, function()
 				core.Color = CRYSTAL
 			end)
-			notify(run, "hit", ("Treffer! %d von %d"):format(hits, needed))
+			notify(run, "hit", "Treffer! %d von %d", { hits, needed })
 		end)
 		charge(i, false)
 	end
 
-	setObjective(run, ("Kristallwächter: Lauf zur leuchtenden Runensäule und entfessle sie! (0 von %d)"):format(needed))
+	setObjective(run, "Kristallwächter: Lauf zur leuchtenden Runensäule und entfessle sie! (0 von %d)", needed)
 	while run.active and hits < needed do
 		task.wait(TICK)
 		local now = os.clock()
@@ -515,7 +520,7 @@ local function guardianStage(run: Run)
 			end
 			charged, last, chargeEnds = pick, pick, now + 10
 			charge(pick, true)
-			setObjective(run, ("Kristallwächter: Lauf zur leuchtenden Runensäule und entfessle sie! (%d von %d)"):format(hits, needed))
+			setObjective(run, "Kristallwächter: Lauf zur leuchtenden Runensäule und entfessle sie! (%d von %d)", hits, needed)
 		elseif charged ~= 0 and now > chargeEnds then
 			charge(charged, false)
 			charged = 0
@@ -588,7 +593,7 @@ local function reward(run: Run, player: Player)
 		local left = data.expedition.cooldownUntil - now
 		coins = math.floor(coins * SETTINGS.helperShare)
 		EconomyService.grant(player, coins, "expedition_helper")
-		notify(player, "reward", ("Danke fürs Helfen! +%d Münzen. Neue Relikte gibt es für dich in %d:%02d."):format(coins, left // 60, left % 60), { relics = {} })
+		notify(player, "reward", "Danke fürs Helfen! +%d Münzen. Neue Relikte gibt es für dich in %d:%02d.", { coins, left // 60, left % 60 }, { relics = {} })
 		return
 	end
 	local rarity = if run.rng:NextNumber() < SETTINGS.legendaryChance then "Legendary" else "Epic"
@@ -612,11 +617,12 @@ local function reward(run: Run, player: Player)
 	data.expedition.wins += 1
 	Progress.bump(player, "expedition", 1)
 	Analytics.custom(player, "ExpeditionCompleted")
+	local lang = Locale.of(player)
 	local names = {}
 	for _, relic in relics do
-		table.insert(names, RelicDefs.byId[relic.id].name)
+		table.insert(names, Locale.text(lang, RelicDefs.byId[relic.id].name))
 	end
-	notify(player, "reward", ("Schatz geborgen: %s und %d Münzen!"):format(table.concat(names, " und "), coins), { relics = relics })
+	notify(player, "reward", "Schatz geborgen: %s und %d Münzen!", { table.concat(names, Locale.text(lang, " und ")), coins }, { relics = relics })
 	task.spawn(PlayerDataService.saveNow, player)
 end
 
@@ -821,6 +827,9 @@ end
 local function refreshPortalPrompt()
 	if portalPrompt then
 		portalPrompt.ActionText = if lobby then ("Beitreten (%d/%d)"):format(#lobby.members, SETTINGS.maxPlayers) else "Expedition starten"
+		-- LocalizeController re-translates the prompt from these attributes on every client.
+		portalPrompt:SetAttribute("LAction", if lobby then "Beitreten (%d/%d)" else "Expedition starten")
+		portalPrompt:SetAttribute("LArgs", if lobby then ("%d\t%d"):format(#lobby.members, SETTINGS.maxPlayers) else "")
 	end
 end
 
@@ -849,7 +858,7 @@ local function runLobby()
 		end
 		local left = math.max(0, math.ceil(current.startsAt - os.clock()))
 		for _, player in current.members do
-			player:SetAttribute("ExpObjective", ("Die Expedition startet in %d s … (%d/%d Spieler, Freunde können am Portal beitreten)"):format(left, #current.members, SETTINGS.maxPlayers))
+			player:SetAttribute("ExpObjective", Locale.format(Locale.of(player), "Die Expedition startet in %d s … (%d/%d Spieler, Freunde können am Portal beitreten)", left, #current.members, SETTINGS.maxPlayers))
 		end
 		refreshPortalPrompt()
 		task.wait(0.5)
@@ -905,7 +914,7 @@ function ExpeditionService.join(player: Player): (boolean, string?)
 	refreshPortalPrompt()
 	local left = data.expedition.cooldownUntil - os.time()
 	if left > 0 then
-		notify(player, "expedition", ("Du bist als Begleiter dabei – neue Relikte gibt es für dich in %d:%02d."):format(left // 60, left % 60))
+		notify(player, "expedition", "Du bist als Begleiter dabei – neue Relikte gibt es für dich in %d:%02d.", { left // 60, left % 60 })
 	else
 		notify(player, "expedition", "Du bist dabei! Die Expedition startet gleich.")
 	end

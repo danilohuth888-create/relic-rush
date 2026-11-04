@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builds = require(ReplicatedStorage.Shared.Builds)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Analytics = require(script.Parent.Parent.Util.Analytics)
 local Blueprints = require(script.Parent.Parent.Util.Blueprints)
@@ -54,15 +55,17 @@ function TycoonService.buy(player: Player, id: any): (boolean, string?)
 
 	local plot = PlotService.getPlot(player)
 	local position = plot and (Blueprints.position(plot, build.id) or plot:GetPivot().Position)
+	local lang = Locale.of(player)
+	local name = Locale.text(lang, build.name)
 	local text
 	if build.tier then
-		text = ("%s freigeschaltet! Neue Bau-Tasten sind erschienen."):format(Config.Tiers[build.tier].name)
+		text = Locale.format(lang, "%s freigeschaltet! Neue Bau-Tasten sind erschienen.", Locale.text(lang, Config.Tiers[build.tier].name))
 	elseif build.pedestal then
-		text = ("%s gebaut – stell ein Relikt darauf!"):format(build.name)
+		text = Locale.format(lang, "%s gebaut – stell ein Relikt darauf!", name)
 	elseif build.boost then
-		text = ("%s gebaut! Deine Relikte bringen jetzt +%d %% mehr."):format(build.name, math.floor((Builds.multiplier(data.builds) - 1) * 100 + 0.5))
+		text = Locale.format(lang, "%s gebaut! Deine Relikte bringen jetzt +%d %% mehr.", name, math.floor((Builds.multiplier(data.builds) - 1) * 100 + 0.5))
 	else
-		text = build.name .. " gebaut!"
+		text = Locale.format(lang, "%s gebaut!", name)
 	end
 	notify(player, { kind = if build.tier then "upgrade" else "build", text = text, position = position })
 	return true, nil
@@ -77,7 +80,7 @@ local function onButton(player: Player, pad: BasePart)
 	local ok, err = TycoonService.buy(player, id)
 	if not ok and err == "no_coins" then
 		local coins = player:GetAttribute("Coins") :: number? or 0
-		notify(player, { kind = "wrong", text = ("Dir fehlen noch %d Münzen für %s."):format(math.max(0, build.cost - coins), build.name) })
+		notify(player, { kind = "wrong", text = Locale.format(Locale.of(player), "Dir fehlen noch %d Münzen für %s.", math.max(0, build.cost - coins), Locale.text(Locale.of(player), build.name)) })
 	end
 end
 

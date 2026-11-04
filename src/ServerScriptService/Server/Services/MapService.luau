@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local Analytics = require(script.Parent.Parent.Util.Analytics)
@@ -38,10 +39,10 @@ function MapService.addPiece(player: Player): number?
 	if data.maps.pieces >= MAPS.piecesNeeded then
 		data.maps.pieces = 0
 		data.maps.spot = rng:NextInteger(1, #MAPS.spots)
-		notify(player, { kind = "map", text = "Die Schatzkarte ist vollständig! Öffne sie unten bei „Karte“." })
+		notify(player, { kind = "map", text = Locale.format(Locale.of(player), "Die Schatzkarte ist vollständig! Öffne sie unten bei „Karte“.") })
 		Analytics.custom(player, "MapCompleted")
 	else
-		notify(player, { kind = "map", text = ("Ein Kartenteil! (%d von %d)"):format(data.maps.pieces, MAPS.piecesNeeded) })
+		notify(player, { kind = "map", text = Locale.format(Locale.of(player), "Ein Kartenteil! (%d von %d)", data.maps.pieces, MAPS.piecesNeeded) })
 	end
 	PlayerDataService.replicate(player)
 	return if data.maps.spot ~= 0 then data.maps.spot else data.maps.pieces
@@ -95,7 +96,7 @@ function MapService.dig(player: Player): (boolean, string?)
 	Analytics.custom(player, "TreasureFound")
 	notify(player, {
 		kind = "reward",
-		text = ("Schatz ausgegraben: %s und %d Münzen!"):format(RelicDefs.byId[relicId].name, coins),
+		text = Locale.format(Locale.of(player), "Schatz ausgegraben: %s und %d Münzen!", Locale.text(Locale.of(player), RelicDefs.byId[relicId].name), coins),
 		relics = { { id = relicId, new = isNew } },
 	})
 	return true, nil

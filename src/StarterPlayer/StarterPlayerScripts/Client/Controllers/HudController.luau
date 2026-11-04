@@ -15,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Credits = require(ReplicatedStorage.Shared.Credits)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
@@ -23,6 +24,12 @@ local ClientState = require(script.Parent.Parent.ClientState)
 local Settings = require(script.Parent.Parent.Settings)
 
 local player = Players.LocalPlayer
+local LANG = Locale.of(player)
+
+-- Translates a German source text (and formats it) for this player.
+local function L(source: string, ...: any): string
+	return Locale.format(LANG, source, ...)
+end
 
 local C = Color3.fromRGB
 local THEME = {
@@ -66,6 +73,8 @@ local ERRORS: { [string]: string } = {
 	luck_active = "Deine Glücksrune wirkt noch.",
 	not_done = "Diese Aufgabe ist noch nicht erledigt.",
 	claimed = "Diese Belohnung hast du schon abgeholt.",
+	no_map = "Du hast gerade keine vollständige Schatzkarte.",
+	bad_quest = "Diese Aufgabe gibt es nicht mehr.",
 }
 local NOTIFY_COLORS: { [string]: Color3 } = {
 	upgrade = THEME.gold,
@@ -228,16 +237,11 @@ local function count(t: { [any]: any }): number
 end
 
 local function formatNumber(n: number): string
-	local digits = tostring(math.floor(n))
-	local out = digits:reverse():gsub("(%d%d%d)", "%1."):reverse()
-	if out:sub(1, 1) == "." then
-		out = out:sub(2)
-	end
-	return out
+	return Locale.number(LANG, n)
 end
 
 local function formatRate(rate: number): string
-	return (("%g"):format(math.floor(rate * 10 + 0.5) / 10):gsub("%.", ","))
+	return Locale.decimal(LANG, rate)
 end
 
 local function updateScale()
@@ -437,13 +441,13 @@ end
 
 function Hud.showError(code: any)
 	Audio.play("error")
-	Hud.toast(ERRORS[tostring(code)] or "Das hat nicht geklappt.", C(255, 200, 200))
+	Hud.toast(L(ERRORS[tostring(code)] or "Das hat nicht geklappt."), C(255, 200, 200))
 end
 
 function Hud.relicCollected(def: RelicDefs.RelicDef, isNew: boolean?)
 	local rarity = Config.Rarities[def.rarity]
-	local text = ("%s gefunden! (%s)"):format(def.name, rarity.name)
-	Hud.toast(if isNew then "Neu im Sammelbuch: " .. text else text, rarity.color)
+	local text = L("%s gefunden! (%s)", L(def.name), L(rarity.name))
+	Hud.toast(if isNew then L("Neu im Sammelbuch: %s", text) else text, rarity.color)
 end
 
 local function claimableQuests(state: any): number
@@ -464,7 +468,7 @@ local function refreshGuide()
 	local state = ClientState.data
 	local text = guideText
 	if not text and state and claimableQuests(state) > 0 then
-		text = "Eine Aufgabe ist erledigt – hol dir deine Belohnung ab!"
+		text = L("Eine Aufgabe ist erledigt – hol dir deine Belohnung ab!")
 	end
 	local inExpedition = player:GetAttribute("ExpObjective") ~= nil
 	guideFrame.Visible = text ~= nil and panelMode == nil and not inExpedition
@@ -594,9 +598,9 @@ local function relicCard(def: RelicDefs.RelicDef, held: number, line: string, on
 			BackgroundTransparency = 0.15,
 		})
 	end
-	label(card, { Position = UDim2.fromOffset(8, 102), Size = UDim2.new(1, -16, 0, 24), Text = def.name, Font = TITLE, TextScaled = true })
+	label(card, { Position = UDim2.fromOffset(8, 102), Size = UDim2.new(1, -16, 0, 24), Text = L(def.name), Font = TITLE, TextScaled = true })
 	label(card, { Position = UDim2.fromOffset(8, 126), Size = UDim2.new(1, -16, 0, 18), Text = line, TextColor3 = THEME.subtle, TextSize = 15 })
-	local badge = chip(card, rarity.name, rarity.color:Lerp(THEME.white, 0.55), rarity.color:Lerp(THEME.dark, 0.55), {
+	local badge = chip(card, L(rarity.name), rarity.color:Lerp(THEME.white, 0.55), rarity.color:Lerp(THEME.dark, 0.55), {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 146),
 		Size = UDim2.fromOffset(0, 18),
@@ -625,8 +629,8 @@ local function lockedCard(def: RelicDefs.RelicDef)
 	local art = cardArt(card, THEME.locked, THEME.lockedDeep, 92)
 	label(art, { Size = UDim2.fromScale(1, 1), Text = "?", Font = TITLE, TextSize = 58, TextColor3 = THEME.white })
 	label(card, { Position = UDim2.fromOffset(8, 102), Size = UDim2.new(1, -16, 0, 24), Text = "???", Font = TITLE, TextSize = 22, TextColor3 = THEME.subtle })
-	label(card, { Position = UDim2.fromOffset(8, 126), Size = UDim2.new(1, -16, 0, 18), Text = "Noch nicht entdeckt", TextColor3 = THEME.subtle, TextSize = 14 })
-	chip(card, rarity.name, rarity.color:Lerp(THEME.white, 0.6), rarity.color:Lerp(THEME.dark, 0.5), {
+	label(card, { Position = UDim2.fromOffset(8, 126), Size = UDim2.new(1, -16, 0, 18), Text = L("Noch nicht entdeckt"), TextColor3 = THEME.subtle, TextSize = 14 })
+	chip(card, L(rarity.name), rarity.color:Lerp(THEME.white, 0.6), rarity.color:Lerp(THEME.dark, 0.5), {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 146),
 		Size = UDim2.fromOffset(0, 18),
@@ -666,13 +670,13 @@ local function renderCollection(state: any)
 	end
 	local discovered = count(state.discovered or {})
 	local nextMilestone = Config.Milestones[(state.milestones or 0) + 1]
-	setHeader("📖", "Sammelbuch", if nextMilestone
-		then ("%d von %d entdeckt · bei %d gibt es +%s Münzen"):format(discovered, #RelicDefs.list, nextMilestone.count, formatNumber(nextMilestone.reward))
-		else ("Alle %d Relikte entdeckt!"):format(#RelicDefs.list))
+	setHeader("📖", L("Sammelbuch"), if nextMilestone
+		then L("%d von %d entdeckt · bei %d gibt es +%s Münzen", discovered, #RelicDefs.list, nextMilestone.count, formatNumber(nextMilestone.reward))
+		else L("Alle %d Relikte entdeckt!", #RelicDefs.list))
 	for _, def in RelicDefs.list do
 		if state.discovered and state.discovered[def.id] then
 			local shown = displayedCount[def.id] or 0
-			relicCard(def, state.inventory[def.id] or 0, if shown > 0 then ("%d ausgestellt"):format(shown) else ("+%s/s"):format(formatRate(def.rate)), nil)
+			relicCard(def, state.inventory[def.id] or 0, if shown > 0 then L("%d ausgestellt", shown) else ("+%s/s"):format(formatRate(def.rate)), nil)
 		else
 			lockedCard(def)
 		end
@@ -683,8 +687,8 @@ local function renderPedestal(state: any, slot: number)
 	setCells(UDim2.fromOffset(140, 172))
 	local occupant = state.display[tostring(slot)]
 	local def = occupant and RelicDefs.byId[occupant]
-	setHeader("🏛️", "Podest " .. slot, if def then ("Ausgestellt: %s (+%s/s) – wähle ein Relikt zum Tauschen."):format(def.name, formatRate(def.rate))
-		else "Wähle ein Relikt zum Ausstellen.")
+	setHeader("🏛️", L("Podest %d", slot), if def then L("Ausgestellt: %s (+%s/s) – wähle ein Relikt zum Tauschen.", L(def.name), formatRate(def.rate))
+		else L("Wähle ein Relikt zum Ausstellen."))
 	returnButton.Visible = def ~= nil
 	local rows = {}
 	for id, n in state.inventory do
@@ -703,7 +707,7 @@ local function renderPedestal(state: any, slot: number)
 			end)
 			if ok and success then
 				Audio.play("place")
-				Hud.toast(("%s ausgestellt! +%s/s"):format(row.def.name, formatRate(row.def.rate)), THEME.gold)
+				Hud.toast(L("%s ausgestellt! +%s/s", L(row.def.name), formatRate(row.def.rate)), THEME.gold)
 				Hud.close()
 			else
 				Hud.showError(err)
@@ -711,7 +715,7 @@ local function renderPedestal(state: any, slot: number)
 		end)
 	end
 	if #rows == 0 then
-		emptyNote("Keine Relikte im Inventar. Fang Wächter-Geister auf dem Platz und im Flüsterwald!")
+		emptyNote(L("Keine Relikte im Inventar. Fang Wächter-Geister auf dem Platz und im Flüsterwald!"))
 	end
 end
 
@@ -778,7 +782,7 @@ local function questRow(name: string, icon: string, text: string, progress: numb
 		label(rewardRow, { Size = UDim2.fromOffset(0, 26), AutomaticSize = Enum.AutomaticSize.X, Text = "+ 🗺️", Font = TITLE, TextSize = 18, LayoutOrder = 3 })
 	end
 
-	pillButton(row, "Claim", if claimed then "✓ Erledigt" elseif done then "Abholen" else "Läuft …", THEME.goldLight, THEME.amberDeep, done and not claimed, {
+	pillButton(row, "Claim", if claimed then L("✓ Erledigt") elseif done then L("Abholen") else L("Läuft …"), THEME.goldLight, THEME.amberDeep, done and not claimed, {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
 		Size = UDim2.fromOffset(140, 48),
@@ -792,7 +796,7 @@ local function claim(remote: string, arg: any, reward: number)
 	end)
 	if ok and success then
 		Audio.play("claim")
-		Hud.toast("+" .. formatNumber(reward) .. " Münzen!", THEME.gold)
+		Hud.toast(L("+%s Münzen!", formatNumber(reward)), THEME.gold)
 	else
 		Hud.showError(err)
 	end
@@ -800,12 +804,12 @@ end
 
 local function renderQuests(state: any)
 	setCells(UDim2.new(1, -8, 0, 92))
-	setHeader("📜", "Aufgaben", "Jeden Tag neue Aufgaben, dazu ein Wochenziel ganz ohne Eile.")
+	setHeader("📜", L("Aufgaben"), L("Jeden Tag neue Aufgaben, dazu ein Wochenziel ganz ohne Eile."))
 	local weekly = state.weekly
 	local weeklyDef = weekly and Config.Weekly.byId[weekly.id]
 	if weeklyDef then
 		local reward = Config.Weekly.rewardByTier[state.tier]
-		questRow("Weekly", "🏆", "Woche: " .. weeklyDef.text:format(weekly.goal), weekly.progress, weekly.goal, reward, weekly.claimed, true, function()
+		questRow("Weekly", "🏆", L("Woche: %s", L(weeklyDef.text, weekly.goal)), weekly.progress, weekly.goal, reward, weekly.claimed, true, function()
 			claim("ClaimWeekly", nil, reward)
 		end)
 	end
@@ -816,7 +820,7 @@ local function renderQuests(state: any)
 	local reward = Config.Quests.rewardByTier[state.tier]
 	for index, quest in state.quests or {} do
 		local def = defs[quest.id]
-		questRow("Quest" .. index, QUEST_ICONS[quest.id] or "⭐", if def then def.text:format(quest.goal) else quest.id, quest.progress, quest.goal, reward, quest.claimed, false, function()
+		questRow("Quest" .. index, QUEST_ICONS[quest.id] or "⭐", if def then L(def.text, quest.goal) else quest.id, quest.progress, quest.goal, reward, quest.claimed, false, function()
 			claim("ClaimQuest", index, reward)
 		end)
 	end
@@ -880,17 +884,17 @@ end
 
 local function renderShop(state: any)
 	setCells(UDim2.fromOffset(204, 236))
-	setHeader("🛒", "Shop", "Alles optional – Aetheria ist komplett ohne Käufe spielbar.")
+	setHeader("🛒", L("Shop"), L("Alles optional – Aetheria ist komplett ohne Käufe spielbar."))
 	local luckCost = Config.LuckRune.costByTier[state.tier]
 	local luck = player:GetAttribute("LuckUntil")
 	local luckActive = type(luck) == "number" and luck > os.time()
 	shopCard(
 		"luck",
-		"Glücksrune",
-		("%d Minuten doppelte Chance auf seltene Relikte."):format(Config.LuckRune.seconds // 60),
+		L("Glücksrune"),
+		L("%d Minuten doppelte Chance auf seltene Relikte.", Config.LuckRune.seconds // 60),
 		true,
 		formatNumber(luckCost),
-		if luckActive then "Wirkt gerade" else "Mit Münzen kaufen",
+		if luckActive then L("Wirkt gerade") else L("Mit Münzen kaufen"),
 		not luckActive,
 		function()
 			local ok, success, err = pcall(function()
@@ -898,7 +902,7 @@ local function renderShop(state: any)
 			end)
 			if ok and success then
 				Audio.play("purchase")
-				Hud.toast("Die Glücksrune leuchtet! Seltene Relikte erscheinen öfter.", THEME.gold)
+				Hud.toast(L("Die Glücksrune leuchtet! Seltene Relikte erscheinen öfter."), THEME.gold)
 				Hud.close()
 			else
 				Hud.showError(err)
@@ -908,7 +912,7 @@ local function renderShop(state: any)
 	for _, pass in Config.Shop.passes do
 		local owned = player:GetAttribute("Pass_" .. pass.key) == true
 		local live = pass.id ~= 0
-		local priceLabel = shopCard(pass.key, pass.name, pass.text, false, if live then "…" else "Bald verfügbar", if owned then "✓ Besitzt du" elseif live then "Kaufen" else "Bald", live and not owned, function()
+		local priceLabel = shopCard(pass.key, L(pass.name), L(pass.text), false, if live then "…" else L("Bald verfügbar"), if owned then L("✓ Besitzt du") elseif live then L("Kaufen") else L("Bald"), live and not owned, function()
 			MarketplaceService:PromptGamePassPurchase(player, pass.id)
 		end)
 		if live then
@@ -917,8 +921,8 @@ local function renderShop(state: any)
 	end
 	for _, product in Config.Shop.products do
 		local live = product.id ~= 0
-		local text = ("%s +%s Münzen."):format(product.text, formatNumber(product.coinsByTier[state.tier]))
-		local priceLabel = shopCard(product.key, product.name, text, false, if live then "…" else "Bald verfügbar", if live then "Kaufen" else "Bald", live, function()
+		local text = L("%s +%s Münzen.", L(product.text), formatNumber(product.coinsByTier[state.tier]))
+		local priceLabel = shopCard(product.key, L(product.name), text, false, if live then "…" else L("Bald verfügbar"), if live then L("Kaufen") else L("Bald"), live, function()
 			MarketplaceService:PromptProductPurchase(player, product.id)
 		end)
 		if live then
@@ -955,7 +959,7 @@ end
 -- − [■■■■■□□□□□] + for a 0..1 volume in Config.SettingsStep steps.
 local function volumeRow(key: string, icon: string, title: string)
 	local value = (Settings.values :: any)[key] :: number
-	local row = settingsRow("Setting_" .. key, icon, title, if value <= 0 then "Stumm" else ("%d %%"):format(math.floor(value * 100 + 0.5)))
+	local row = settingsRow("Setting_" .. key, icon, L(title), if value <= 0 then L("Stumm") else ("%d %%"):format(math.floor(value * 100 + 0.5)))
 	local steps = math.floor(1 / Config.SettingsStep + 0.5)
 	local filled = math.floor(value / Config.SettingsStep + 0.5)
 	local controls = new("Frame", {
@@ -988,16 +992,16 @@ end
 
 local function renderSettings()
 	setCells(UDim2.new(1, -8, 0, 78))
-	setHeader("⚙️", "Einstellungen", "Wird in deinem Profil gespeichert.")
+	setHeader("⚙️", L("Einstellungen"), L("Wird in deinem Profil gespeichert."))
 	volumeRow("music", "🎵", "Musik")
 	volumeRow("sfx", "🔔", "Effekte")
 	local hints = Settings.values.hints
-	local lumi = settingsRow("Setting_hints", "✨", "Lumi-Hinweise", if hints then "Lumi zeigt dir den Weg." else "Lumi ist ausgeblendet.")
+	local lumi = settingsRow("Setting_hints", "✨", L("Lumi-Hinweise"), if hints then L("Lumi zeigt dir den Weg.") else L("Lumi ist ausgeblendet."))
 	local top, bottom = THEME.teal, THEME.tealDeep
 	if not hints then
 		top, bottom = THEME.locked, THEME.lockedDeep
 	end
-	pillButton(lumi, "Toggle", if hints then "An" else "Aus", top, bottom, true, {
+	pillButton(lumi, "Toggle", if hints then L("An") else L("Aus"), top, bottom, true, {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
 		Size = UDim2.fromOffset(120, 48),
@@ -1005,8 +1009,8 @@ local function renderSettings()
 	}, function()
 		Settings.set("hints", not Settings.values.hints)
 	end)
-	local credits = settingsRow("Setting_credits", "📜", "Credits", "Musik, Sounds und Mitwirkende")
-	pillButton(credits, "Open", "Ansehen", THEME.goldLight, THEME.amberDeep, true, {
+	local credits = settingsRow("Setting_credits", "📜", L("Credits"), L("Musik, Sounds und Mitwirkende"))
+	pillButton(credits, "Open", L("Ansehen"), THEME.goldLight, THEME.amberDeep, true, {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
 		Size = UDim2.fromOffset(120, 48),
@@ -1017,18 +1021,18 @@ local function renderSettings()
 end
 
 local function renderCredits()
-	setHeader("📜", "Credits", "Danke an alle, deren Werke Aetheria lebendig machen.")
+	setHeader("📜", L("Credits"), L("Danke an alle, deren Werke Aetheria lebendig machen."))
 	local lines = {}
 	for _, section in Credits.sections() do
-		table.insert(lines, ('<font color="#%s"><b>%s</b></font>'):format(THEME.violetDeep:ToHex(), section.title))
+		table.insert(lines, ('<font color="#%s"><b>%s</b></font>'):format(THEME.violetDeep:ToHex(), L(section.title)))
 		for _, line in section.lines do
-			table.insert(lines, "   " .. line)
+			table.insert(lines, "   " .. L(line))
 		end
 		table.insert(lines, "")
 	end
 	setCells(UDim2.new(1, -8, 0, 64 + #lines * 21))
 	local card = cardSurface("CreditsText")
-	pillButton(card, "Back", "‹ Zurück", THEME.violet, THEME.violetDeep, true, {
+	pillButton(card, "Back", L("‹ Zurück"), THEME.violet, THEME.violetDeep, true, {
 		Position = UDim2.fromOffset(14, 12),
 		Size = UDim2.fromOffset(130, 38),
 		TextSize = 18,
@@ -1071,7 +1075,7 @@ local function renderMap(state: any)
 	local maps = state.maps or { pieces = 0, spot = 0, found = 0 }
 	local spot = Config.Maps.spots[maps.spot]
 	setCells(UDim2.new(1, -8, 0, MAP_SIZE + 28))
-	setHeader("🗺️", "Schatzkarte", if spot then "Die Karte ist vollständig – grab den Schatz aus!" else "Wächter-Geister verlieren manchmal ein Kartenteil.")
+	setHeader("🗺️", L("Schatzkarte"), if spot then L("Die Karte ist vollständig – grab den Schatz aus!") else L("Wächter-Geister verlieren manchmal ein Kartenteil."))
 	local card = cardSurface("MapCard")
 	local paper = new("Frame", {
 		Name = "Paper",
@@ -1094,7 +1098,7 @@ local function renderMap(state: any)
 			plot.BackgroundColor3 = THEME.gold
 		end
 	end
-	label(paper, { Position = UDim2.fromOffset(8, 6), Size = UDim2.fromOffset(60, 20), Text = "N ↑", Font = TITLE, TextSize = 16, TextColor3 = C(130, 90, 50) })
+	label(paper, { Position = UDim2.fromOffset(8, 6), Size = UDim2.fromOffset(60, 20), Text = L("N ↑"), Font = TITLE, TextSize = 16, TextColor3 = C(130, 90, 50) })
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root then
 		local me = mapDot(paper, root.Position, 12, C(60, 140, 255), "You")
@@ -1123,13 +1127,13 @@ local function renderMap(state: any)
 		table.insert(dots, if spot or i <= maps.pieces then "●" else "○")
 	end
 	local lines = {
-		("<b>Kartenteile:</b> %s"):format(table.concat(dots, " ")),
+		L("<b>Kartenteile:</b> %s", table.concat(dots, " ")),
 		"",
-		if spot then "<b>Hinweis:</b> " .. spot.hint else "Fang Wächter-Geister auf dem Platz und im Flüsterwald. Mit " .. Config.Maps.piecesNeeded .. " Teilen wird die Karte lesbar.",
+		if spot then L("<b>Hinweis:</b> %s", L(spot.hint)) else L("Fang Wächter-Geister auf dem Platz und im Flüsterwald. Mit %d Teilen wird die Karte lesbar.", Config.Maps.piecesNeeded),
 		"",
-		if spot then "Am Ziel erscheint ein Erdhügel mit rotem Kreuz – halte dort E (oder tippe), um zu graben." else "",
+		if spot then L("Am Ziel erscheint ein Erdhügel mit rotem Kreuz – halte dort E (oder tippe), um zu graben.") else "",
 		"",
-		("Gefundene Schätze: %d"):format(maps.found),
+		L("Gefundene Schätze: %d", maps.found),
 	}
 	label(card, {
 		Name = "Info",
@@ -1317,7 +1321,7 @@ local function buildGuide()
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = C(255, 255, 255),
 		BackgroundTransparency = 0.85,
-		Text = "Überspringen",
+		Text = L("Überspringen"),
 		TextColor3 = C(225, 215, 245),
 		Font = BODY,
 		TextSize = 15,
@@ -1359,7 +1363,7 @@ local function buildExpedition()
 		TextSize = 19,
 		LayoutOrder = 2,
 	})
-	expLeave = pillButton(expFrame, "Leave", "Verlassen", C(255, 160, 170), C(200, 70, 100), true, {
+	expLeave = pillButton(expFrame, "Leave", L("Verlassen"), C(255, 160, 170), C(200, 70, 100), true, {
 		Size = UDim2.fromOffset(120, 38),
 		TextSize = 17,
 		LayoutOrder = 3,
@@ -1382,17 +1386,17 @@ local function buildNavigation()
 		Parent = gui,
 	}, { navLayout }))
 	navFrame = nav
-	bigButton("NavCollection", "📖", "Sammlung", THEME.violet, THEME.violetDeep, Vector2.new(190, 70), 1, false, Hud.openCollection).Parent = nav
-	bigButton("NavHome", "🏛️", "Schatzkammer", THEME.amber, THEME.amberDeep, Vector2.new(206, 70), 2, false, function()
+	bigButton("NavCollection", "📖", L("Sammlung"), THEME.violet, THEME.violetDeep, Vector2.new(190, 70), 1, false, Hud.openCollection).Parent = nav
+	bigButton("NavHome", "🏛️", L("Schatzkammer"), THEME.amber, THEME.amberDeep, Vector2.new(206, 70), 2, false, function()
 		Hud.close()
 		local ok, success = pcall(function()
 			return Net.func("GoHome"):InvokeServer()
 		end)
 		if not (ok and success) then
-			Hud.toast("Gerade nicht möglich – versuch es gleich nochmal.")
+			Hud.toast(L("Gerade nicht möglich – versuch es gleich nochmal."))
 		end
 	end).Parent = nav
-	local map = bigButton("NavMap", "🗺️", "Karte", THEME.teal, THEME.tealDeep, Vector2.new(150, 70), 3, false, Hud.openMap)
+	local map = bigButton("NavMap", "🗺️", L("Karte"), THEME.teal, THEME.tealDeep, Vector2.new(150, 70), 3, false, Hud.openMap)
 	map.Parent = nav
 	mapBadge = new("Frame", {
 		Name = "Badge",
@@ -1416,9 +1420,9 @@ local function buildNavigation()
 		Parent = gui,
 	}, { new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }) }))
 	sideFrame = side
-	local quests = bigButton("NavQuests", "📜", "Aufgaben", THEME.teal, THEME.tealDeep, Vector2.new(96, 96), 1, true, Hud.openQuests)
+	local quests = bigButton("NavQuests", "📜", L("Aufgaben"), THEME.teal, THEME.tealDeep, Vector2.new(96, 96), 1, true, Hud.openQuests)
 	quests.Parent = side
-	bigButton("NavShop", "🛒", "Shop", THEME.pink, THEME.pinkDeep, Vector2.new(96, 96), 2, true, Hud.openShop).Parent = side
+	bigButton("NavShop", "🛒", L("Shop"), THEME.pink, THEME.pinkDeep, Vector2.new(96, 96), 2, true, Hud.openShop).Parent = side
 	buildGear(side)
 	questBadge = new("Frame", {
 		Name = "Badge",
@@ -1503,7 +1507,7 @@ local function buildPanel()
 		TextColor3 = THEME.subtle,
 		TextSize = 18,
 	})
-	returnButton = pillButton(panel, "Return", "Ins Inventar", THEME.goldLight, THEME.amberDeep, true, {
+	returnButton = pillButton(panel, "Return", L("Ins Inventar"), THEME.goldLight, THEME.amberDeep, true, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -20, 0, 74),
 		Size = UDim2.fromOffset(200, 34),
@@ -1520,7 +1524,7 @@ local function buildPanel()
 		end)
 		if ok and success then
 			Audio.play("place", 0.85)
-			Hud.toast("Zurück im Inventar.")
+			Hud.toast(L("Zurück im Inventar."))
 			Hud.close()
 		else
 			Hud.showError(err)

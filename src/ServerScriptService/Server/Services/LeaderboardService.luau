@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Progress = require(script.Parent.Parent.Util.Progress)
+local WorldText = require(script.Parent.Parent.Util.WorldText)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 
 local STORE_NAME = if RunService:IsStudio() then "RelicRush_Collection_Studio_v1" else "RelicRush_Collection_v1"
@@ -155,9 +156,11 @@ function LeaderboardService.refresh(): { { userId: number, score: number } }
 	end
 	for i, label in rowLabels do
 		local entry = result[i]
-		label.Text = if entry
-			then ("%d.  %s  –  %d Relikte"):format(i, nameOf(entry.userId), entry.score // 10000)
-			else ""
+		if entry then
+			WorldText.set(label, "%d.  %s  –  %d Relikte", i, nameOf(entry.userId), entry.score // 10000)
+		else
+			WorldText.set(label, "")
+		end
 	end
 	return result
 end

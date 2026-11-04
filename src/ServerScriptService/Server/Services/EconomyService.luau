@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builds = require(ReplicatedStorage.Shared.Builds)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local Analytics = require(script.Parent.Parent.Util.Analytics)
@@ -105,7 +106,7 @@ function EconomyService.setup(player: Player)
 			EconomyService.grant(player, earned, "offline")
 			Net.event("Notify"):FireClient(player, {
 				kind = "offline",
-				text = ("Willkommen zurück! Deine Relikte haben %d Münzen erzeugt."):format(earned),
+				text = Locale.format(Locale.of(player), "Willkommen zurück! Deine Relikte haben %d Münzen erzeugt.", earned),
 			})
 		end
 	end

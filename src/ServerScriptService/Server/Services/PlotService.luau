@@ -19,6 +19,7 @@ local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
 local Blueprints = require(script.Parent.Parent.Util.Blueprints)
 local RateLimiter = require(script.Parent.Parent.Util.RateLimiter)
+local WorldText = require(script.Parent.Parent.Util.WorldText)
 
 local PlotService = {}
 
@@ -34,10 +35,10 @@ local function plotModel(index: number): Model?
 	return plotsFolder:FindFirstChild("Plot" .. index) :: Model?
 end
 
-local function setSign(plot: Model, text: string)
+local function setSign(plot: Model, source: string, ...: any)
 	local label = plot:FindFirstChild("OwnerLabel", true)
 	if label and label:IsA("TextLabel") then
-		label.Text = text
+		WorldText.set(label, source, ...)
 	end
 end
 
@@ -97,16 +98,10 @@ local function setPlanLabel(plot: Model, owned: { [string]: boolean }?)
 		return
 	end
 	if not owned then
-		label.Text = "Bauplan"
+		WorldText.set(label, "Bauplan")
 	else
-		label.Text = ("Bauplan\n%d / %d gebaut"):format(Builds.count(owned), #Builds.list)
+		WorldText.set(label, "Bauplan\n%d / %d gebaut", Builds.count(owned), #Builds.list)
 	end
-end
-
-local function formatCost(n: number): string
-	local digits = tostring(math.floor(n))
-	local out = digits:reverse():gsub("(%d%d%d)", "%1."):reverse()
-	return if out:sub(1, 1) == "." then out:sub(2) else out
 end
 
 local function tagLabel(gui: Instance, name: string, y: number, h: number, color: Color3)
@@ -172,9 +167,9 @@ local function setButtons(plot: Model, owned: { [string]: boolean }?)
 			pad.Transparency = if build then 0.2 else 1
 			gui.Enabled = build ~= nil
 			if build then
-				(gui:FindFirstChild("BuildName") :: TextLabel).Text = build.name
+				WorldText.set(gui:FindFirstChild("BuildName") :: TextLabel, "%s", "§" .. build.name)
 				local boost = if build.boost then (" · +%d %%"):format(math.floor(build.boost * 100 + 0.5)) else ""
-				(gui:FindFirstChild("Cost") :: TextLabel).Text = formatCost(build.cost) .. " Münzen" .. boost
+				WorldText.set(gui:FindFirstChild("Cost") :: TextLabel, "%s Münzen%s", "#" .. build.cost, boost)
 			end
 		end
 	end
@@ -274,7 +269,7 @@ function PlotService.assign(player: Player): number?
 	owners[index] = player
 	local plot = plotModel(index) :: Model
 	plot:SetAttribute("OwnerUserId", player.UserId)
-	setSign(plot, "Schatzkammer von " .. player.DisplayName)
+	setSign(plot, "Schatzkammer von %s", player.DisplayName)
 	setAccents(plot, true)
 	player:SetAttribute("PlotIndex", index)
 	return index
@@ -389,7 +384,7 @@ function PlotService.renderSlot(player: Player, slot: number, relicId: string?)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = def.name
+	WorldText.set(label, "%s", "§" .. def.name)
 	label.TextScaled = true
 	label.Font = Enum.Font.FredokaOne
 	label.TextColor3 = Config.Rarities[def.rarity].color

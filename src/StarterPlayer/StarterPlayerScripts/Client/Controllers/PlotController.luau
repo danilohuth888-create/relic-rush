@@ -10,11 +10,17 @@ local Workspace = game:GetService("Workspace")
 
 local Builds = require(ReplicatedStorage.Shared.Builds)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
 local ClientState = require(script.Parent.Parent.ClientState)
 
 local player = Players.LocalPlayer
 local PlotController = {}
+
+local LANG = Locale.of(Players.LocalPlayer)
+local function L(source: string, ...: any): string
+	return Locale.format(LANG, source, ...)
+end
 
 local prompts: { [number]: ProximityPrompt } = {}
 local connections: { RBXScriptConnection } = {}
@@ -29,8 +35,8 @@ local function refresh()
 		local occupant = state.display[tostring(slot)]
 		local def = occupant and RelicDefs.byId[occupant]
 		prompt.Enabled = Builds.slotUnlocked(state.builds or {}, slot)
-		prompt.ActionText = if def then "Tauschen" else "Ausstellen"
-		prompt.ObjectText = if def then def.name else "Podest " .. slot
+		prompt.ActionText = if def then L("Tauschen") else L("Ausstellen")
+		prompt.ObjectText = if def then L(def.name) else L("Podest %d", slot)
 	end
 end
 

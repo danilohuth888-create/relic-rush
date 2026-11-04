@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Analytics = require(script.Parent.Parent.Util.Analytics)
 local RateLimiter = require(script.Parent.Parent.Util.RateLimiter)
@@ -153,7 +154,7 @@ function ShopService.handleReceipt(player: Player, product: any, purchaseId: str
 	if PlayerDataService.recordReceipt(data, purchaseId) then
 		local amount = product.coinsByTier[data.tier]
 		EconomyService.grant(player, amount, product.key, true)
-		Net.event("Notify"):FireClient(player, { kind = "purchase", text = ("Danke! +%d Münzen"):format(amount) })
+		Net.event("Notify"):FireClient(player, { kind = "purchase", text = Locale.format(Locale.of(player), "Danke! +%d Münzen", amount) })
 	end
 	return PlayerDataService.saveNow(player)
 end
@@ -181,7 +182,7 @@ function ShopService.init()
 			player:SetAttribute("Pass_" .. pass.key, true)
 			ShopService.refresh(player)
 			Analytics.custom(player, "PassPurchased_" .. pass.key)
-			Net.event("Notify"):FireClient(player, { kind = "purchase", text = "Danke für deinen Kauf: " .. pass.name .. "!" })
+			Net.event("Notify"):FireClient(player, { kind = "purchase", text = Locale.format(Locale.of(player), "Danke für deinen Kauf: %s!", Locale.text(Locale.of(player), pass.name)) })
 		end
 	end)
 

@@ -9,11 +9,17 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Builds = require(ReplicatedStorage.Shared.Builds)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local ClientState = require(script.Parent.Parent.ClientState)
 local Settings = require(script.Parent.Parent.Settings)
 
 local player = Players.LocalPlayer
 local LumiController = {}
+
+local LANG = Locale.of(Players.LocalPlayer)
+local function L(source: string, ...: any): string
+	return Locale.format(LANG, source, ...)
+end
 
 local TURQUOISE = Color3.fromRGB(110, 235, 240)
 local LAVENDER = Color3.fromRGB(205, 170, 255)
@@ -114,17 +120,17 @@ local function step(state: any, coins: number, rootPos: Vector3): (string?, Vect
 	local cheapest = Builds.available(owned)[1]
 	local firstBuild = next(owned) == nil and cheapest ~= nil
 	if state.collected == 0 then
-		return "Hallo, ich bin Lumi! Fang den kleinen Geist vor dir – lauf einfach in ihn hinein.", relics.nearest(rootPos)
+		return L("Hallo, ich bin Lumi! Fang den kleinen Geist vor dir – lauf einfach in ihn hinein."), relics.nearest(rootPos)
 	elseif displayed == 0 then
-		return "Super! Tippe auf »Schatzkammer« und stelle dein Relikt auf ein Podest.", plots.target("pedestal")
+		return L("Super! Tippe auf »Schatzkammer« und stelle dein Relikt auf ein Podest."), plots.target("pedestal")
 	elseif firstBuild and coins >= cheapest.cost then
-		return "Genug Münzen! Stell dich auf eine grüne Bau-Taste in deiner Schatzkammer.", plots.target("button")
+		return L("Genug Münzen! Stell dich auf eine grüne Bau-Taste in deiner Schatzkammer."), plots.target("button")
 	elseif held > 0 and displayed < capacity then
-		return "Stelle auch dein neues Relikt aus – jedes erzeugt Münzen.", plots.target("pedestal")
+		return L("Stelle auch dein neues Relikt aus – jedes erzeugt Münzen."), plots.target("pedestal")
 	elseif firstBuild then
-		return ("Fang mehr Geister – sie tragen Relikte. Bei %d Münzen kannst du anbauen."):format(cheapest.cost), relics.nearest(rootPos)
+		return L("Fang mehr Geister – sie tragen Relikte. Bei %d Münzen kannst du anbauen.", cheapest.cost), relics.nearest(rootPos)
 	elseif not state.forestVisited then
-		return "Toll! Im Flüsterwald im Süden warten seltenere Relikte.", FOREST_ENTRANCE
+		return L("Toll! Im Flüsterwald im Süden warten seltenere Relikte."), FOREST_ENTRANCE
 	end
 	return nil, nil
 end
@@ -139,7 +145,7 @@ local function evaluate()
 	local active = not state.tutorialDone
 	if wasActive and not active then
 		farewellUntil = os.clock() + 6
-		hud.setGuide("Du bist jetzt ein echter Reliktjäger! Viel Spaß in Aetheria.", false)
+		hud.setGuide(L("Du bist jetzt ein echter Reliktjäger! Viel Spaß in Aetheria."), false)
 	end
 	wasActive = active
 

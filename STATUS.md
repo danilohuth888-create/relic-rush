@@ -14,7 +14,7 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 | 2c | Wächter-Geister fangen (ersetzt die Lichtsäulen) | ✅ serverseitig geprüft; Live-Lauftest mit dir offen |
 | 2d | Schatzkarten-Rätsel | ✅ Logik geprüft; Kartenfenster noch nicht gesehen |
 | 3 | Optik auf Profi-Niveau | offen |
-| 4 | Englisch, Bestenliste, Wochenziel | Wochenziel ✅, Bestenliste ✅, Englisch in Arbeit |
+| 4 | Englisch, Bestenliste, Wochenziel | ✅ im Playtest geprüft (Englisch per Testschalter) |
 | 5 | Release-Prüfung (M6) | offen |
 
 ### Block 1 – Sound und Spielgefühl
@@ -58,6 +58,7 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 
 ### Block 4 – Reichweite und Langzeit
 - **Wochenziel** (Montag 00:00 UTC): eins aus 4 Arten (Geister fangen, Schätze, Expeditionen, Münzen), Ziel nach Stufe, Belohnung 1.500/6.000/20.000 Münzen **plus ein Kartenteil**. Steht als lila Karte oben im Aufgaben-Fenster, ohne Ablaufdruck innerhalb der Woche. Schema v7.
+- **Englische Fassung:** Wer Roblox nicht auf Deutsch nutzt, sieht alles auf Englisch (HUD, Lumi, Meldungen, Prompts, Schilder, Bau-Tasten, Bestenliste, Zahlen mit „1,100“). Texte stehen deutsch im Code; `Shared/LocaleEN.luau` enthält 248 Übersetzungen, `python tools/i18n/check.py` meldet fehlende. Server-Meldungen werden pro Spieler übersetzt, Welttexte übersetzt jeder Client selbst (`LocalizeController`, `Util/WorldText`). Test in Studio: Workspace-Attribut `TestLanguage = "en"` vor dem Start setzen.
 - **Bestenliste „Größte Sammlung“** als Tafel am Kristallplatz: Top 10 nach entdeckten Relikten (Gleichstand: mehr Relikte im Besitz). Schreibt höchstens alle 90 s pro Spieler und beim Verlassen, liest alle 2 min. Studio nutzt einen eigenen Store, Tests verfälschen die Live-Liste nicht.
 
 ## Fertig
@@ -171,6 +172,9 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Karten:** Nach Fix nie „gewöhnlich“: Frostkrone (selten) + 1.600 | Playtest | ✅ |
 | **Wochenziel:** v7, Ziel „70 Geister“ gewählt, Fang zählt mit (1/70); fertig → +6.000 + Kartenteil, nochmal → `claimed` | Playtest | ✅ |
 | **Bestenliste:** 4 Testprofile + eigenes: Reihenfolge 25 / 12 (120009) / 12 (120003) / 5 / 3, Tafel zeigt Namen; Testeinträge entfernt | automatisiert | ✅ |
+| **Englisch:** mit `TestLanguage=en`: Navigation, Seitenmenü, Meldung „A map piece! (1 of 3)“, Münzen „39,487“, eigenes Schild „…'s Treasury“, Bauplan, Bau-Tasten („Lanterns (220 coins · +5 %)“), Reliktschild, Platzschild, Bestenliste, Portal- und Podest-Prompts | Playtest | ✅ |
+| **Englisch:** Gegenprobe Deutsch: Server-Texte unverändert deutsch, keine Steuerzeichen | Playtest | ✅ |
+| **Englisch:** `tools/i18n/check.py`: 248 Texte, 0 fehlend | automatisiert | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.

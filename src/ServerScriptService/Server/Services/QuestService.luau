@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Analytics = require(script.Parent.Parent.Util.Analytics)
 local Progress = require(script.Parent.Parent.Util.Progress)
@@ -40,8 +41,8 @@ local function thisWeek(): number
 	return math.floor((os.time() + 3 * 86400) / (7 * 86400))
 end
 
-local function notify(player: Player, kind: string, text: string)
-	Net.event("Notify"):FireClient(player, { kind = kind, text = text })
+local function notify(player: Player, kind: string, source: string, ...: any)
+	Net.event("Notify"):FireClient(player, { kind = kind, text = Locale.format(Locale.of(player), source, ...) })
 end
 
 -- Deterministic per player and day, so a rejoin shows the same quests.
@@ -116,7 +117,7 @@ local function checkMilestones(player: Player, data: PlayerDataService.Data)
 		data.milestones += 1
 		local milestone = Config.Milestones[data.milestones]
 		EconomyService.grant(player, milestone.reward, "milestone_" .. milestone.count)
-		notify(player, "milestone", ("Sammelbuch: %d Relikte entdeckt! +%d Münzen"):format(milestone.count, milestone.reward))
+		notify(player, "milestone", "Sammelbuch: %d Relikte entdeckt! +%d Münzen", milestone.count, milestone.reward)
 	end
 end
 
@@ -231,7 +232,7 @@ local function presence()
 					if not seen[owner.UserId] then
 						seen[owner.UserId] = true
 						Progress.bump(player, "visit", 1)
-						notify(owner, "visit", player.DisplayName .. " bewundert deine Schatzkammer!")
+						notify(owner, "visit", "%s bewundert deine Schatzkammer!", player.DisplayName)
 					end
 				end
 			end
