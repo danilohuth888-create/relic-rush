@@ -19,6 +19,7 @@ local ShopService = require(Services.ShopService)
 local SettingsService = require(Services.SettingsService)
 local TycoonService = require(Services.TycoonService)
 local MapService = require(Services.MapService)
+local LeaderboardService = require(Services.LeaderboardService)
 local ExpeditionService = require(Services.ExpeditionService)
 
 PlayerDataService.init()
@@ -32,6 +33,7 @@ ShopService.init()
 SettingsService.init()
 TycoonService.init()
 MapService.init()
+LeaderboardService.init()
 ExpeditionService.init()
 
 local function onPlayerAdded(player: Player)
@@ -47,12 +49,14 @@ local function onPlayerAdded(player: Player)
 	EconomyService.setup(player)
 	RelicSpawnService.startPlayer(player)
 	QuestService.startPlayer(player)
+	LeaderboardService.startPlayer(player)
 	player:SetAttribute("Loaded", true)
 	PlayerDataService.replicate(player)
 end
 
 local function onPlayerRemoving(player: Player)
 	ExpeditionService.stopPlayer(player)
+	LeaderboardService.stopPlayer(player)
 	RelicSpawnService.stopPlayer(player)
 	QuestService.stopPlayer(player)
 	EconomyService.forget(player)
@@ -101,6 +105,15 @@ if RunService:IsStudio() then
 				data_.expedition.cooldownUntil = 0
 			end
 			return data_ and data_.expedition
+		elseif action == "leaderboard" then
+			-- args: entries {{userId, score}}, remove flag; returns the refreshed top list.
+			if args[1] then
+				LeaderboardService.testEntries(args[1], args[2] == true)
+			end
+			return LeaderboardService.refresh()
+		elseif action == "weeklydone" then
+			data.weekly.progress = data.weekly.goal
+			PlayerDataService.replicate(player)
 		elseif action == "mappiece" then
 			return MapService.addPiece(player)
 		elseif action == "spirits" then

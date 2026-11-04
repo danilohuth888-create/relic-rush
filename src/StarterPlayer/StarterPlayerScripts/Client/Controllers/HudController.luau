@@ -448,6 +448,10 @@ end
 
 local function claimableQuests(state: any): number
 	local n = 0
+	local weekly = state.weekly
+	if weekly and weekly.goal > 0 and not weekly.claimed and weekly.progress >= weekly.goal then
+		n += 1
+	end
 	for _, quest in state.quests or {} do
 		if not quest.claimed and quest.progress >= quest.goal then
 			n += 1
@@ -527,6 +531,10 @@ local function signature(kind: string, state: any): string
 	if kind == "quests" then
 		for _, quest in state.quests or {} do
 			table.insert(parts, ("%s:%d:%s"):format(quest.id, math.floor(quest.progress), tostring(quest.claimed)))
+		end
+		local weekly = state.weekly
+		if weekly then
+			table.insert(parts, ("weekly:%s:%d:%s"):format(weekly.id, math.floor(weekly.progress), tostring(weekly.claimed)))
 		end
 	elseif kind ~= "shop" then
 		for id, n in state.inventory do
@@ -707,82 +715,109 @@ local function renderPedestal(state: any, slot: number)
 	end
 end
 
+-- One goal row: icon, text, progress bar, coin reward and the claim button.
+local function questRow(name: string, icon: string, text: string, progress: number, goal: number, reward: number, claimed: boolean, weekly: boolean, onClaim: () -> ())
+	local done = progress >= goal
+	local top, bottom = THEME.teal, THEME.tealDeep
+	if weekly then
+		top, bottom = THEME.violet, THEME.violetDeep
+	end
+	local row = cardSurface(name)
+	if claimed then
+		row.BackgroundColor3 = C(246, 252, 248)
+	elseif weekly then
+		row.BackgroundColor3 = C(250, 245, 255)
+		row:FindFirstChildOfClass("UIStroke").Color = THEME.violet:Lerp(THEME.white, 0.4)
+	end
+	local bubble = new("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 14, 0.5, 0),
+		Size = UDim2.fromOffset(58, 58),
+		BackgroundColor3 = THEME.white,
+		Parent = row,
+	}, { round(), gradient(top:Lerp(THEME.white, 0.4), bottom) })
+	label(bubble, { Size = UDim2.fromScale(1, 1), Text = icon, TextScaled = true })
+	new("UIPadding", { PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = bubble })
+
+	label(row, {
+		Position = UDim2.fromOffset(86, 12),
+		Size = UDim2.new(1, -330, 0, 28),
+		Text = text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		Font = TITLE,
+		TextSize = 21,
+	})
+	local fraction = math.clamp(progress / goal, 0, 1)
+	local bar = new("Frame", { Position = UDim2.fromOffset(86, 48), Size = UDim2.new(1, -330, 0, 14), BackgroundColor3 = THEME.locked, Parent = row }, { round() })
+	if fraction > 0 then
+		new("Frame", { Size = UDim2.fromScale(fraction, 1), BackgroundColor3 = THEME.white, Parent = bar }, {
+			round(),
+			gradient(top:Lerp(THEME.white, 0.25), bottom),
+		})
+	end
+	label(row, {
+		Position = UDim2.fromOffset(86, 64),
+		Size = UDim2.new(1, -330, 0, 18),
+		Text = ("%s / %s"):format(formatNumber(progress), formatNumber(goal)),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = THEME.subtle,
+		TextSize = 15,
+	})
+	local rewardRow = new("Frame", {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -164, 0.5, 0),
+		Size = UDim2.fromOffset(0, 26),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		Parent = row,
+	}, { hlist(4) })
+	coinIcon(rewardRow, 20, 1)
+	label(rewardRow, { Size = UDim2.fromOffset(0, 26), AutomaticSize = Enum.AutomaticSize.X, Text = formatNumber(reward), Font = TITLE, TextSize = 18, TextColor3 = THEME.amberDeep, LayoutOrder = 2 })
+	if weekly then
+		label(rewardRow, { Size = UDim2.fromOffset(0, 26), AutomaticSize = Enum.AutomaticSize.X, Text = "+ 🗺️", Font = TITLE, TextSize = 18, LayoutOrder = 3 })
+	end
+
+	pillButton(row, "Claim", if claimed then "✓ Erledigt" elseif done then "Abholen" else "Läuft …", THEME.goldLight, THEME.amberDeep, done and not claimed, {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -12, 0.5, 0),
+		Size = UDim2.fromOffset(140, 48),
+		TextColor3 = C(110, 58, 8),
+	}, onClaim)
+end
+
+local function claim(remote: string, arg: any, reward: number)
+	local ok, success, err = pcall(function()
+		return Net.func(remote):InvokeServer(arg)
+	end)
+	if ok and success then
+		Audio.play("claim")
+		Hud.toast("+" .. formatNumber(reward) .. " Münzen!", THEME.gold)
+	else
+		Hud.showError(err)
+	end
+end
+
 local function renderQuests(state: any)
 	setCells(UDim2.new(1, -8, 0, 92))
-	setHeader("📜", "Tägliche Aufgaben", "Jeden Tag gibt es neue Aufgaben. Belohnung: " .. formatNumber(Config.Quests.rewardByTier[state.tier]) .. " Münzen")
+	setHeader("📜", "Aufgaben", "Jeden Tag neue Aufgaben, dazu ein Wochenziel ganz ohne Eile.")
+	local weekly = state.weekly
+	local weeklyDef = weekly and Config.Weekly.byId[weekly.id]
+	if weeklyDef then
+		local reward = Config.Weekly.rewardByTier[state.tier]
+		questRow("Weekly", "🏆", "Woche: " .. weeklyDef.text:format(weekly.goal), weekly.progress, weekly.goal, reward, weekly.claimed, true, function()
+			claim("ClaimWeekly", nil, reward)
+		end)
+	end
 	local defs = {}
 	for _, quest in Config.Quests.pool do
 		defs[quest.id] = quest
 	end
-	local reward = formatNumber(Config.Quests.rewardByTier[state.tier])
+	local reward = Config.Quests.rewardByTier[state.tier]
 	for index, quest in state.quests or {} do
 		local def = defs[quest.id]
-		local done = quest.progress >= quest.goal
-		local row = cardSurface("Quest" .. index)
-		if quest.claimed then
-			row.BackgroundColor3 = C(246, 252, 248)
-		end
-		local icon = new("Frame", {
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 14, 0.5, 0),
-			Size = UDim2.fromOffset(58, 58),
-			BackgroundColor3 = THEME.white,
-			Parent = row,
-		}, { round(), gradient(THEME.teal:Lerp(THEME.white, 0.4), THEME.tealDeep) })
-		label(icon, { Size = UDim2.fromScale(1, 1), Text = QUEST_ICONS[quest.id] or "⭐", TextScaled = true })
-		new("UIPadding", { PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = icon })
-
-		label(row, {
-			Position = UDim2.fromOffset(86, 12),
-			Size = UDim2.new(1, -330, 0, 28),
-			Text = if def then def.text:format(quest.goal) else quest.id,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			Font = TITLE,
-			TextSize = 21,
-		})
-		local fraction = math.clamp(quest.progress / quest.goal, 0, 1)
-		local bar = new("Frame", { Position = UDim2.fromOffset(86, 48), Size = UDim2.new(1, -330, 0, 14), BackgroundColor3 = THEME.locked, Parent = row }, { round() })
-		if fraction > 0 then
-			new("Frame", { Size = UDim2.fromScale(fraction, 1), BackgroundColor3 = THEME.white, Parent = bar }, {
-				round(),
-				gradient(THEME.teal:Lerp(THEME.white, 0.25), THEME.tealDeep),
-			})
-		end
-		label(row, {
-			Position = UDim2.fromOffset(86, 64),
-			Size = UDim2.new(1, -330, 0, 18),
-			Text = ("%s / %s"):format(formatNumber(quest.progress), formatNumber(quest.goal)),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = THEME.subtle,
-			TextSize = 15,
-		})
-		local rewardRow = new("Frame", {
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -164, 0.5, 0),
-			Size = UDim2.fromOffset(0, 26),
-			AutomaticSize = Enum.AutomaticSize.X,
-			BackgroundTransparency = 1,
-			Parent = row,
-		}, { hlist(4) })
-		coinIcon(rewardRow, 20, 1)
-		label(rewardRow, { Size = UDim2.fromOffset(0, 26), AutomaticSize = Enum.AutomaticSize.X, Text = reward, Font = TITLE, TextSize = 18, TextColor3 = THEME.amberDeep, LayoutOrder = 2 })
-
-		pillButton(row, "Claim", if quest.claimed then "✓ Erledigt" elseif done then "Abholen" else "Läuft …", THEME.goldLight, THEME.amberDeep, done and not quest.claimed, {
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -12, 0.5, 0),
-			Size = UDim2.fromOffset(140, 48),
-			TextColor3 = C(110, 58, 8),
-		}, function()
-			local ok, success, err = pcall(function()
-				return Net.func("ClaimQuest"):InvokeServer(index)
-			end)
-			if ok and success then
-				Audio.play("claim")
-				Hud.toast("+" .. reward .. " Münzen!", THEME.gold)
-			else
-				Hud.showError(err)
-			end
+		questRow("Quest" .. index, QUEST_ICONS[quest.id] or "⭐", if def then def.text:format(quest.goal) else quest.id, quest.progress, quest.goal, reward, quest.claimed, false, function()
+			claim("ClaimQuest", index, reward)
 		end)
 	end
 end

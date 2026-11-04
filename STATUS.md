@@ -14,7 +14,7 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 | 2c | Wächter-Geister fangen (ersetzt die Lichtsäulen) | ✅ serverseitig geprüft; Live-Lauftest mit dir offen |
 | 2d | Schatzkarten-Rätsel | ✅ Logik geprüft; Kartenfenster noch nicht gesehen |
 | 3 | Optik auf Profi-Niveau | offen |
-| 4 | Englisch, Bestenliste, Wochenziel | offen |
+| 4 | Englisch, Bestenliste, Wochenziel | Wochenziel ✅, Bestenliste ✅, Englisch in Arbeit |
 | 5 | Release-Prüfung (M6) | offen |
 
 ### Block 1 – Sound und Spielgefühl
@@ -55,6 +55,10 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 - Am Ziel erscheint nur für dich ein Erdhügel mit rotem Kreuz und Funkeln: **E halten (1,2 s) = graben**.
 - Schatz: mindestens ungewöhnliches Relikt (Glück ×4) und Münzen nach Stufe (400/1.600/6.000). 8 Verstecke auf der Insel (`Config.Maps.spots`).
 - **Schema v6.** Graben prüft der Server (Karte offen, Entfernung, Rate-Limit).
+
+### Block 4 – Reichweite und Langzeit
+- **Wochenziel** (Montag 00:00 UTC): eins aus 4 Arten (Geister fangen, Schätze, Expeditionen, Münzen), Ziel nach Stufe, Belohnung 1.500/6.000/20.000 Münzen **plus ein Kartenteil**. Steht als lila Karte oben im Aufgaben-Fenster, ohne Ablaufdruck innerhalb der Woche. Schema v7.
+- **Bestenliste „Größte Sammlung“** als Tafel am Kristallplatz: Top 10 nach entdeckten Relikten (Gleichstand: mehr Relikte im Besitz). Schreibt höchstens alle 90 s pro Spieler und beim Verlassen, liest alle 2 min. Studio nutzt einen eigenen Store, Tests verfälschen die Live-Liste nicht.
 
 ## Fertig
 
@@ -165,6 +169,8 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Karten:** Badge „!“ am Karten-Knopf, Erdhügel an (−125, 118) nur beim Spieler | Playtest | ✅ |
 | **Karten:** Graben zu weit weg → `too_far`; am Ort → Mondstein + 1.600; nochmal → `no_map`, Hügel und Badge weg | Playtest (Client-Remote) | ✅ |
 | **Karten:** Nach Fix nie „gewöhnlich“: Frostkrone (selten) + 1.600 | Playtest | ✅ |
+| **Wochenziel:** v7, Ziel „70 Geister“ gewählt, Fang zählt mit (1/70); fertig → +6.000 + Kartenteil, nochmal → `claimed` | Playtest | ✅ |
+| **Bestenliste:** 4 Testprofile + eigenes: Reihenfolge 25 / 12 (120009) / 12 (120003) / 5 / 3, Tafel zeigt Namen; Testeinträge entfernt | automatisiert | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.

@@ -75,6 +75,22 @@ Config.Quests = {
 	},
 }
 
+-- Weekly goal: one bigger goal per week (Monday 00:00 UTC), on top of the daily quests.
+-- Reward: coins by tier plus a treasure map piece. Never expires mid-progress within a week.
+Config.Weekly = {
+	rewardByTier = { 1500, 6000, 20000 },
+	pool = {
+		{ id = "spirits", text = "Fange %d Wächter-Geister", stat = "spirit", goals = { 40, 70, 100 } },
+		{ id = "treasure", text = "Grabe %d Schätze aus", stat = "treasure", goals = { 2, 3, 4 } },
+		{ id = "expedition", text = "Schließe %d Expeditionen ab", stat = "expedition", goals = { 1, 2, 3 } },
+		{ id = "earn", text = "Verdiene %d Münzen", stat = "earn", goals = { 8000, 40000, 150000 } },
+	},
+	byId = {} :: { [string]: any },
+}
+for _, goal in Config.Weekly.pool do
+	Config.Weekly.byId[goal.id] = goal
+end
+
 -- Luck rune: the repeatable coin sink. Doubles the odds of every rarity above Common for
 -- relics that spawn while it is active.
 Config.LuckRune = {

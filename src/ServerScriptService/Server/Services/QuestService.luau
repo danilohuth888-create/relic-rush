@@ -15,6 +15,7 @@ local RateLimiter = require(script.Parent.Parent.Util.RateLimiter)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PlotService = require(script.Parent.PlotService)
 local EconomyService = require(script.Parent.EconomyService)
+local MapService = require(script.Parent.MapService)
 
 local FOREST_RADIUS = 60
 local VISIT_RADIUS = 24
@@ -32,6 +33,11 @@ local forestCenter: Vector3? = nil
 
 local function today(): number
 	return math.floor(os.time() / 86400)
+end
+
+-- Weeks start on Monday 00:00 UTC (the Unix epoch was a Thursday).
+local function thisWeek(): number
+	return math.floor((os.time() + 3 * 86400) / (7 * 86400))
 end
 
 local function notify(player: Player, kind: string, text: string)
@@ -55,7 +61,43 @@ function QuestService.generate(userId: number, day: number, tier: number, social
 	return list
 end
 
+-- Picks this week's goal (deterministic per player and week, so rejoining shows the same).
+local function refreshWeek(player: Player, data: PlayerDataService.Data): boolean
+	local week = thisWeek()
+	if data.weekly.week == week then
+		return false
+	end
+	local pool = Config.Weekly.pool
+	local goal = pool[Random.new(player.UserId * 104729 + week):NextInteger(1, #pool)]
+	data.weekly = { week = week, id = goal.id, goal = goal.goals[math.min(data.tier, #goal.goals)], progress = 0, claimed = false }
+	return true
+end
+
+function QuestService.claimWeekly(player: Player): (boolean, string?)
+	local data = PlayerDataService.get(player)
+	if not data then
+		return false, "not_loaded"
+	end
+	local weekly = data.weekly
+	if weekly.goal <= 0 then
+		return false, "bad_quest"
+	end
+	if weekly.claimed then
+		return false, "claimed"
+	end
+	if weekly.progress < weekly.goal then
+		return false, "not_done"
+	end
+	weekly.claimed = true
+	EconomyService.grant(player, Config.Weekly.rewardByTier[data.tier], "weekly_" .. weekly.id)
+	MapService.addPiece(player)
+	Analytics.custom(player, "WeeklyClaimed")
+	PlayerDataService.replicate(player)
+	return true, nil
+end
+
 local function refreshDay(player: Player, data: PlayerDataService.Data)
+	refreshWeek(player, data)
 	local day = today()
 	if data.quests.day ~= day then
 		data.quests.day = day
@@ -143,6 +185,12 @@ local function onProgress(player: Player, stat: string, amount: number)
 		finishTutorial(player, data)
 	end
 	local changed = false
+	local weekly = data.weekly
+	local weeklyDef = Config.Weekly.byId[weekly.id]
+	if weeklyDef and weeklyDef.stat == stat and not weekly.claimed and weekly.progress < weekly.goal then
+		weekly.progress = math.min(weekly.goal, weekly.progress + amount)
+		changed = true
+	end
 	for _, quest in data.quests.list do
 		local def = poolById[quest.id]
 		if def and def.stat == stat and not quest.claimed and quest.progress < quest.goal then
@@ -166,7 +214,7 @@ local function presence()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if data and root then
-			if refreshDay(player, data) then
+			if refreshDay(player, data) or refreshWeek(player, data) then
 				dirty[player] = true
 			end
 			if not data.stats.forestVisited and forestCenter and (root.Position - forestCenter).Magnitude < FOREST_RADIUS then
@@ -206,6 +254,12 @@ function QuestService.init()
 			return false, "rate"
 		end
 		return QuestService.claim(player, index)
+	end
+	Net.func("ClaimWeekly").OnServerInvoke = function(player: Player)
+		if not claimLimiter:allow(player) then
+			return false, "rate"
+		end
+		return QuestService.claimWeekly(player)
 	end
 	Net.func("SkipTutorial").OnServerInvoke = function(player: Player)
 		return QuestService.skipTutorial(player)

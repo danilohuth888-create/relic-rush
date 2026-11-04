@@ -12,7 +12,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 6
+local SCHEMA_VERSION = 7
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -23,6 +23,7 @@ export type Quest = { id: string, goal: number, progress: number, claimed: boole
 export type Settings = { music: number, sfx: number, hints: boolean }
 export type Expedition = { cooldownUntil: number, runs: number, wins: number }
 export type Maps = { pieces: number, spot: number, found: number } -- spot 0 = no open map
+export type Weekly = { week: number, id: string, goal: number, progress: number, claimed: boolean }
 export type Data = {
 	version: number,
 	coins: number,
@@ -39,6 +40,7 @@ export type Data = {
 	expedition: Expedition,
 	builds: { [string]: boolean }, -- tycoon builds on the plot (Shared/Builds)
 	maps: Maps,
+	weekly: Weekly,
 	lastSeen: number,
 }
 
@@ -68,6 +70,7 @@ local function defaultData(): Data
 		expedition = { cooldownUntil = 0, runs = 0, wins = 0 },
 		builds = {},
 		maps = { pieces = 0, spot = 0, found = 0 },
+		weekly = { week = 0, id = "", goal = 0, progress = 0, claimed = false },
 		lastSeen = 0,
 	}
 end
@@ -110,6 +113,10 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 		-- v6 added treasure maps.
 		data.maps = { pieces = 0, spot = 0, found = 0 }
 	end,
+	[7] = function(data)
+		-- v7 added the weekly goal (QuestService picks one on the next check).
+		data.weekly = { week = 0, id = "", goal = 0, progress = 0, claimed = false }
+	end,
 }
 
 local function reconcile(data: any): Data
@@ -119,7 +126,7 @@ local function reconcile(data: any): Data
 			data[key] = value
 		end
 	end
-	for _, group in { "stats", "tutorial", "quests", "settings", "expedition", "maps" } do
+	for _, group in { "stats", "tutorial", "quests", "settings", "expedition", "maps", "weekly" } do
 		for key, value in fresh[group] do
 			if data[group][key] == nil then
 				data[group][key] = value
@@ -331,6 +338,7 @@ function PlayerDataService.snapshot(player: Player): any
 		expeditionCooldown = data.expedition.cooldownUntil,
 		builds = data.builds,
 		maps = data.maps,
+		weekly = data.weekly,
 		persistent = PlayerDataService.persistent,
 	}
 end

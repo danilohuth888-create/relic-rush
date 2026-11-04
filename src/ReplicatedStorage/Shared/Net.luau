@@ -12,6 +12,7 @@ local FUNCTIONS = {
 	"Unplace",
 	"GoHome",
 	"ClaimQuest",
+	"ClaimWeekly",
 	"SkipTutorial",
 	"BuyLuck",
 	"SaveSettings",
