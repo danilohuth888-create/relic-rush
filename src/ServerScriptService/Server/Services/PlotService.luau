@@ -26,8 +26,9 @@ local PlotService = {}
 local plotsFolder: Instance
 local owners: { [number]: Player } = {}
 local homeLimiter = RateLimiter.new(2, 0.5)
--- Build buttons on the side strips of every plot (plot-local x, z).
-local BUTTON_SPOTS = { { -16.5, -5 }, { 16.5, -5 }, { -16.5, 1 }, { 16.5, 1 }, { -16.5, 7 }, { 16.5, 7 } }
+-- Build buttons in the yard in front of the house (plot-local x, z), cheapest offer nearest
+-- to the door.
+local BUTTON_SPOTS = { { -7.5, -15 }, { 7.5, -15 }, { -12.5, -15 }, { 12.5, -15 }, { -17.5, -15 }, { 17.5, -15 } }
 local BUTTON_READY = Color3.fromRGB(90, 230, 130)
 local BUTTON_LOCKED = Color3.fromRGB(150, 140, 165)
 
@@ -43,7 +44,7 @@ local function setSign(plot: Model, source: string, ...: any)
 end
 
 local function setAccents(plot: Model, claimed: boolean)
-	local accents = plot:FindFirstChild("Accents")
+	local accents = plot:FindFirstChild("Accents", true)
 	if not accents then
 		return
 	end
@@ -177,8 +178,8 @@ end
 
 local GOLD = Color3.fromRGB(255, 200, 80)
 local function setVipLook(plot: Model, vip: boolean)
-	local accents = plot:FindFirstChild("Accents")
-	local banner = plot:FindFirstChild("Banner") :: BasePart?
+	local accents = plot:FindFirstChild("Accents", true)
+	local banner = plot:FindFirstChild("Banner", true) :: BasePart?
 	for _, p in (if accents then accents:GetChildren() else {}) do
 		if p:IsA("BasePart") then
 			if p:GetAttribute("BaseColor") == nil then
@@ -221,6 +222,8 @@ end
 
 local function resetPlot(plot: Model)
 	plot:SetAttribute("OwnerUserId", 0)
+	-- Rebuild first: the starting room holds the banner, accents and pedestals 1-4.
+	applyBuildsTo(plot, nil, false)
 	setSign(plot, "Freie Schatzkammer")
 	setAccents(plot, false)
 	setVipLook(plot, false)
@@ -230,7 +233,6 @@ local function resetPlot(plot: Model)
 			clearDisplay(pedestal)
 		end
 	end
-	applyBuildsTo(plot, nil, false)
 end
 
 -- Lowest free index; kept pure so assignment logic is testable without real players.

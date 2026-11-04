@@ -17,17 +17,17 @@ export type Build = {
 }
 
 local list: { Build } = {
-	-- Stage 1: the small treasury grows
-	{ id = "ped5", name = "Podest 5", cost = 120, requires = {}, pedestal = 5 },
-	{ id = "lanterns", name = "Laternen", cost = 220, requires = {}, boost = 0.05 },
-	{ id = "walls", name = "Steinmauern", cost = 260, requires = {} },
-	{ id = "ped6", name = "Podest 6", cost = 200, requires = { "ped5" }, pedestal = 6 },
-	{ id = "ped7", name = "Podest 7", cost = 320, requires = { "ped6" }, pedestal = 7 },
+	-- Stage 1: from the starting room to a house with two wings
+	{ id = "lanterns", name = "Laternen", cost = 150, requires = {}, boost = 0.05 },
+	{ id = "roomWest", name = "Westzimmer", cost = 300, requires = {} },
+	{ id = "ped5", name = "Podest 5", cost = 140, requires = { "roomWest" }, pedestal = 5 },
+	{ id = "ped6", name = "Podest 6", cost = 220, requires = { "ped5" }, pedestal = 6 },
 	{ id = "carpet", name = "Goldteppich", cost = 380, requires = { "lanterns" }, boost = 0.05 },
+	{ id = "roomEast", name = "Ostzimmer", cost = 500, requires = { "ped6" } },
+	{ id = "ped7", name = "Podest 7", cost = 320, requires = { "roomEast" }, pedestal = 7 },
 	{ id = "ped8", name = "Podest 8", cost = 450, requires = { "ped7" }, pedestal = 8 },
-	{ id = "gate", name = "Eingangsportal", cost = 520, requires = { "walls" } },
-	{ id = "hall2", name = "Runensaal", cost = 900, requires = { "ped8", "carpet", "gate" }, tier = 2 },
-	-- Stage 2: the rune hall gets its roof
+	{ id = "hall2", name = "Große Halle", cost = 1200, requires = { "ped8", "carpet" }, tier = 2 },
+	-- Stage 2: the great hall
 	{ id = "ped9", name = "Podest 9", cost = 1100, requires = { "hall2" }, pedestal = 9 },
 	{ id = "windows", name = "Buntglasfenster", cost = 1500, requires = { "hall2" }, boost = 0.05 },
 	{ id = "fountain", name = "Münzbrunnen", cost = 1800, requires = { "hall2" }, boost = 0.1 },
@@ -38,9 +38,9 @@ local list: { Build } = {
 	{ id = "towers", name = "Ecktürme", cost = 2800, requires = { "windows" }, boost = 0.05 },
 	{ id = "vitrines", name = "Glasvitrinen", cost = 3200, requires = { "statues" }, boost = 0.15 },
 	{ id = "hall3", name = "Aetherhalle", cost = 6000, requires = { "ped12", "vitrines", "towers" }, tier = 3 },
-	-- Stage 3: the aether hall and its gallery
+	-- Stage 3: the aether hall and its upper floor
 	{ id = "chandelier", name = "Kristalllüster", cost = 8000, requires = { "hall3" }, boost = 0.1 },
-	{ id = "gallery", name = "Galerie", cost = 10000, requires = { "hall3" } },
+	{ id = "gallery", name = "Galerie-Empore", cost = 10000, requires = { "hall3" } },
 	{ id = "ped13", name = "Galerie-Podest 13", cost = 12000, requires = { "gallery" }, pedestal = 13 },
 	{ id = "ped14", name = "Galerie-Podest 14", cost = 14000, requires = { "ped13" }, pedestal = 14 },
 	{ id = "ped15", name = "Galerie-Podest 15", cost = 16000, requires = { "ped14" }, pedestal = 15 },

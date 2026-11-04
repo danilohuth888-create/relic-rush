@@ -39,8 +39,10 @@ return {
 	["Kleine Schatzkammer"] = "Small Treasury",
 	["Runensaal"] = "Rune Hall",
 	["Aetherhalle"] = "Aether Hall",
-	["Steinmauern"] = "Stone Walls",
-	["Eingangsportal"] = "Entrance Portal",
+	["Westzimmer"] = "West Room",
+	["Ostzimmer"] = "East Room",
+	["Große Halle"] = "Great Hall",
+	["Galerie-Empore"] = "Upper Gallery",
 	["Buntglasfenster"] = "Stained Glass",
 	["Ecktürme"] = "Corner Towers",
 
@@ -62,7 +64,6 @@ return {
 	["Wächterstatuen"] = "Guardian Statues",
 	["Glasvitrinen"] = "Glass Showcase",
 	["Kristalllüster"] = "Crystal Chandelier",
-	["Galerie"] = "Gallery",
 	["Schatzkrone"] = "Treasury Crown",
 
 	["Magische Flügel"] = "Magic Wings",

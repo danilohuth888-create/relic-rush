@@ -13,7 +13,7 @@ local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 8
+local SCHEMA_VERSION = 9
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -129,6 +129,19 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 			data.builds.windows = true
 			data.builds.towers = true
 		end
+	end,
+	[9] = function(data)
+		-- v9 turned the treasury into a house with rooms: pedestals 5-8 now stand in the west and
+		-- east rooms, so players who own them get those rooms; walls and gate are gone.
+		local b = data.builds
+		if b.ped5 or b.ped6 or b.ped7 or b.ped8 or b.hall2 then
+			b.roomWest = true
+		end
+		if b.ped7 or b.ped8 or b.hall2 then
+			b.roomEast = true
+		end
+		b.walls = nil
+		b.gate = nil
 	end,
 }
 

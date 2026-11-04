@@ -151,7 +151,8 @@ local function fadeRoofs()
 			local floor = plot:FindFirstChild("Floor") :: BasePart?
 			if floor then
 				local rel = floor.CFrame:PointToObjectSpace(root.Position)
-				if math.abs(rel.X) < 21 and math.abs(rel.Z) < 21 and rel.Y < 20 then
+				-- The house footprint behind the yard (see Server/Util/Blueprints).
+				if math.abs(rel.X) < 20.5 and rel.Z > -6.5 and rel.Z < 34.5 and rel.Y < 24 then
 					inside = plot
 					break
 				end

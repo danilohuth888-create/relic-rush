@@ -193,64 +193,9 @@ local function path(name, from, to, width)
 end
 
 -- Treasury plots ------------------------------------------------------------------------
--- Upgrade stone plus the decoration that tiers 2 and 3 reveal (PlotService toggles Decor2/3).
--- cf is the plot floor's CFrame (local -Z faces the plaza).
-local function decoratePlot(plot, cf, accent)
-	local function at(x, y, z)
-		return cf * CFrame.new(x, y, z)
-	end
-	for _, name in { "UpgradeStone", "Decor2", "Decor3" } do
-		local old = plot:FindFirstChild(name)
-		if old then
-			old:Destroy()
-		end
-	end
-	local stone = container("Model", plot, "UpgradeStone")
-	local stoneCf = CFrame.lookAt(at(16, 2.8, -11).Position, at(0, 2.8, -15).Position)
-	P(stone, "Stone", BLOCK, Vector3.new(3, 4.4, 1.6), stoneCf, PAL.rock)
-	P(stone, "Glyph", BLOCK, Vector3.new(1.8, 2.4, 0.1), stoneCf * CFrame.new(0, 0.2, -0.85), accent, NEON)
-	local board = P(stone, "Board", BLOCK, Vector3.new(7, 2.4, 0.4), stoneCf * CFrame.new(0, 3.6, 0), PAL.wood)
-	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40
-	gui.LightInfluence = 0
-	local text = Instance.new("TextLabel")
-	text.Name = "UpgradeLabel"
-	text.Size = UDim2.new(0.92, 0, 0.84, 0)
-	text.Position = UDim2.new(0.04, 0, 0.08, 0)
-	text.BackgroundTransparency = 1
-	text.Text = "Ausbau-Stein"
-	text.TextScaled = true
-	text.Font = Enum.Font.FredokaOne
-	text.TextColor3 = C(255, 244, 222)
-	text.Parent = gui
-	gui.Parent = board
-
-	local decor2 = container("Folder", plot, "Decor2")
-	for _, x in { -17, 17 } do
-		for _, z in { -2, 10 } do
-			local pillar = P(decor2, "RunePillar", BLOCK, Vector3.new(1.6, 7, 1.6), at(x, 4.1, z), PAL.stoneDark)
-			pillar:SetAttribute("Solid", true)
-			P(decor2, "PillarGem", BLOCK, Vector3.one * 1.3, at(x, 8.4, z) * ON_CORNER, accent, NEON)
-		end
-	end
-	P(decor2, "FloorRune", BLOCK, Vector3.new(26, 0.08, 0.6), at(0, 0.7, 6), accent, NEON)
-
-	local decor3 = container("Folder", plot, "Decor3")
-	for _, x in { -8, 8 } do
-		local arch = P(decor3, "ArchPillar", BLOCK, Vector3.new(1.8, 12, 1.8), at(x, 6.6, -20), PAL.gold, METAL)
-		arch:SetAttribute("Solid", true)
-	end
-	P(decor3, "ArchTop", BLOCK, Vector3.new(18, 1.6, 2), at(0, 13.4, -20), PAL.gold, METAL)
-	local halo = P(decor3, "HallCrystal", BLOCK, Vector3.one * 3.5, at(0, 17, 18) * ON_CORNER, accent, NEON, { CanCollide = false })
-	local glow = Instance.new("PointLight")
-	glow.Color = accent
-	glow.Range = 24
-	glow.Brightness = 1.5
-	glow.Parent = halo
-end
-
+-- Each plot is a paved yard; the house itself (starting room with pedestals 1-4 and every
+-- room built later) is created at runtime by Server/Util/Blueprints.luau. The plot carries its
+-- accent colour as an attribute. cf is the yard's CFrame (local -Z faces the plaza).
 local plots = container("Folder", root, "Plots")
 local PLOT_R = 120
 for i = 1, 8 do
@@ -268,39 +213,14 @@ for i = 1, 8 do
 	plot.Name = "Plot" .. i
 	plot:SetAttribute("PlotIndex", i)
 	plot:SetAttribute("OwnerUserId", 0)
+	plot:SetAttribute("Accent", accent)
 	plot.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 
 	P(plot, "Floor", BLOCK, Vector3.new(40, 1.2, 40), at(0, 0, 0), PAL.stone)
-	P(plot, "Carpet", BLOCK, Vector3.new(32, 0.1, 30), at(0, 0.62, 3), accent:Lerp(PAL.stone, 0.7))
-	P(plot, "BackWall", BLOCK, Vector3.new(40, 12, 1.6), at(0, 6.6, 19.2), PAL.stoneDark)
-	P(plot, "WallL", BLOCK, Vector3.new(1.6, 3, 36), at(-19.2, 2.1, 1), PAL.stoneDark)
-	P(plot, "WallR", BLOCK, Vector3.new(1.6, 3, 36), at(19.2, 2.1, 1), PAL.stoneDark)
-	P(plot, "Banner", BLOCK, Vector3.new(10, 7, 0.3), at(0, 6.5, 18.3), accent)
-	local accents = container("Folder", plot, "Accents")
-	P(accents, "RuneStrip", BLOCK, Vector3.new(34, 0.5, 0.3), at(0, 11.2, 18.3), accent)
-	for _, x in { -19, 19 } do
-		P(plot, "Pillar", BLOCK, Vector3.new(2.4, 9, 2.4), at(x, 5.1, -19), PAL.stoneDark)
-		P(accents, "Crystal", BLOCK, Vector3.one * 2, at(x, 11, -21.6) * ON_CORNER, accent)
-	end
+	P(plot, "YardPath", BLOCK, Vector3.new(6, 0.1, 14), at(0, 0.62, -13), PAL.stoneDark)
 	sign(plot, at(-12, 0.6, -21.5), 13, "Freie Schatzkammer", "Schatzkammer " .. i, "OwnerLabel")
-	P(plot, "SpawnPoint", BLOCK, Vector3.new(4, 1, 4), at(0, 0.2, -15) * CFrame.Angles(0, math.pi, 0), accent, SMOOTH, HIDDEN)
-
-	local pedestals = container("Folder", plot, "Pedestals")
-	local slot = 0
-	for row = 1, 3 do
-		for col = 1, 4 do
-			slot += 1
-			local ped = container("Model", pedestals, "Pedestal" .. slot)
-			ped:SetAttribute("Slot", slot)
-			ped:SetAttribute("RequiredTier", row)
-			local base = at(-12 + (col - 1) * 8, 0.6, -6 + (row - 1) * 8)
-			cyl(ped, "Foot", 0.6, 4.6, base * CFrame.new(0, 0.3, 0), PAL.stoneDark)
-			cyl(ped, "Base", 2.6, 3.6, base * CFrame.new(0, 1.3, 0), PAL.stone)
-			cyl(ped, "Rim", 0.35, 4, base * CFrame.new(0, 2.75, 0), PAL.gold, METAL)
-			P(ped, "Top", BLOCK, Vector3.one, base * CFrame.new(0, 3.4, 0), PAL.gold, SMOOTH, HIDDEN)
-		end
-	end
-	decoratePlot(plot, cf, accent)
+	P(plot, "SpawnPoint", BLOCK, Vector3.new(4, 1, 4), at(0, 0.2, -11) * CFrame.Angles(0, math.pi, 0), accent, SMOOTH, HIDDEN)
+	container("Folder", plot, "Pedestals")
 	plot.Parent = plots
 	task.wait()
 end
