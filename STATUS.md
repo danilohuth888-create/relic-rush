@@ -194,6 +194,7 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Schatzinsel:** 3 Teile → „Fertige Karten: 1“, Kartenfenster mit Inselzeichnung, Klick auf „Zur Schatzinsel reisen“ → Insel, Leiste „0 von 9“ | Playtest mit Klicks | ✅ |
 | **Schatzinsel:** Versteckte Stelle aus 75 Studs unsichtbar, aus 7 Studs sichtbar; mit E gegraben → episches Relikt + 1.100 Münzen; geheime Stelle im Wrack mit Laufsteuerung erreicht und gegraben → episch + 3.000 | Playtest | ✅ |
 | **Schatzinsel:** Geist mit Sprint (selten) in 13 s, Meister-Geist (episch) gefangen; Teleport-Trick löst aus (Sprung 4,8 Studs bei 7,3 Studs Abstand) | Playtest mit Laufsteuerung + Server-Protokoll | ✅ |
+| **Schatzinsel-Deko:** ca. 1.450 Teile, 9 Lichter; keine feste Deko an Grabstellen oder Geister-Startpunkten (Überlappungsprüfung); hinter den Wasserfall gelaufen, Adlerfels mit Sprüngen über alle 10 Trittsteine erklommen | Edit-Prüfung + Playtest | ✅ |
 | **Schatzinsel:** „Verlassen“-Knopf → zurück am eigenen Spawn, Leiste weg, Grabstellen und Insel-Geister entfernt | Playtest mit Klicks | ✅ |
 | **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
 

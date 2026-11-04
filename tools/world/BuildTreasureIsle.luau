@@ -353,6 +353,221 @@ for _, s in SPAWNS do
 	part:SetAttribute("RespawnSeconds", 25)
 end
 
+-- Dressing: paths, undergrowth, beach finds, a camp and a pier ----------------------------------
+-- Placed after the spots and spawns so it can keep clear of them. Small pieces never collide;
+-- only palms, big rocks and the camp's furniture are solid.
+local dressing = folder(root, "Dressing")
+local KEEP_OUT = {
+	{ -55, -30, 12 }, { -30, 45, 12 }, { 40, -2, 16 }, { 42, -24, 18 }, { -104, 24, 14 }, { 62, 62, 12 },
+	{ 88, 10, 13 }, { 0, 108, 13 }, { 0, 96, 9 }, { -78, 64, 12 }, { 10, -88, 11 },
+	{ 34, 82, 10 }, { -62, 106, 8 }, -- camp and pier
+}
+for _, list in SPOTS do
+	for _, pos in list do
+		table.insert(KEEP_OUT, { pos[1], pos[3], 5 })
+	end
+end
+for _, s in SPAWNS do
+	table.insert(KEEP_OUT, { s[2], s[3], 4 })
+end
+local placedDecor = {}
+
+local function free(x: number, z: number, r: number, minR: number, maxR: number): boolean
+	local d = math.sqrt(x * x + z * z)
+	if d < minR or d > maxR then
+		return false
+	end
+	for _, k in KEEP_OUT do
+		if (Vector2.new(x, z) - Vector2.new(k[1], k[2])).Magnitude < k[3] + r then
+			return false
+		end
+	end
+	for _, q in placedDecor do
+		if (Vector2.new(x, z) - q.p).Magnitude < q.r + r then
+			return false
+		end
+	end
+	return true
+end
+
+local function scatter(n: number, r: number, minR: number, maxR: number, solid: boolean, build: (number, number) -> ())
+	local done, tries = 0, 0
+	while done < n and tries < n * 50 do
+		tries += 1
+		local a = rng:NextNumber() * math.pi * 2
+		local d = minR + math.sqrt(rng:NextNumber()) * (maxR - minR)
+		local x, z = math.sin(a) * d, math.cos(a) * d
+		if free(x, z, r, minR, maxR) then
+			if solid then
+				table.insert(placedDecor, { p = Vector2.new(x, z), r = r })
+			end
+			build(x, z)
+			done += 1
+		end
+	end
+end
+
+-- Sandy paths from the portal to the island's sights.
+local function trail(points: { { number } })
+	for i = 1, #points - 1 do
+		local a = CENTER + Vector3.new(points[i][1], 0.05, points[i][2])
+		local b = CENTER + Vector3.new(points[i + 1][1], 0.05, points[i + 1][2])
+		P(dressing, "Trail", BLOCK, Vector3.new(5, 0.1, (b - a).Magnitude + 2), CFrame.lookAt((a + b) / 2, b), PAL.sandDark, SAND, DECOR)
+		P(dressing, "TrailStone", CYL, Vector3.new(0.12, 3.4, 3.4), CFrame.new(b) * UPRIGHT, PAL.sandDark, SAND, DECOR)
+	end
+end
+trail({ { 0, 90 }, { 0, 62 }, { 6, 40 }, { 22, 18 }, { 30, 8 } }) -- to the lagoon
+trail({ { 0, 62 }, { -14, 40 }, { -26, 26 }, { -40, 4 }, { -50, -16 } }) -- to the Eagle Rock
+trail({ { -14, 40 }, { -40, 36 }, { -66, 30 }, { -88, 26 } }) -- to the wreck
+trail({ { 6, 40 }, { 30, 46 }, { 50, 54 } }) -- to the watchtower
+trail({ { 22, 18 }, { 50, 16 }, { 74, 12 } }) -- to the rock arch
+task.wait()
+
+-- Tiki torches along the main trail.
+for i, p in { { -4, 80 }, { 4, 70 }, { 10, 48 }, { -8, 46 }, { 26, 24 }, { -32, 18 }, { -44, -2 }, { 40, 52 } } do
+	local base = CENTER + Vector3.new(p[1], 0, p[2])
+	P(dressing, "TorchPole", BLOCK, Vector3.new(0.5, 4.6, 0.5), CFrame.new(base + Vector3.new(0, 2.3, 0)), PAL.wood, WOOD)
+	P(dressing, "TorchCup", CYL, Vector3.new(0.8, 1.2, 1.2), CFrame.new(base + Vector3.new(0, 4.8, 0)) * UPRIGHT, PAL.woodDark, WOOD, DECOR)
+	local flame = P(dressing, "TorchFlame", BALL, Vector3.new(0.9, 1.3, 0.9), CFrame.new(base + Vector3.new(0, 5.6, 0)), C(255, 170, 70), NEON, DECOR)
+	if i % 2 == 1 then
+		local light = Instance.new("PointLight")
+		light.Color = C(255, 180, 100)
+		light.Range = 12
+		light.Brightness = 0.8
+		light.Parent = flame
+	end
+end
+task.wait()
+
+-- More palms around the shore and a few inland.
+scatter(14, 4, 96, 120, true, function(x, z)
+	palm(Vector3.new(x, -0.3, z), rng:NextNumber(10, 15), rng:NextNumber(2, 6))
+end)
+scatter(6, 4, 30, 90, true, function(x, z)
+	palm(Vector3.new(x, 0, z), rng:NextNumber(11, 14), rng:NextNumber(1, 4))
+end)
+-- Bushes, ferns and flowers on the meadow.
+scatter(26, 2.5, 12, 104, false, function(x, z)
+	bush(Vector3.new(x, 0, z), rng:NextNumber(2.6, 4.2))
+end)
+scatter(18, 2.5, 12, 104, false, function(x, z)
+	flowers(Vector3.new(x, 0, z))
+end)
+scatter(20, 1.5, 12, 106, false, function(x, z)
+	-- A fern: four drooping wedges.
+	local base = CENTER + Vector3.new(x, 0, z)
+	for k = 0, 3 do
+		local a = k / 4 * math.pi * 2 + rng:NextNumber()
+		local out = Vector3.new(math.cos(a), 0, math.sin(a))
+		wedge(dressing, "Frond", Vector3.new(0.2, 0.8, 2.6), CFrame.lookAt(base + out * 1.1 + Vector3.new(0, 0.5, 0), base + out * 2.6), PAL.leafDark, SMOOTH).CanCollide = false
+	end
+end)
+task.wait()
+scatter(110, 0.8, 8, 108, false, function(x, z)
+	local base = CENTER + Vector3.new(x, 0, z)
+	local yaw = rng:NextNumber() * math.pi * 2
+	for k = 0, 2 do
+		local h = rng:NextNumber(1, 1.7)
+		local blade = wedge(dressing, "Grass", Vector3.new(0.15, h, 0.6), CFrame.new(base) * CFrame.Angles(0, yaw + k * 2.1, 0) * CFrame.new(0, h / 2, 0.2) * CFrame.Angles(-0.25, 0, 0), PAL.grassDark:Lerp(PAL.grass, rng:NextNumber(0, 0.5)), SMOOTH)
+		blade.CanCollide = false
+		blade.CastShadow = false
+	end
+end)
+scatter(16, 2, 14, 106, true, function(x, z)
+	boulder(Vector3.new(x, 0, z), rng:NextNumber(1.6, 3))
+end)
+task.wait()
+
+-- Beach finds: shells, starfish and driftwood.
+scatter(34, 0.8, 114, 126, false, function(x, z)
+	local base = CENTER + Vector3.new(x, -0.25, z)
+	if rng:NextNumber() < 0.5 then
+		P(dressing, "Shell", BALL, Vector3.new(0.9, 0.4, 0.7), CFrame.new(base) * CFrame.Angles(0, rng:NextNumber() * 3, 0), ({ C(255, 200, 210), C(255, 236, 200), C(200, 230, 255) })[rng:NextInteger(1, 3)], SMOOTH, DECOR)
+	else
+		for k = 0, 4 do
+			local a = k / 5 * math.pi * 2
+			P(dressing, "Starfish", BLOCK, Vector3.new(0.3, 0.15, 0.9), CFrame.new(base) * CFrame.Angles(0, a, 0) * CFrame.new(0, 0, 0.4), C(255, 140, 90), SMOOTH, DECOR)
+		end
+	end
+end)
+scatter(7, 3, 112, 124, false, function(x, z)
+	P(dressing, "Driftwood", CYL, Vector3.new(rng:NextNumber(4, 7), 0.8, 0.8), CFrame.new(CENTER + Vector3.new(x, 0.1, z)) * CFrame.Angles(0, rng:NextNumber() * 3, 0.05), C(190, 165, 135), WOOD, DECOR)
+end)
+task.wait()
+
+-- A treasure hunters' camp east of the arrival beach.
+local camp = folder(dressing, "Camp")
+local campPos = Vector3.new(34, 0, 82)
+local fireBase = CENTER + campPos
+for k = 0, 5 do
+	local a = k / 6 * math.pi * 2
+	P(camp, "FireStone", BLOCK, Vector3.new(0.9, 0.6, 0.9), CFrame.new(fireBase + Vector3.new(math.cos(a) * 1.4, 0.3, math.sin(a) * 1.4)) * CFrame.Angles(0, a, 0), PAL.rockDark, SLATE)
+end
+for k = 0, 2 do
+	P(camp, "FireLog", CYL, Vector3.new(2.2, 0.5, 0.5), CFrame.new(fireBase + Vector3.new(0, 0.35, 0)) * CFrame.Angles(0, k * 1.05, 0.25), PAL.woodDark, WOOD, DECOR)
+end
+local fire = P(camp, "Fire", BALL, Vector3.new(1.2, 1.6, 1.2), CFrame.new(fireBase + Vector3.new(0, 1.1, 0)), C(255, 150, 60), NEON, DECOR)
+local flames = Instance.new("ParticleEmitter")
+flames.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+flames.Color = ColorSequence.new(C(255, 210, 120), C(255, 110, 50))
+flames.LightEmission = 1
+flames.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.8), NumberSequenceKeypoint.new(1, 0) })
+flames.Lifetime = NumberRange.new(0.6, 1.2)
+flames.Rate = 16
+flames.Speed = NumberRange.new(2, 4)
+flames.SpreadAngle = Vector2.new(15, 15)
+flames.Parent = fire
+local campLight = Instance.new("PointLight")
+campLight.Color = C(255, 170, 90)
+campLight.Range = 16
+campLight.Parent = fire
+for _, side in { -1, 1 } do
+	wedge(camp, "Tent", Vector3.new(6, 4.5, 3), CFrame.new(fireBase + Vector3.new(6, 2.25, -5 + side * 1.5)) * CFrame.Angles(0, if side < 0 then 0 else math.pi, 0), C(230, 200, 150), Enum.Material.Fabric)
+end
+for k, offset in { Vector3.new(-5, 0, 3), Vector3.new(-6.5, 0, 1.2), Vector3.new(-5.6, 2, 2.2) } do
+	P(camp, "Crate", BLOCK, Vector3.new(2, 2, 2), CFrame.new(fireBase + offset + Vector3.new(0, 1, 0)) * CFrame.Angles(0, k * 0.4, 0), PAL.wood, WOOD)
+end
+P(camp, "LogSeat", CYL, Vector3.new(4, 1, 1), CFrame.new(fireBase + Vector3.new(0, 0.5, 3.6)) * CFrame.Angles(0, 0, 0), PAL.woodDark, WOOD)
+P(camp, "Shovel", BLOCK, Vector3.new(0.25, 3.6, 0.25), CFrame.new(fireBase + Vector3.new(3, 1.6, 3)) * CFrame.Angles(0, 0, 0.3), PAL.wood, WOOD, DECOR)
+P(camp, "ShovelBlade", BLOCK, Vector3.new(0.9, 1, 0.15), CFrame.new(fireBase + Vector3.new(3.55, 0.1, 3)) * CFrame.Angles(0, 0, 0.3), C(170, 170, 180), Enum.Material.Metal, DECOR)
+task.wait()
+
+-- A wooden pier on the south-west shore, reaching out over the edge.
+local pier = folder(dressing, "Pier")
+local pierBase = CFrame.lookAt(CENTER + Vector3.new(-62, 0, 106), CENTER + Vector3.new(-62 * 2, 0, 106 * 2))
+for k = 0, 9 do
+	P(pier, "Plank", BLOCK, Vector3.new(5, 0.4, 1.8), pierBase * CFrame.new(0, 0.2, -k * 2), if k % 2 == 0 then PAL.wood else C(140, 98, 72), WOOD)
+end
+for k = 0, 9, 3 do
+	for _, side in { -1, 1 } do
+		P(pier, "Post", CYL, Vector3.new(4, 0.6, 0.6), pierBase * CFrame.new(side * 2.6, -0.4, -k * 2) * CFrame.Angles(0, 0, math.rad(90)), PAL.woodDark, WOOD)
+	end
+end
+local lantern = P(pier, "Lantern", BALL, Vector3.one * 0.9, pierBase * CFrame.new(2.6, 2, -18), C(255, 200, 110), NEON, DECOR)
+P(pier, "LanternPost", BLOCK, Vector3.new(0.3, 2, 0.3), pierBase * CFrame.new(2.6, 1, -18), PAL.woodDark, WOOD)
+local pierLight = Instance.new("PointLight")
+pierLight.Color = C(255, 200, 120)
+pierLight.Range = 10
+pierLight.Parent = lantern
+task.wait()
+
+-- Butterflies over the meadow.
+local butterflies = P(dressing, "Butterflies", BLOCK, Vector3.new(200, 6, 200), at(0, 4, 0), PAL.foam, SMOOTH, HIDDEN)
+local wings = Instance.new("ParticleEmitter")
+wings.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+wings.Color = ColorSequence.new(C(255, 160, 210), C(160, 220, 255))
+wings.LightEmission = 0.6
+wings.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.5, 0.5), NumberSequenceKeypoint.new(1, 0) })
+wings.Lifetime = NumberRange.new(3, 5)
+wings.Rate = 6
+wings.Speed = NumberRange.new(1, 2)
+wings.SpreadAngle = Vector2.new(180, 40)
+wings.RotSpeed = NumberRange.new(-90, 90)
+wings.Shape = Enum.ParticleEmitterShape.Box
+wings.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+wings.Parent = butterflies
+task.wait()
+
 -- A soft sparkle over the whole island.
 local motes = P(root, "Motes", BLOCK, Vector3.new(220, 12, 220), at(0, 8, 0), PAL.foam, SMOOTH, HIDDEN)
 local sparkle = Instance.new("ParticleEmitter")
