@@ -19,10 +19,12 @@ export type Build = {
 local list: { Build } = {
 	-- Stage 1: from the starting room to a house with two wings
 	{ id = "lanterns", name = "Laternen", cost = 150, requires = {}, boost = 0.05 },
+	{ id = "garden", name = "Vorgarten", cost = 200, requires = {}, boost = 0.05 },
 	{ id = "roomWest", name = "Westzimmer", cost = 300, requires = {} },
 	{ id = "ped5", name = "Podest 5", cost = 140, requires = { "roomWest" }, pedestal = 5 },
 	{ id = "ped6", name = "Podest 6", cost = 220, requires = { "ped5" }, pedestal = 6 },
 	{ id = "carpet", name = "Goldteppich", cost = 380, requires = { "lanterns" }, boost = 0.05 },
+	{ id = "fireplace", name = "Kamin", cost = 700, requires = { "lanterns" }, boost = 0.05 },
 	{ id = "roomEast", name = "Ostzimmer", cost = 500, requires = { "ped6" } },
 	{ id = "ped7", name = "Podest 7", cost = 320, requires = { "roomEast" }, pedestal = 7 },
 	{ id = "ped8", name = "Podest 8", cost = 450, requires = { "ped7" }, pedestal = 8 },
@@ -31,6 +33,7 @@ local list: { Build } = {
 	{ id = "ped9", name = "Podest 9", cost = 1100, requires = { "hall2" }, pedestal = 9 },
 	{ id = "windows", name = "Buntglasfenster", cost = 1500, requires = { "hall2" }, boost = 0.05 },
 	{ id = "fountain", name = "Münzbrunnen", cost = 1800, requires = { "hall2" }, boost = 0.1 },
+	{ id = "library", name = "Bibliothek", cost = 2200, requires = { "hall2" }, boost = 0.1 },
 	{ id = "ped10", name = "Podest 10", cost = 1400, requires = { "ped9" }, pedestal = 10 },
 	{ id = "ped11", name = "Podest 11", cost = 2000, requires = { "ped10" }, pedestal = 11 },
 	{ id = "statues", name = "Wächterstatuen", cost = 2400, requires = { "fountain" }, boost = 0.05 },
@@ -46,6 +49,13 @@ local list: { Build } = {
 	{ id = "ped15", name = "Galerie-Podest 15", cost = 16000, requires = { "ped14" }, pedestal = 15 },
 	{ id = "ped16", name = "Galerie-Podest 16", cost = 18000, requires = { "ped15" }, pedestal = 16 },
 	{ id = "crown", name = "Schatzkrone", cost = 30000, requires = { "chandelier", "ped16" }, boost = 0.25 },
+	-- Stage 4: the vault behind the hall
+	{ id = "vault", name = "Tresorraum", cost = 25000, requires = { "gallery" } },
+	{ id = "ped17", name = "Tresor-Podest 17", cost = 20000, requires = { "vault" }, pedestal = 17 },
+	{ id = "ped18", name = "Tresor-Podest 18", cost = 22000, requires = { "ped17" }, pedestal = 18 },
+	{ id = "ped19", name = "Tresor-Podest 19", cost = 24000, requires = { "ped18" }, pedestal = 19 },
+	{ id = "ped20", name = "Tresor-Podest 20", cost = 26000, requires = { "ped19" }, pedestal = 20 },
+	{ id = "goldpile", name = "Goldhaufen", cost = 40000, requires = { "ped20" }, boost = 0.1 },
 }
 
 local byId: { [string]: Build } = {}
@@ -73,7 +83,7 @@ end
 
 function Builds.unlockedSlots(owned: { [string]: boolean }): number
 	local n = 0
-	for slot = 1, 16 do
+	for slot = 1, 20 do
 		if Builds.slotUnlocked(owned, slot) then
 			n += 1
 		end

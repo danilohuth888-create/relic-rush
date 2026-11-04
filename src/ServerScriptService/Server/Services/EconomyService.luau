@@ -1,7 +1,10 @@
 --!strict
 -- Server-side coin production: every displayed relic adds its catalogue rate per second.
--- Coins are published as the player attribute "Coins" (whole number) and in leaderstats.
--- All coin changes go through grant/trySpend so analytics and quests see every flow.
+-- Production flows into the treasure chest in the plot's yard (player attribute "Pending");
+-- the owner collects it by walking into the chest (TycoonService), and it is paid out
+-- automatically when the player leaves. Coins are published as the player attribute "Coins"
+-- (whole number) and in leaderstats. All coin changes go through grant/trySpend so analytics
+-- and quests see every flow.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -17,6 +20,14 @@ local PlayerDataService = require(script.Parent.PlayerDataService)
 local EconomyService = {}
 
 local rates: { [Player]: number } = {}
+local pending: { [Player]: number } = {}
+
+local function publishPending(player: Player)
+	local whole = math.floor(pending[player] or 0)
+	if player:GetAttribute("Pending") ~= whole then
+		player:SetAttribute("Pending", whole)
+	end
+end
 
 local function publish(player: Player, coins: number)
 	local whole = math.floor(coins)
@@ -112,7 +123,30 @@ function EconomyService.setup(player: Player)
 	end
 end
 
+-- Moves the chest's coins into the balance; returns how many whole coins were collected.
+function EconomyService.collect(player: Player): number
+	local amount = math.floor(pending[player] or 0)
+	if amount < 1 then
+		return 0
+	end
+	pending[player] -= amount
+	EconomyService.grant(player, amount, "income")
+	publishPending(player)
+	return amount
+end
+
+function EconomyService.pending(player: Player): number
+	return pending[player] or 0
+end
+
+-- Pays out what is still in the chest (the player is leaving) and forgets the player.
 function EconomyService.forget(player: Player)
+	local rest = pending[player] or 0
+	if rest > 0 then
+		pending[player] = 0
+		EconomyService.grant(player, rest, "income")
+	end
+	pending[player] = nil
 	rates[player] = nil
 end
 
@@ -123,11 +157,8 @@ function EconomyService.init()
 			for player, rate in rates do
 				local data = PlayerDataService.get(player)
 				if data and rate > 0 then
-					local amount = rate * dt
-					data.coins += amount
-					data.stats.coinsEarned += amount
-					publish(player, data.coins)
-					Progress.bump(player, "earn", amount)
+					pending[player] = (pending[player] or 0) + rate * dt
+					publishPending(player)
 				end
 			end
 		end

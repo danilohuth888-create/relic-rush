@@ -12,6 +12,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Analytics = require(script.Parent.Parent.Util.Analytics)
 local Blueprints = require(script.Parent.Parent.Util.Blueprints)
 local Progress = require(script.Parent.Parent.Util.Progress)
+local WorldText = require(script.Parent.Parent.Util.WorldText)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local PlotService = require(script.Parent.PlotService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -20,6 +21,8 @@ local TycoonService = {}
 
 local standingOn: { [Player]: BasePart } = {}
 local lastTint = 0
+local inChest: { [Player]: boolean } = {}
+local previewing: { [Player]: string } = {}
 
 local function notify(player: Player, message: { [string]: any })
 	Net.event("Notify"):FireClient(player, message)
@@ -84,13 +87,63 @@ local function onButton(player: Player, pad: BasePart)
 	end
 end
 
+-- Walking into the chest collects what the relics produced since the last visit (once per
+-- step in, so standing in it does not spam).
+local function checkChest(owner: Player, plot: Model, root: BasePart?)
+	local zone = plot:FindFirstChild("ChestZone", true) :: BasePart?
+	local label = plot:FindFirstChild("PendingLabel", true) :: TextLabel?
+	if label then
+		WorldText.set(label, "%s Münzen", "#" .. math.floor(EconomyService.pending(owner)))
+	end
+	if not zone or not root then
+		inChest[owner] = nil
+		return
+	end
+	local offset = root.Position - zone.Position
+	local inside = Vector2.new(offset.X, offset.Z).Magnitude < 3.4 and offset.Y > -2 and offset.Y < 7
+	if inside and not inChest[owner] then
+		inChest[owner] = true
+		local amount = EconomyService.collect(owner)
+		if amount > 0 then
+			notify(owner, {
+				kind = "collect",
+				text = Locale.format(Locale.of(owner), "+%d Münzen aus der Schatztruhe!", amount),
+				amount = amount,
+				position = zone.Position,
+			})
+		end
+	elseif not inside then
+		inChest[owner] = nil
+	end
+end
+
+-- Standing close to a button (but not on it) shows a see-through preview of that build.
+local function updatePreview(owner: Player, plot: Model, root: BasePart?)
+	local near: string? = nil
+	if root then
+		for _, pad in PlotService.buttons(owner) do
+			local id = pad:GetAttribute("BuildId")
+			local rel = pad.CFrame:PointToObjectSpace(root.Position)
+			local flat = Vector2.new(rel.X, rel.Z).Magnitude
+			if type(id) == "string" and flat < 6 and rel.Y > -1 and rel.Y < 8 then
+				near = id
+				break
+			end
+		end
+	end
+	if near ~= previewing[owner] then
+		previewing[owner] = near
+		Blueprints.preview(plot, near)
+	end
+end
+
 local function step()
 	local now = os.clock()
 	local tint = now - lastTint > 0.5
 	if tint then
 		lastTint = now
 	end
-	for owner in PlotService.ownedPlots() do
+	for owner, plot in PlotService.ownedPlots() do
 		local character = owner.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local on: BasePart? = nil
@@ -103,6 +156,8 @@ local function step()
 				end
 			end
 		end
+		checkChest(owner, plot, root)
+		updatePreview(owner, plot, root)
 		if on and standingOn[owner] ~= on then
 			standingOn[owner] = on
 			task.spawn(onButton, owner, on)
@@ -116,6 +171,12 @@ local function step()
 	for player in standingOn do
 		if not player.Parent then
 			standingOn[player] = nil
+		end
+	end
+	for player in previewing do
+		if not player.Parent then
+			previewing[player] = nil
+			inChest[player] = nil
 		end
 	end
 end

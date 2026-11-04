@@ -81,6 +81,7 @@ local ERRORS: { [string]: string } = {
 	bad_quest = "Diese Aufgabe gibt es nicht mehr.",
 }
 local NOTIFY_COLORS: { [string]: Color3 } = {
+	collect = THEME.gold,
 	upgrade = THEME.gold,
 	build = THEME.gold,
 	milestone = C(150, 230, 255),
@@ -96,6 +97,7 @@ local NOTIFY_COLORS: { [string]: Color3 } = {
 	map = C(255, 225, 160),
 }
 local NOTIFY_SOUNDS: { [string]: string } = {
+	collect = "claim",
 	upgrade = "upgrade",
 	build = "purchase",
 	milestone = "claim",

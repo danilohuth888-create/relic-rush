@@ -167,6 +167,36 @@ local function pop(adornee: BasePart, text: string)
 	end)
 end
 
+-- A coin hops in an arc from a relic to the treasure chest.
+local function flyCoin(from: Vector3, to: Vector3, delay: number)
+	task.delay(delay, function()
+		local coin = Instance.new("Part")
+		coin.Name = "FlyingCoin"
+		coin.Shape = Enum.PartType.Cylinder
+		coin.Size = Vector3.new(0.2, 0.9, 0.9)
+		coin.Color = GOLD
+		coin.Material = Enum.Material.Neon
+		coin.Anchored = true
+		coin.CanCollide = false
+		coin.CanQuery = false
+		coin.CanTouch = false
+		coin.CastShadow = false
+		coin.Parent = fxFolder
+		local t0 = os.clock()
+		local duration = 0.9 + (from - to).Magnitude / 60
+		local connection: RBXScriptConnection
+		connection = RunService.Heartbeat:Connect(function()
+			local t = math.min((os.clock() - t0) / duration, 1)
+			local p = from:Lerp(to, t) + Vector3.new(0, math.sin(t * math.pi) * 5, 0)
+			coin.CFrame = CFrame.new(p) * CFrame.Angles(0, os.clock() * 8, math.rad(90))
+			if t >= 1 then
+				connection:Disconnect()
+				coin:Destroy()
+			end
+		end)
+	end)
+end
+
 local popIndex = 0
 local function popCoins()
 	local state = ClientState.data
@@ -181,6 +211,7 @@ local function popCoins()
 		return
 	end
 	local multiplier = if player:GetAttribute("Pass_double_coins") then 2 else 1
+	local pile = plot:FindFirstChild("GoldPile", true) :: BasePart?
 	-- Stagger the pops across the interval so a full treasury twinkles instead of flashing.
 	local slots = {}
 	for slot, relicId in state.display do
@@ -192,11 +223,15 @@ local function popCoins()
 		local display = pedestal and pedestal:FindFirstChild("Display")
 		local primary = display and display:IsA("Model") and display.PrimaryPart
 		if entry.def and primary then
-			task.delay((i - 1) / #slots * POP_INTERVAL * 0.8, function()
+			local delay = (i - 1) / #slots * POP_INTERVAL * 0.8
+			task.delay(delay, function()
 				if primary.Parent then
 					pop(primary, "+" .. formatAmount(entry.def.rate * multiplier * POP_INTERVAL))
 				end
 			end)
+			if pile and i <= 8 then
+				flyCoin(primary.Position, pile.Position, delay + 0.3)
+			end
 		end
 	end
 end
@@ -213,6 +248,9 @@ function FxController.start()
 				FxController.glitter(root.Position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 200, 90), 90)
 			end
 			FxController.cameraKick(6, true)
+		elseif type(message) == "table" and message.kind == "collect" and typeof(message.position) == "Vector3" then
+			FxController.glitter(message.position + Vector3.new(0, 3, 0), GOLD, 45)
+			FxController.cameraKick(2, false)
 		elseif type(message) == "table" and message.kind == "build" and typeof(message.position) == "Vector3" then
 			FxController.glitter(message.position + Vector3.new(0, 3, 0), Color3.fromRGB(255, 210, 90), 60)
 			FxController.cameraKick(3)

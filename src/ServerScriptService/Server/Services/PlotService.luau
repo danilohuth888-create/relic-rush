@@ -223,6 +223,7 @@ end
 local function resetPlot(plot: Model)
 	plot:SetAttribute("OwnerUserId", 0)
 	-- Rebuild first: the starting room holds the banner, accents and pedestals 1-4.
+	Blueprints.preview(plot, nil)
 	applyBuildsTo(plot, nil, false)
 	setSign(plot, "Freie Schatzkammer")
 	setAccents(plot, false)

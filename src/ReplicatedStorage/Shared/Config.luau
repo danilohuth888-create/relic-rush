@@ -12,7 +12,7 @@ Config.Tiers = {
 	{ name = "Runensaal" },
 	{ name = "Aetherhalle" },
 }
-Config.MaxPedestals = 16
+Config.MaxPedestals = 20
 
 Config.RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 Config.Rarities = {

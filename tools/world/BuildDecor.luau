@@ -167,7 +167,7 @@ local function free(pos: Vector3, r: number, opts: { forest: boolean?, ruins: bo
 	end
 	for _, plot in plotCenters do
 		local rel = plot.cf:PointToObjectSpace(Vector3.new(pos.X, plot.cf.Position.Y, pos.Z))
-		if math.abs(rel.X) < 24 + r and rel.Z > -26 - r and rel.Z < 41 + r then
+		if math.abs(rel.X) < 24 + r and rel.Z > -26 - r and rel.Z < 52 + r then
 			return false -- yard and house (the house reaches local z = 35, towers 38)
 		end
 	end
@@ -505,7 +505,7 @@ for _, plot in plotCenters do
 		return (plot.cf * CFrame.new(x, 0, z)).Position * Vector3.new(1, 0, 1)
 	end
 	for x = -14, 14, 7 do
-		bush(hedges, at(x, 38.5), 4.4, PAL.leafDark)
+		bush(hedges, at(x, 51), 4.4, PAL.leafDark)
 	end
 	for _, x in { -23, 23 } do
 		for _, z in { 8, 16, 24, 32 } do

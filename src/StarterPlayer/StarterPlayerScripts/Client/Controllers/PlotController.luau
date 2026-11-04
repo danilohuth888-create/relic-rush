@@ -133,6 +133,9 @@ function PlotController.target(name: string): Vector3?
 			end
 		end
 		return if best then best.Position else nil
+	elseif name == "chest" then
+		local zone = plot:FindFirstChild("ChestZone", true) :: BasePart?
+		return if zone then zone.Position else nil
 	end
 	return nil
 end
