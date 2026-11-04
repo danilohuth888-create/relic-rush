@@ -12,7 +12,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 5
+local SCHEMA_VERSION = 6
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -22,6 +22,7 @@ local MAX_RECEIPTS = 50
 export type Quest = { id: string, goal: number, progress: number, claimed: boolean }
 export type Settings = { music: number, sfx: number, hints: boolean }
 export type Expedition = { cooldownUntil: number, runs: number, wins: number }
+export type Maps = { pieces: number, spot: number, found: number } -- spot 0 = no open map
 export type Data = {
 	version: number,
 	coins: number,
@@ -37,6 +38,7 @@ export type Data = {
 	settings: Settings,
 	expedition: Expedition,
 	builds: { [string]: boolean }, -- tycoon builds on the plot (Shared/Builds)
+	maps: Maps,
 	lastSeen: number,
 }
 
@@ -65,6 +67,7 @@ local function defaultData(): Data
 		settings = table.clone(Config.DefaultSettings),
 		expedition = { cooldownUntil = 0, runs = 0, wins = 0 },
 		builds = {},
+		maps = { pieces = 0, spot = 0, found = 0 },
 		lastSeen = 0,
 	}
 end
@@ -103,6 +106,10 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 			end
 		end
 	end,
+	[6] = function(data)
+		-- v6 added treasure maps.
+		data.maps = { pieces = 0, spot = 0, found = 0 }
+	end,
 }
 
 local function reconcile(data: any): Data
@@ -112,7 +119,7 @@ local function reconcile(data: any): Data
 			data[key] = value
 		end
 	end
-	for _, group in { "stats", "tutorial", "quests", "settings", "expedition" } do
+	for _, group in { "stats", "tutorial", "quests", "settings", "expedition", "maps" } do
 		for key, value in fresh[group] do
 			if data[group][key] == nil then
 				data[group][key] = value
@@ -323,6 +330,7 @@ function PlayerDataService.snapshot(player: Player): any
 		settings = data.settings,
 		expeditionCooldown = data.expedition.cooldownUntil,
 		builds = data.builds,
+		maps = data.maps,
 		persistent = PlayerDataService.persistent,
 	}
 end

@@ -25,7 +25,7 @@
 
 ## 5 / 6 Werkzeug-Einschränkungen
 - `screen_capture` liefert manchmal eine schwarze 3D-Ansicht, vermutlich wenn das Studio-Fenster gerade nicht rendert. Die UI wird trotzdem korrekt erfasst.
-- `user_mouse_input` mit x/y erwartet GUI-Koordinaten **ohne** Topbar-Inset. Mit `instance_path` klappt es immer. Wichtige Buttons haben deshalb feste Namen: `Nav.NavHome`, `Nav.NavCollection`, `Side.NavQuests`, `Side.NavShop`, `Guide.Skip`, `Side.GearSlot.Gear.Button`, `…Grid.Setting_music.Controls.Minus|Plus`, `…Grid.Setting_hints.Toggle`, `…Grid.Setting_credits.Open`, `Expedition.Leave`, `PanelHost.RelicPanel.Close`, `PanelHost.RelicPanel.Grid.Card_<relicId>.Pick`, `…Grid.Item_<key>.Buy`, `…Grid.Quest<n>.Claim`.
+- `user_mouse_input` mit x/y erwartet GUI-Koordinaten **ohne** Topbar-Inset. Mit `instance_path` klappt es immer. Wichtige Buttons haben deshalb feste Namen: `Nav.NavHome`, `Nav.NavCollection`, `Side.NavQuests`, `Side.NavShop`, `Guide.Skip`, `Side.GearSlot.Gear.Button`, `…Grid.Setting_music.Controls.Minus|Plus`, `…Grid.Setting_hints.Toggle`, `…Grid.Setting_credits.Open`, `Expedition.Leave`, `Nav.NavMap.Button`, `PanelHost.RelicPanel.Close`, `PanelHost.RelicPanel.Grid.Card_<relicId>.Pick`, `…Grid.Item_<key>.Buy`, `…Grid.Quest<n>.Claim`.
 - `screen_capture` liefert manchmal ein Bild, das einen Moment alt ist. Den Zustand deshalb zusätzlich per Abfrage prüfen.
 - Aus dem MCP-Kontext ergibt `require` eine **eigene** Modul-Instanz. Echte Serverdaten deshalb nur über `ServerStorage.DevTools` lesen.
 

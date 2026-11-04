@@ -83,6 +83,27 @@ Config.LuckRune = {
 	multiplier = 2,
 }
 
+-- Treasure maps: caught spirits sometimes drop a map piece; three pieces reveal one hidden
+-- spot on the island where a personal treasure can be dug up. Spots sit on open ground.
+Config.Maps = {
+	piecesNeeded = 3,
+	pieceChance = 0.2,
+	firstMapChance = 0.45, -- until the first treasure is found, pieces drop more often
+	digRange = 9,
+	luck = 4, -- treasure relics roll with this luck (rarer than spirits)
+	coinsByTier = { 400, 1600, 6000 },
+	spots = {
+		{ position = Vector3.new(-150, 0, 40), hint = "Im Westen, wo ein grüner Hügel über die Wiese wacht." },
+		{ position = Vector3.new(150, 0, -35), hint = "Im Osten, zwischen Hügel und Inselrand." },
+		{ position = Vector3.new(-42, 0, 172), hint = "Am Westrand des Flüsterwalds, hinter den Bäumen." },
+		{ position = Vector3.new(46, 0, 178), hint = "Am Südostrand des Flüsterwalds, wo das Gras endet." },
+		{ position = Vector3.new(55, 0, -172), hint = "Ganz im Norden, am Fuß des großen Hügels hinter den Schatzkammern." },
+		{ position = Vector3.new(-95, 0, -150), hint = "Im Nordwesten, weit hinter den Schatzkammern." },
+		{ position = Vector3.new(95, 0, 72), hint = "Am Weg zu den Ruinen, auf halber Strecke." },
+		{ position = Vector3.new(-125, 0, 118), hint = "Im Südwesten, auf der stillen Wiese." },
+	},
+}
+
 -- "Forgotten Ruins" expedition: a 3-5 minute co-op run for 1-4 players. Relic rewards are
 -- limited by a per-player cooldown; players on cooldown may still help and earn coins.
 Config.Expedition = {

@@ -3,6 +3,7 @@
 ## 0.4.0 – Sound, Spielgefühl und Expedition (in Arbeit)
 - Expedition „Vergessene Ruinen“ für 1–4 Spieler: Druckplatten, Spiegelsaal mit Irrlicht, Rätselsteine, Kristallwächter, gemeinsame Truhe. Alle 25 Relikte sind jetzt erreichbar.
 - Abklingzeit 10 min pro Spieler, Begleiter bekommen Münzen. Datenschema v4.
+- Schatzkarten: Geister verlieren Kartenteile, 3 Teile zeigen ein Versteck mit Rätselhinweis, dort gräbt man einen Schatz aus. Neuer Knopf „Karte“. Datenschema v6.
 - Wächter-Geister ersetzen die Lichtsäulen: Relikte fliehen, ermüden und werden durch Hineinlaufen gefangen (serverseitig simuliert, AFK-sicher).
 - Tycoon-Ausbau: 22 Bauteile an Kauftasten statt drei Ausbaustufen, Einkommens-Boni bis ×1,75, Galerie mit Podesten 13–16. Datenschema v5 übernimmt bisherige Stufen.
 - Musik pro Gebiet (Kristallplatz, Flüsterwald, Schatzkammer, Ruinen) mit sanfter Überblendung.

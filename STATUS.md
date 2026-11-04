@@ -12,7 +12,7 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 | 2 | Expedition „Vergessene Ruinen“ (M4) | ✅ solo im Playtest geprüft; Zweier-Test mit dir offen |
 | 2b | Tycoon-Ausbau mit Kauftasten (dein Wunsch) | ✅ im Playtest geprüft |
 | 2c | Wächter-Geister fangen (ersetzt die Lichtsäulen) | ✅ serverseitig geprüft; Live-Lauftest mit dir offen |
-| 2d | Schatzkarten-Rätsel | offen |
+| 2d | Schatzkarten-Rätsel | ✅ Logik geprüft; Kartenfenster noch nicht gesehen |
 | 3 | Optik auf Profi-Niveau | offen |
 | 4 | Englisch, Bestenliste, Wochenziel | offen |
 | 5 | Release-Prüfung (M6) | offen |
@@ -48,6 +48,13 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 - **Fangen = hineinlaufen.** Seltenere Geister sind schneller und ausdauernder (6,5 bis 13,5 Studs/s, Spieler laufen 16).
 - Lumis erster Geist ist extra langsam. Glücksrune würfelt die getragenen Relikte neu.
 - Alles läuft auf dem Server (5×/s); der Client zeichnet nur. Die Einsammel-Remote gibt es nicht mehr, Stillstehen fängt nichts.
+
+### Block 2d – Schatzkarten
+- Gefangene Geister verlieren mit 20 % (bis zum ersten Schatz 45 %) ein **Kartenteil** (nach dem Tutorial).
+- Mit **3 Teilen** ist die Karte lesbar: unten gibt es den neuen Knopf **„Karte“** (rotes „!“ bei offener Karte). Das Fenster zeigt die gezeichnete Insel mit Platz, Wald, Ruinen, Schatzkammern, deiner Position, dem **roten X** und einem **Rätselhinweis** („Im Südwesten, auf der stillen Wiese“).
+- Am Ziel erscheint nur für dich ein Erdhügel mit rotem Kreuz und Funkeln: **E halten (1,2 s) = graben**.
+- Schatz: mindestens ungewöhnliches Relikt (Glück ×4) und Münzen nach Stufe (400/1.600/6.000). 8 Verstecke auf der Insel (`Config.Maps.spots`).
+- **Schema v6.** Graben prüft der Server (Karte offen, Entfernung, Rate-Limit).
 
 ## Fertig
 
@@ -154,6 +161,10 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Geister:** Verfolgung mit Laufgeschwindigkeit → ungewöhnlicher Geist nach 1,6 s gefangen, Relikt im Inventar, Meldung + Glitzer | Playtest (serverseitig bewegt) | ✅ |
 | **Geister:** In 9 Studs Abstand hinterherlaufen → Zustände flee 23 / tired 16 | Playtest | ✅ |
 | **Geister:** 8 s regungslos auf dem Fundort: neuer Geist erscheint 17,6 Studs entfernt, nichts gefangen | Playtest | ✅ |
+| **Karten:** Schema v6; 3 Teile → Versteck 8, 4. Teil bei offener Karte ignoriert | automatisiert | ✅ |
+| **Karten:** Badge „!“ am Karten-Knopf, Erdhügel an (−125, 118) nur beim Spieler | Playtest | ✅ |
+| **Karten:** Graben zu weit weg → `too_far`; am Ort → Mondstein + 1.600; nochmal → `no_map`, Hügel und Badge weg | Playtest (Client-Remote) | ✅ |
+| **Karten:** Nach Fix nie „gewöhnlich“: Frostkrone (selten) + 1.600 | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.
@@ -162,6 +173,7 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 - **Smartphone-Bedienung** am Gerät.
 - **Expedition zu zweit** (Studio *Clients and Servers*) und echte Tasten-/Touch-Bedienung der Prompts: Mein Studio-Fenster rendert gerade nicht, deshalb habe ich die Prompts serverseitig über `DevTools prompt` ausgelöst (gleiche Reichweiten-, Mitglieds- und Rate-Prüfung wie echte Eingaben).
 - **Geister mit echter Steuerung fangen** (Tastatur/Touch): Bei verdecktem Studio-Fenster bewegt sich die Spielfigur nur per Teleport; ein Versuch mit Client-Teleports fing nichts. Serverseitig bewegt klappt es. Bitte einmal live jagen – wenn es zäh ist, stelle ich die Tempos in `Config.Spirits` ein.
+- **Kartenfenster ansehen:** Klicks liefen bei verdecktem Fenster ins Timeout, daher ist das gezeichnete Kartenfenster noch nicht auf einem Bild geprüft.
 - **Tycoon-Optik:** Bauteile nur per Abfrage geprüft, Screenshots liefen ins Timeout (Studio-Fenster nicht sichtbar). Sieht sich in Block 3 an.
 - **Zeitlimit 8 min** nicht abgewartet (Logik geprüft, nicht ausgelöst).
 - **Glitzern bei seltenen Funden** im Spiel gesehen: Code-Pfad identisch zum Ausbau-Effekt, ein seltener Fund kam im Test nicht vor (wird mit der Expedition geprüft).

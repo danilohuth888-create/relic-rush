@@ -16,6 +16,7 @@ local FUNCTIONS = {
 	"BuyLuck",
 	"SaveSettings",
 	"LeaveExpedition",
+	"DigTreasure",
 }
 
 local folder: Instance

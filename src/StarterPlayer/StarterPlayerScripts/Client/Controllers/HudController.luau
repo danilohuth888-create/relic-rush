@@ -80,6 +80,7 @@ local NOTIFY_COLORS: { [string]: Color3 } = {
 	hit = C(150, 230, 255),
 	expedition = C(205, 185, 255),
 	reward = THEME.gold,
+	map = C(255, 225, 160),
 }
 local NOTIFY_SOUNDS: { [string]: string } = {
 	upgrade = "upgrade",
@@ -94,6 +95,7 @@ local NOTIFY_SOUNDS: { [string]: string } = {
 	hit = "sparkle",
 	expedition = "whoosh",
 	reward = "claim",
+	map = "sparkle",
 }
 local QUEST_ICONS: { [string]: string } = {
 	collect = "🔮",
@@ -131,6 +133,7 @@ local guideFrame: Frame
 local guideLabel: TextLabel
 local skipButton: TextButton
 local questBadge: Frame
+local mapBadge: Frame
 local toastStack: Frame
 local panelHost: Frame
 local panel: Frame
@@ -464,6 +467,7 @@ local function refreshGuide()
 	guideLabel.Text = text or ""
 	skipButton.Visible = guideIsTutorial and guideText ~= nil
 	questBadge.Visible = state ~= nil and claimableQuests(state) > 0
+	mapBadge.Visible = state ~= nil and state.maps ~= nil and state.maps.spot ~= 0
 end
 
 -- Lumi sets the tutorial line here; nil hides it (quest hints may still show).
@@ -514,6 +518,10 @@ local lastSignature = ""
 local function signature(kind: string, state: any): string
 	if kind == "settings" or kind == "credits" then
 		return kind
+	end
+	if kind == "map" then
+		local maps = state.maps or {}
+		return ("map|%s|%s|%s"):format(tostring(maps.pieces), tostring(maps.spot), tostring(maps.found))
 	end
 	local parts = { kind, tostring(state.tier) }
 	if kind == "quests" then
@@ -1004,6 +1012,103 @@ local function renderCredits()
 	})
 end
 
+-- Treasure map: a drawn island with the plaza, forest, ruins and plots, the player's
+-- position and - once the map is complete - the red X of the hidden treasure.
+local MAP_SIZE = 300
+local MAP_SCALE = MAP_SIZE / 470
+
+local function mapPoint(position: Vector3): UDim2
+	return UDim2.fromOffset(MAP_SIZE / 2 + position.X * MAP_SCALE, MAP_SIZE / 2 + position.Z * MAP_SCALE)
+end
+
+local function mapDot(parent: Instance, position: Vector3, size: number, color: Color3, name: string?): Frame
+	return new("Frame", {
+		Name = name or "Dot",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = mapPoint(position),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = color,
+		Parent = parent,
+	}, { round() })
+end
+
+local function renderMap(state: any)
+	local maps = state.maps or { pieces = 0, spot = 0, found = 0 }
+	local spot = Config.Maps.spots[maps.spot]
+	setCells(UDim2.new(1, -8, 0, MAP_SIZE + 28))
+	setHeader("🗺️", "Schatzkarte", if spot then "Die Karte ist vollständig – grab den Schatz aus!" else "Wächter-Geister verlieren manchmal ein Kartenteil.")
+	local card = cardSurface("MapCard")
+	local paper = new("Frame", {
+		Name = "Paper",
+		Position = UDim2.fromOffset(14, 14),
+		Size = UDim2.fromOffset(MAP_SIZE, MAP_SIZE),
+		BackgroundColor3 = C(244, 228, 190),
+		ClipsDescendants = true,
+		Parent = card,
+	}, { corner(18), stroke(C(170, 130, 80), 3) })
+	mapDot(paper, Vector3.zero, 214 * 2 * MAP_SCALE, C(160, 210, 140), "Island")
+	mapDot(paper, Vector3.new(0, 0, 140), 124 * MAP_SCALE, C(80, 150, 100), "Forest")
+	mapDot(paper, Vector3.zero, 100 * MAP_SCALE, C(225, 215, 200), "Plaza")
+	mapDot(paper, Vector3.zero, 9, C(170, 110, 240), "Crystal")
+	mapDot(paper, Vector3.new(140, 0, 118), 14, C(90, 100, 170), "Ruins")
+	for i = 1, Config.MaxPlots do
+		local theta = math.rad(-78.75 + (i - 1) * 22.5)
+		local plot = mapDot(paper, Vector3.new(math.sin(theta) * 120, 0, -math.cos(theta) * 120), 12, C(200, 175, 140), "Plot")
+		plot:FindFirstChildOfClass("UICorner"):Destroy()
+		if i == player:GetAttribute("PlotIndex") then
+			plot.BackgroundColor3 = THEME.gold
+		end
+	end
+	label(paper, { Position = UDim2.fromOffset(8, 6), Size = UDim2.fromOffset(60, 20), Text = "N ↑", Font = TITLE, TextSize = 16, TextColor3 = C(130, 90, 50) })
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		local me = mapDot(paper, root.Position, 12, C(60, 140, 255), "You")
+		stroke(THEME.white, 2).Parent = me
+	end
+	if spot then
+		local x = label(paper, {
+			Name = "X",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = mapPoint(spot.position),
+			Size = UDim2.fromOffset(30, 30),
+			Text = "✕",
+			Font = TITLE,
+			TextSize = 30,
+			TextColor3 = C(220, 40, 40),
+		})
+		textStroke(THEME.white, 2).Parent = x
+	else
+		-- Torn, unreadable map until all pieces are together.
+		new("Frame", { Name = "Fog", Size = UDim2.fromScale(1, 1), BackgroundColor3 = C(244, 228, 190), BackgroundTransparency = 0.25, Parent = paper })
+		label(paper, { Size = UDim2.fromScale(1, 1), Text = "?", Font = TITLE, TextSize = 90, TextColor3 = C(170, 130, 80) })
+	end
+
+	local dots = {}
+	for i = 1, Config.Maps.piecesNeeded do
+		table.insert(dots, if spot or i <= maps.pieces then "●" else "○")
+	end
+	local lines = {
+		("<b>Kartenteile:</b> %s"):format(table.concat(dots, " ")),
+		"",
+		if spot then "<b>Hinweis:</b> " .. spot.hint else "Fang Wächter-Geister auf dem Platz und im Flüsterwald. Mit " .. Config.Maps.piecesNeeded .. " Teilen wird die Karte lesbar.",
+		"",
+		if spot then "Am Ziel erscheint ein Erdhügel mit rotem Kreuz – halte dort E (oder tippe), um zu graben." else "",
+		"",
+		("Gefundene Schätze: %d"):format(maps.found),
+	}
+	label(card, {
+		Name = "Info",
+		Position = UDim2.fromOffset(MAP_SIZE + 34, 18),
+		Size = UDim2.new(1, -(MAP_SIZE + 52), 1, -36),
+		Text = table.concat(lines, "\n"),
+		RichText = true,
+		TextWrapped = true,
+		TextSize = 18,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+	})
+end
+
 local function renderPanel()
 	local mode = panelMode
 	local state = ClientState.data
@@ -1023,6 +1128,8 @@ local function renderPanel()
 		renderSettings()
 	elseif mode.kind == "credits" then
 		renderCredits()
+	elseif mode.kind == "map" then
+		renderMap(state)
 	else
 		renderCollection(state)
 	end
@@ -1053,7 +1160,7 @@ local function open(kind: string, slot: number?)
 		panelPop.Scale = 0.9
 		TweenService:Create(panelPop, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	end
-	local events = { collection = "CollectionOpened", quests = "QuestsOpened", shop = "ShopOpened" }
+	local events = { collection = "CollectionOpened", quests = "QuestsOpened", shop = "ShopOpened", map = "MapOpened" }
 	if events[kind] then
 		Net.event("Track"):FireServer(events[kind])
 	end
@@ -1073,6 +1180,10 @@ end
 
 function Hud.openShop()
 	open("shop")
+end
+
+function Hud.openMap()
+	open("map")
 end
 
 function Hud.openSettings()
@@ -1231,7 +1342,7 @@ local function buildNavigation()
 		Name = "Nav",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.fromOffset(410, 74),
+		Size = UDim2.fromOffset(580, 74),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, { navLayout }))
@@ -1246,6 +1357,19 @@ local function buildNavigation()
 			Hud.toast("Gerade nicht möglich – versuch es gleich nochmal.")
 		end
 	end).Parent = nav
+	local map = bigButton("NavMap", "🗺️", "Karte", THEME.teal, THEME.tealDeep, Vector2.new(150, 70), 3, false, Hud.openMap)
+	map.Parent = nav
+	mapBadge = new("Frame", {
+		Name = "Badge",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -6, 0, 6),
+		Size = UDim2.fromOffset(26, 26),
+		BackgroundColor3 = C(255, 76, 92),
+		Visible = false,
+		ZIndex = 5,
+		Parent = map,
+	}, { round(), stroke(THEME.white, 2) })
+	label(mapBadge, { Size = UDim2.fromScale(1, 1), Text = "!", Font = TITLE, TextSize = 18, TextColor3 = THEME.white, ZIndex = 5 })
 
 	-- Side menu, left middle (above the mobile thumbstick area).
 	local side = scaled(new("Frame", {

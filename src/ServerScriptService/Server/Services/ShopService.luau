@@ -31,7 +31,7 @@ for _, product in Config.Shop.products do
 	end
 end
 
-local TRACKABLE = { ShopOpened = true, QuestsOpened = true, CollectionOpened = true }
+local TRACKABLE = { ShopOpened = true, QuestsOpened = true, CollectionOpened = true, MapOpened = true }
 local trackLimiter = RateLimiter.new(5, 0.5)
 
 local function cosmeticPart(folder: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, anchor: BasePart): Part

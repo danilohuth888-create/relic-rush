@@ -18,6 +18,7 @@ local QuestService = require(Services.QuestService)
 local ShopService = require(Services.ShopService)
 local SettingsService = require(Services.SettingsService)
 local TycoonService = require(Services.TycoonService)
+local MapService = require(Services.MapService)
 local ExpeditionService = require(Services.ExpeditionService)
 
 PlayerDataService.init()
@@ -30,6 +31,7 @@ QuestService.init()
 ShopService.init()
 SettingsService.init()
 TycoonService.init()
+MapService.init()
 ExpeditionService.init()
 
 local function onPlayerAdded(player: Player)
@@ -99,6 +101,8 @@ if RunService:IsStudio() then
 				data_.expedition.cooldownUntil = 0
 			end
 			return data_ and data_.expedition
+		elseif action == "mappiece" then
+			return MapService.addPiece(player)
 		elseif action == "spirits" then
 			return RelicSpawnService.debug(player)
 		elseif action == "nosave" then
