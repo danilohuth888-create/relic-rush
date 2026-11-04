@@ -15,6 +15,7 @@
 | 10 | Kristall-Licht überstrahlte den Platz | Niedrig | ✅ Behoben |
 | 12 | Einsammel-Sound im Live-Client stumm (Datei nur in Studio vorhanden) | Mittel | ✅ Behoben (Block 1) |
 | 13 | Zahnrad oben links lag unter Roblox' neuem Menüknopf | Niedrig | ✅ Behoben, jetzt unter „Shop“ |
+| 16 | Geister/Animationen standen bei verdecktem Studio-Fenster still (RenderStepped läuft dann nicht) | Werkzeug | Geister laufen jetzt über Heartbeat |
 | 15 | Prompts per MCP-Tastendruck reagieren nicht, Screenshots laufen ins Timeout | Werkzeug | Studio-Fenster rendert nicht (minimiert/verdeckt). Umgehung: `DevTools prompt` |
 | 14 | Konsole: `ContentId rbxassetid://203785492 … Asset type does not match` | Werkzeug | Nicht aus unserem Place (Suche ergab 0 Treffer), ignorierbar |
 

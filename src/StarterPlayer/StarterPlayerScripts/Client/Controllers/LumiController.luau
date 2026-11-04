@@ -114,7 +114,7 @@ local function step(state: any, coins: number, rootPos: Vector3): (string?, Vect
 	local cheapest = Builds.available(owned)[1]
 	local firstBuild = next(owned) == nil and cheapest ~= nil
 	if state.collected == 0 then
-		return "Hallo, ich bin Lumi! Lauf zum leuchtenden Relikt vor dir.", relics.nearest(rootPos)
+		return "Hallo, ich bin Lumi! Fang den kleinen Geist vor dir – lauf einfach in ihn hinein.", relics.nearest(rootPos)
 	elseif displayed == 0 then
 		return "Super! Tippe auf »Schatzkammer« und stelle dein Relikt auf ein Podest.", plots.target("pedestal")
 	elseif firstBuild and coins >= cheapest.cost then
@@ -122,7 +122,7 @@ local function step(state: any, coins: number, rootPos: Vector3): (string?, Vect
 	elseif held > 0 and displayed < capacity then
 		return "Stelle auch dein neues Relikt aus – jedes erzeugt Münzen.", plots.target("pedestal")
 	elseif firstBuild then
-		return ("Sammle mehr Relikte. Bei %d Münzen kannst du anbauen."):format(cheapest.cost), relics.nearest(rootPos)
+		return ("Fang mehr Geister – sie tragen Relikte. Bei %d Münzen kannst du anbauen."):format(cheapest.cost), relics.nearest(rootPos)
 	elseif not state.forestVisited then
 		return "Toll! Im Flüsterwald im Süden warten seltenere Relikte.", FOREST_ENTRANCE
 	end

@@ -11,7 +11,7 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 | 1 | Sound und Spielgefühl, Einstellungen (Schema v3) | ✅ fertig, im Playtest geprüft |
 | 2 | Expedition „Vergessene Ruinen“ (M4) | ✅ solo im Playtest geprüft; Zweier-Test mit dir offen |
 | 2b | Tycoon-Ausbau mit Kauftasten (dein Wunsch) | ✅ im Playtest geprüft |
-| 2c | Wächter-Geister fangen (ersetzt die Lichtsäulen) | offen |
+| 2c | Wächter-Geister fangen (ersetzt die Lichtsäulen) | ✅ serverseitig geprüft; Live-Lauftest mit dir offen |
 | 2d | Schatzkarten-Rätsel | offen |
 | 3 | Optik auf Profi-Niveau | offen |
 | 4 | Englisch, Bestenliste, Wochenziel | offen |
@@ -41,6 +41,13 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 - Bauteile wachsen mit Animation, Funkeln und Sound ins Bild; der alte Ausbau-Stein zeigt jetzt „Bauplan x / 22 gebaut“.
 - **Schema v5:** Wer schon Stufe 2/3 hatte, behält alle Podeste und Hallen.
 - Kaufen läuft komplett auf dem Server (Positionsprüfung), es gibt keine Kauf-Remote mehr.
+
+### Block 2c – Wächter-Geister
+- Die Lichtsäulen sind weg. An jedem Fundort schwebt ein **eigener Wächter-Geist** (schimmernder Körper, Augen, Schweif) und trägt ein Relikt.
+- Kommt man näher als 18 Studs, **flieht** er („!“), weicht als seltener Geist kurz vor dem Fangen seitlich aus und bleibt an seinem Fundort (Leine 22 Studs). Nach 2,5–6 s Flucht ist er **erschöpft** („💤“, 30 % Tempo).
+- **Fangen = hineinlaufen.** Seltenere Geister sind schneller und ausdauernder (6,5 bis 13,5 Studs/s, Spieler laufen 16).
+- Lumis erster Geist ist extra langsam. Glücksrune würfelt die getragenen Relikte neu.
+- Alles läuft auf dem Server (5×/s); der Client zeichnet nur. Die Einsammel-Remote gibt es nicht mehr, Stillstehen fängt nichts.
 
 ## Fertig
 
@@ -143,6 +150,10 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Tycoon:** Krone ohne Voraussetzungen → `locked_build`, falsche ID → `bad_build`, doppelt → `owned` | automatisiert | ✅ |
 | **Tycoon:** Alle 22 Bauteile nacheinander (Testmünzen, Profil nicht gespeichert): Stufe 3, 16/16 Podeste, Rate ×1,75 | automatisiert | ✅ |
 | **Tycoon:** Relikt auf Galerie-Podest 13 ausgestellt, 16 Client-Prompts aktiv | Playtest | ✅ |
+| **Geister:** 11 Geister pro Spieler erscheinen auf dem Client | Playtest | ✅ |
+| **Geister:** Verfolgung mit Laufgeschwindigkeit → ungewöhnlicher Geist nach 1,6 s gefangen, Relikt im Inventar, Meldung + Glitzer | Playtest (serverseitig bewegt) | ✅ |
+| **Geister:** In 9 Studs Abstand hinterherlaufen → Zustände flee 23 / tired 16 | Playtest | ✅ |
+| **Geister:** 8 s regungslos auf dem Fundort: neuer Geist erscheint 17,6 Studs entfernt, nichts gefangen | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.
@@ -150,6 +161,7 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 - **8 Spieler gleichzeitig, Besuchs-Meldung zwischen zwei echten Spielern.**
 - **Smartphone-Bedienung** am Gerät.
 - **Expedition zu zweit** (Studio *Clients and Servers*) und echte Tasten-/Touch-Bedienung der Prompts: Mein Studio-Fenster rendert gerade nicht, deshalb habe ich die Prompts serverseitig über `DevTools prompt` ausgelöst (gleiche Reichweiten-, Mitglieds- und Rate-Prüfung wie echte Eingaben).
+- **Geister mit echter Steuerung fangen** (Tastatur/Touch): Bei verdecktem Studio-Fenster bewegt sich die Spielfigur nur per Teleport; ein Versuch mit Client-Teleports fing nichts. Serverseitig bewegt klappt es. Bitte einmal live jagen – wenn es zäh ist, stelle ich die Tempos in `Config.Spirits` ein.
 - **Tycoon-Optik:** Bauteile nur per Abfrage geprüft, Screenshots liefen ins Timeout (Studio-Fenster nicht sichtbar). Sieht sich in Block 3 an.
 - **Zeitlimit 8 min** nicht abgewartet (Logik geprüft, nicht ausgelöst).
 - **Glitzern bei seltenen Funden** im Spiel gesehen: Code-Pfad identisch zum Ausbau-Effekt, ein seltener Fund kam im Test nicht vor (wird mit der Expedition geprüft).

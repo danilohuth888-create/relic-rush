@@ -4,11 +4,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local EVENTS = { "State", "SpawnAdded", "Notify", "Track" }
+local EVENTS = { "State", "SpawnAdded", "Spirits", "Caught", "Notify", "Track" }
 local FUNCTIONS = {
 	"GetState",
 	"GetSpawns",
-	"Collect",
 	"Place",
 	"Unplace",
 	"GoHome",

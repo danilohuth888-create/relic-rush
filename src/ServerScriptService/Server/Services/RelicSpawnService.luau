@@ -1,7 +1,9 @@
 --!strict
--- Personal relic spawns: every player has their own relic at each spawn point, so nobody
--- competes for the first reward and nobody can grief another player's pickups.
--- The server decides which relic sits where; clients render it and ask to collect by spawn id.
+-- Guardian spirits: every player has their own spirit at each spawn point, carrying a relic.
+-- Spirits wander near home, flee when their player comes close, tire after a while and are
+-- caught by touching them. Everything is simulated here (5 times a second): the client only
+-- draws the spirits from the positions it is sent, so nothing about catching can be faked,
+-- and a player standing still never catches anything (fresh spirits appear away from them).
 -- Spawn points are parts in Workspace.Aetheria.RelicSpawns with attributes
 --   SpawnId (string), Area (string), Starter (bool), RespawnSeconds (number)
 
@@ -11,14 +13,28 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Net = require(ReplicatedStorage.Shared.Net)
 local RelicDefs = require(ReplicatedStorage.Shared.RelicDefs)
+local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
 local Analytics = require(script.Parent.Parent.Util.Analytics)
 local Progress = require(script.Parent.Parent.Util.Progress)
-local RateLimiter = require(script.Parent.Parent.Util.RateLimiter)
 local PlayerDataService = require(script.Parent.PlayerDataService)
-local RelicVisuals = require(ReplicatedStorage.Shared.RelicVisuals)
+
+local SPIRITS = Config.Spirits
+local TICK = 0.2
+local HOVER = 2.5 -- studs above the spawn point
 
 type SpawnPoint = { id: string, position: Vector3, area: string, starter: boolean, respawn: number }
-type PlayerSpawns = { active: { [string]: string }, cooldown: { [string]: number } }
+type Spirit = {
+	relicId: string,
+	pos: Vector3,
+	stamina: number,
+	tiredUntil: number,
+	dodge: number, -- -1 / 1: which way it sidesteps when cornered
+	dodgeAt: number,
+	state: string, -- "idle" | "flee" | "tired"
+	phase: number,
+	starter: boolean,
+}
+type PlayerSpawns = { active: { [string]: Spirit }, cooldown: { [string]: number } }
 
 local RelicSpawnService = {}
 
@@ -26,7 +42,6 @@ local points: { [string]: SpawnPoint } = {}
 local states: { [Player]: PlayerSpawns } = {}
 local poolsByArea: { [string]: { [string]: { string } } } = {} -- area -> rarity -> relic ids
 local rng = Random.new()
-local limiter = RateLimiter.new(5, 3)
 
 local function buildPools()
 	for _, def in RelicDefs.list do
@@ -73,16 +88,48 @@ local function luckFor(player: Player): number
 	return if type(untilTime) == "number" and untilTime > os.time() then Config.LuckRune.multiplier else 1
 end
 
-local function entry(point: SpawnPoint, relicId: string)
-	return { id = point.id, relicId = relicId, position = point.position }
+local function rootOf(player: Player): BasePart?
+	local character = player.Character
+	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function flat(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+-- A new spirit at its home, or on the far side of the leash when its player is standing there.
+local function newSpirit(player: Player, point: SpawnPoint, relicId: string, starter: boolean): Spirit
+	local home = point.position + Vector3.new(0, HOVER, 0)
+	local pos = home
+	local root = rootOf(player)
+	if root and not starter and (flat(root.Position) - flat(home)).Magnitude < SPIRITS.alertRange then
+		local away = flat(home - root.Position)
+		away = if away.Magnitude > 0.1 then away.Unit else Vector3.new(1, 0, 0)
+		pos = home + away * SPIRITS.leash * 0.9
+	end
+	return {
+		relicId = relicId,
+		pos = pos,
+		stamina = SPIRITS.staminaByRank[RelicVisuals.rarityRank(RelicDefs.byId[relicId].rarity)],
+		tiredUntil = 0,
+		dodge = if rng:NextNumber() < 0.5 then -1 else 1,
+		dodgeAt = 0,
+		state = "idle",
+		phase = rng:NextNumber() * math.pi * 2,
+		starter = starter,
+	}
+end
+
+local function entry(point: SpawnPoint, spirit: Spirit)
+	return { id = point.id, relicId = spirit.relicId, position = spirit.pos, home = point.position }
 end
 
 function RelicSpawnService.list(player: Player): { any }
 	local state = states[player]
 	local result = {}
 	if state then
-		for id, relicId in state.active do
-			table.insert(result, entry(points[id], relicId))
+		for id, spirit in state.active do
+			table.insert(result, entry(points[id], spirit))
 		end
 	end
 	return result
@@ -96,9 +143,9 @@ function RelicSpawnService.startPlayer(player: Player)
 	local state: PlayerSpawns = { active = {}, cooldown = {} }
 	for id, point in points do
 		if point.starter and data.stats.collected == 0 then
-			state.active[id] = Config.StarterRelic
+			state.active[id] = newSpirit(player, point, Config.StarterRelic, true)
 		else
-			state.active[id] = RelicSpawnService.roll(point.area, nil, luckFor(player))
+			state.active[id] = newSpirit(player, point, RelicSpawnService.roll(point.area, nil, luckFor(player)), false)
 		end
 	end
 	states[player] = state
@@ -115,40 +162,16 @@ function RelicSpawnService.reroll(player: Player)
 		return
 	end
 	local spawnAdded = Net.event("SpawnAdded")
-	for id in state.active do
-		local relicId = RelicSpawnService.roll(points[id].area, nil, luckFor(player))
-		state.active[id] = relicId
-		spawnAdded:FireClient(player, entry(points[id], relicId))
+	for id, spirit in state.active do
+		if not spirit.starter then
+			spirit.relicId = RelicSpawnService.roll(points[id].area, nil, luckFor(player))
+			spawnAdded:FireClient(player, entry(points[id], spirit))
+		end
 	end
-end
-
-function RelicSpawnService.collect(player: Player, spawnId: any): (boolean, string?, boolean?)
-	if type(spawnId) ~= "string" then
-		return false, "bad_spawn"
-	end
-	local state = states[player]
-	local point = points[spawnId]
-	local data = PlayerDataService.get(player)
-	if not state or not point or not data then
-		return false, "unknown"
-	end
-	local relicId = state.active[spawnId]
-	if not relicId then
-		return false, "gone"
-	end
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not root or (root.Position - point.position).Magnitude > Config.CollectRange + Config.RangeTolerance then
-		return false, "too_far"
-	end
-	state.active[spawnId] = nil
-	state.cooldown[spawnId] = os.clock() + point.respawn
-	local isNew = RelicSpawnService.grant(player, relicId, point.area)
-	return true, relicId, isNew
 end
 
 -- Puts a relic into the player's inventory and reports it like any find (quests, collection
--- book, analytics). Used by pickups and by expedition rewards. Returns whether it was new.
+-- book, analytics). Used by caught spirits and by expedition rewards. Returns whether it was new.
 function RelicSpawnService.grant(player: Player, relicId: string, area: string): boolean
 	local data = PlayerDataService.get(player)
 	local def = RelicDefs.byId[relicId]
@@ -177,9 +200,109 @@ function RelicSpawnService.grant(player: Player, relicId: string, area: string):
 	return isNew
 end
 
+-- Studio DevTools: the player's spirits as plain data.
+function RelicSpawnService.debug(player: Player): { any }
+	local result = {}
+	local state = states[player]
+	for id, spirit in (if state then state.active else {}) do
+		table.insert(result, { id = id, relic = spirit.relicId, pos = spirit.pos, state = spirit.state, stamina = spirit.stamina, tired = spirit.tiredUntil - os.clock() })
+	end
+	return result
+end
+
 -- Relic ids an area can produce, grouped by rarity (read-only).
 function RelicSpawnService.pool(area: string): { [string]: { string } }
 	return poolsByArea[area] or {}
+end
+
+local function catch(player: Player, state: PlayerSpawns, id: string, spirit: Spirit)
+	local point = points[id]
+	state.active[id] = nil
+	state.cooldown[id] = os.clock() + point.respawn
+	local isNew = RelicSpawnService.grant(player, spirit.relicId, point.area)
+	Progress.bump(player, "spirit", 1, point.area)
+	Net.event("Caught"):FireClient(player, id, spirit.relicId, isNew, spirit.pos)
+end
+
+-- One simulation step for one spirit; returns true when the player touched it.
+local function move(spirit: Spirit, point: SpawnPoint, rootPos: Vector3?, now: number, dt: number): boolean
+	local home = point.position + Vector3.new(0, HOVER, 0)
+	local rank = RelicVisuals.rarityRank(RelicDefs.byId[spirit.relicId].rarity)
+	local speed = if spirit.starter then SPIRITS.starterSpeed else SPIRITS.speedByRank[rank]
+	local distance = if rootPos then (flat(rootPos) - flat(spirit.pos)).Magnitude else math.huge
+	if rootPos and distance < SPIRITS.catchRange and math.abs(rootPos.Y - spirit.pos.Y) < 7 then
+		return true
+	end
+
+	local goal: Vector3
+	if now < spirit.tiredUntil then
+		spirit.state = "tired"
+		speed *= SPIRITS.tiredSpeed
+		local away = flat(spirit.pos - (rootPos or home))
+		goal = spirit.pos + (if away.Magnitude > 0.1 then away.Unit * speed * dt else Vector3.zero)
+	elseif rootPos and distance < SPIRITS.alertRange then
+		spirit.state = "flee"
+		spirit.stamina -= dt
+		if spirit.stamina <= 0 then
+			spirit.tiredUntil = now + SPIRITS.tiredSeconds
+			spirit.stamina = SPIRITS.staminaByRank[rank]
+		end
+		local away = flat(spirit.pos - rootPos)
+		away = if away.Magnitude > 0.1 then away.Unit else Vector3.new(1, 0, 0)
+		-- Rarer spirits sidestep when the player gets close.
+		if distance < 8 and now > spirit.dodgeAt then
+			spirit.dodgeAt = now + 0.7
+			if rng:NextNumber() < 0.5 then
+				spirit.dodge = -spirit.dodge
+			end
+		end
+		local side = Vector3.new(-away.Z, 0, away.X) * spirit.dodge * (if distance < 8 then (rank - 1) * 0.3 else 0)
+		goal = spirit.pos + (away + side).Unit * speed * dt
+	else
+		spirit.state = "idle"
+		spirit.stamina = math.min(SPIRITS.staminaByRank[rank], spirit.stamina + dt * 0.5)
+		spirit.phase += dt * 0.6
+		local wander = home + Vector3.new(math.cos(spirit.phase), 0, math.sin(spirit.phase)) * 4
+		local toward = flat(wander - spirit.pos)
+		goal = spirit.pos + (if toward.Magnitude > 0.2 then toward.Unit * math.min(toward.Magnitude, 3 * dt) else Vector3.zero)
+	end
+	-- Stay on the leash: slide along its edge instead of leaving it.
+	local offset = flat(goal - home)
+	if offset.Magnitude > SPIRITS.leash then
+		goal = home + offset.Unit * SPIRITS.leash
+	end
+	spirit.pos = Vector3.new(goal.X, home.Y + math.sin(now * 2 + spirit.phase) * 0.4, goal.Z)
+	return false
+end
+
+local function step(dt: number)
+	local now = os.clock()
+	local spawnAdded = Net.event("SpawnAdded")
+	local positions = Net.event("Spirits")
+	for player, state in states do
+		local root = rootOf(player)
+		local rootPos = root and root.Position
+		local batch = {}
+		for id, spirit in state.active do
+			local point = points[id]
+			if move(spirit, point, rootPos, now, dt) then
+				catch(player, state, id, spirit)
+			elseif rootPos and (flat(rootPos) - flat(spirit.pos)).Magnitude < 120 then
+				batch[id] = { spirit.pos, spirit.state }
+			end
+		end
+		for id, readyAt in state.cooldown do
+			if now >= readyAt then
+				state.cooldown[id] = nil
+				local spirit = newSpirit(player, points[id], RelicSpawnService.roll(points[id].area, nil, luckFor(player)), false)
+				state.active[id] = spirit
+				spawnAdded:FireClient(player, entry(points[id], spirit))
+			end
+		end
+		if next(batch) then
+			positions:FireClient(player, batch)
+		end
+	end
 end
 
 function RelicSpawnService.init()
@@ -205,28 +328,11 @@ function RelicSpawnService.init()
 		end
 		return RelicSpawnService.list(player)
 	end
-	Net.func("Collect").OnServerInvoke = function(player: Player, spawnId: any)
-		if not limiter:allow(player) then
-			return false, "rate"
-		end
-		return RelicSpawnService.collect(player, spawnId)
-	end
 
-	local spawnAdded = Net.event("SpawnAdded")
 	task.spawn(function()
 		while true do
-			task.wait(1)
-			local now = os.clock()
-			for player, state in states do
-				for id, readyAt in state.cooldown do
-					if now >= readyAt then
-						state.cooldown[id] = nil
-						local relicId = RelicSpawnService.roll(points[id].area, nil, luckFor(player))
-						state.active[id] = relicId
-						spawnAdded:FireClient(player, entry(points[id], relicId))
-					end
-				end
-			end
+			local dt = task.wait(TICK)
+			step(math.min(dt, 0.5))
 		end
 	end)
 end

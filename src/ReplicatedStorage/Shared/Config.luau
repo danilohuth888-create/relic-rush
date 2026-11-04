@@ -24,12 +24,23 @@ Config.Rarities = {
 }
 
 -- Interaction distances in studs. The server allows RangeTolerance extra for latency.
-Config.CollectRange = 12
-Config.AutoCollectRange = 4
 Config.PedestalRange = 10
 Config.RangeTolerance = 8
 
 Config.DefaultRespawnSeconds = 45
+
+-- Guardian spirits carry the relics. Speeds and stamina by rarity rank (Common = 1 ...);
+-- players run at 16 studs/s, so every spirit can be caught, rarer ones just take longer.
+Config.Spirits = {
+	speedByRank = { 6.5, 9, 11, 12.5, 13.5 },
+	staminaByRank = { 2.5, 3.5, 4.5, 5.5, 6 }, -- seconds of fleeing before it tires
+	tiredSeconds = 3.5,
+	tiredSpeed = 0.3,
+	starterSpeed = 3.5,
+	alertRange = 18,
+	catchRange = 4.5,
+	leash = 22, -- how far a spirit may stray from its spawn point
+}
 Config.EconomyTickSeconds = 1
 Config.AutosaveSeconds = 60
 

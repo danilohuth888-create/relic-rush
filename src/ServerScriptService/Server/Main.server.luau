@@ -99,6 +99,8 @@ if RunService:IsStudio() then
 				data_.expedition.cooldownUntil = 0
 			end
 			return data_ and data_.expedition
+		elseif action == "spirits" then
+			return RelicSpawnService.debug(player)
 		elseif action == "nosave" then
 			-- Everything after this stays in this Studio session only (free testing).
 			PlayerDataService.setNoSave(userId)

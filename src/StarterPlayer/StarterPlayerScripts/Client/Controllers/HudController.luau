@@ -695,7 +695,7 @@ local function renderPedestal(state: any, slot: number)
 		end)
 	end
 	if #rows == 0 then
-		emptyNote("Keine Relikte im Inventar. Halte Ausschau nach leuchtenden Lichtsäulen!")
+		emptyNote("Keine Relikte im Inventar. Fang Wächter-Geister auf dem Platz und im Flüsterwald!")
 	end
 end
 
