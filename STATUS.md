@@ -13,7 +13,7 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 | 2b | Tycoon-Ausbau mit Kauftasten (dein Wunsch) | ✅ im Playtest geprüft |
 | 2c | Wächter-Geister fangen (ersetzt die Lichtsäulen) | ✅ serverseitig geprüft; Live-Lauftest mit dir offen |
 | 2d | Schatzkarten-Rätsel | ✅ Logik geprüft; Kartenfenster noch nicht gesehen |
-| 3 | Optik auf Profi-Niveau | vorbereitet: 15 Relikt-Modelle (Blender) zum Hochladen, Spiel nutzt sie automatisch; Welt-Optik braucht sichtbares Studio |
+| 3 | Optik auf Profi-Niveau | Welt-Deko ✅ (Screenshots, 60 FPS im Playtest); Relikt-Modelle warten auf deinen Upload (*Import 3D*) |
 | 4 | Englisch, Bestenliste, Wochenziel | ✅ im Playtest geprüft (Englisch per Testschalter) |
 | 5 | Release-Prüfung (M6) | offen |
 
@@ -180,6 +180,10 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Englisch:** Gegenprobe Deutsch: Server-Texte unverändert deutsch, keine Steuerzeichen | Playtest | ✅ |
 | **Englisch:** `tools/i18n/check.py`: 248 Texte, 0 fehlend | automatisiert | ✅ |
 
+| **Welt-Deko:** `tools/world/BuildDecor.luau` baut `Workspace.Aetheria.Decor` (1.854 Teile, 11 Lichter): Randfelsen, 4 Wasserfälle mit Gischt, Wiesenflecken, Gras, Blumen, Büsche, Blütenbäume, 26 Weglaternen, Hecken um die Schatzkammern, Blumenbeete am Platz, dichterer Flüsterwald mit Glühwürmchen, Ruinenhof mit Bodenplatten, Säulenresten und blauen Fackeln, Kristalle und Ranken an der Inselunterseite | Screenshots Edit-Modus | ✅ |
+| **Welt-Deko:** hält Abstand zu Plätzen, Wegen, Schatzkammern, Grab-Verstecken, Geister-Spawns und Hügeln (liest das Layout live) | Code + Screenshots | ✅ |
+| **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
+
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.
 - **Echte Robux-Käufe:** bewusst nicht ausgelöst; die Gutschrift-Logik ist simuliert. Als Ersteller besitzt du deine Pässe automatisch, deshalb zeigt dein Shop „Besitzt du“, und deine Rate ist mit „Doppelte Münzen“ verdoppelt.
@@ -189,6 +193,8 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 - **Geister mit echter Steuerung fangen** (Tastatur/Touch): Bei verdecktem Studio-Fenster bewegt sich die Spielfigur nur per Teleport; ein Versuch mit Client-Teleports fing nichts. Serverseitig bewegt klappt es. Bitte einmal live jagen – wenn es zäh ist, stelle ich die Tempos in `Config.Spirits` ein.
 - **Kartenfenster ansehen:** Klicks liefen bei verdecktem Fenster ins Timeout, daher ist das gezeichnete Kartenfenster noch nicht auf einem Bild geprüft.
 - **Tycoon-Optik:** Bauteile nur per Abfrage geprüft, Screenshots liefen ins Timeout (Studio-Fenster nicht sichtbar). Sieht sich in Block 3 an.
+- **Relikt-Modelle aus Blender:** Selbst hochladen ging nicht (`AssetService:CreateAssetAsync` ist in Studio gesperrt; EditableMesh im Live-Spiel bräuchte deine Ausweis-Verifizierung und einen Sicherheitsschalter). Upload über *Import 3D* nach `assets/relics/README.md`.
+- **Bildrate auf schwachem Handy** mit der neuen Deko.
 - **Zeitlimit 8 min** nicht abgewartet (Logik geprüft, nicht ausgelöst).
 - **Glitzern bei seltenen Funden** im Spiel gesehen: Code-Pfad identisch zum Ausbau-Effekt, ein seltener Fund kam im Test nicht vor (wird mit der Expedition geprüft).
 - **Klang selbst anhören:** Ich kann Sounds nur technisch prüfen (lädt, spielt, Tonhöhe). Ob dir Auswahl und Lautstärken gefallen, hörst nur du. Austausch = eine Zeile in `Shared/Sounds.luau`.

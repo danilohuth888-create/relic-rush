@@ -2,7 +2,7 @@
 -- treasury plots, a Whisper Forest teaser, the sealed ruins portal and the relic spawn points.
 -- Run in Studio's Edit DataModel (MCP execute_luau or the command bar). It rebuilds
 -- Workspace.Aetheria from scratch; scripts rely only on the names documented in
--- PlotService.luau and RelicSpawnService.luau.
+-- PlotService.luau and RelicSpawnService.luau. Run BuildDecor.luau afterwards for the scenery.
 
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")

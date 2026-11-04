@@ -44,6 +44,7 @@ Nichts davon wird ohne deine ausdrückliche Freigabe öffentlich geschaltet.
 ## Mobile und Performance
 - [x] UI skaliert (UIScale 0,62–1,15), große Touch-Flächen, Safe-Area
 - [ ] UI auf kleinem Smartphone (Studio-Geräteemulation + echtes Gerät)
+- [x] Bildrate in Studio stabil (60 FPS mit Welt-Deko, ~2.700 Teile, StreamingEnabled an)
 - [ ] Bildrate auf schwachem Gerät akzeptabel
 
 ## Monetarisierung
