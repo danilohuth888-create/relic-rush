@@ -3,6 +3,7 @@
 ## 0.4.0 – Sound, Spielgefühl und Expedition (in Arbeit)
 - Expedition „Vergessene Ruinen“ für 1–4 Spieler: Druckplatten, Spiegelsaal mit Irrlicht, Rätselsteine, Kristallwächter, gemeinsame Truhe. Alle 25 Relikte sind jetzt erreichbar.
 - Abklingzeit 10 min pro Spieler, Begleiter bekommen Münzen. Datenschema v4.
+- Neues Aussehen der Wächter-Geister: runde Pastell-Geister mit Gesicht, Wangen, Ärmchen und wehendem Schweif, Leuchtrand in Seltenheitsfarbe; Augen zeigen den Zustand (ruhig, erschrocken, müde).
 - Welt-Optik: Wasserfälle am Inselrand, Randfelsen, Wiesen mit Gras, Blumen, Büschen und Blütenbäumen, Weglaternen, Hecken um die Schatzkammern, dichterer Flüsterwald mit Glühwürmchen, eigener Ruinenhof mit Fackeln, Kristalle und Ranken unter der Insel, schwebende Lichtpunkte am Kristallplatz.
 - Relikt-Modelle aus Blender vorbereitet (werden automatisch genutzt, sobald sie hochgeladen sind).
 - Englische Fassung aller Spieltexte, automatisch nach Spielersprache.

@@ -481,7 +481,14 @@ for _, p in pathParts do
 	local side = 1
 	while z < half - 4 do
 		local pos = flat((p.CFrame * CFrame.new(side * (p.Size.X / 2 + 1.6), 0, z)).Position)
-		if pos.Magnitude > 60 and (pos - FOREST).Magnitude > 20 then
+		local nearPlot = false
+		for _, plot in plotCenters do
+			local rel = plot.cf:PointToObjectSpace(Vector3.new(pos.X, plot.cf.Position.Y, pos.Z))
+			if math.abs(rel.X) < 24 and math.abs(rel.Z) < 30 then
+				nearPlot = true -- keeps the owner sign at the plot entrance readable
+			end
+		end
+		if pos.Magnitude > 60 and (pos - FOREST).Magnitude > 20 and not nearPlot then
 			lamp(lamps, pos, lampCount % 3 == 0)
 			lampCount += 1
 		end

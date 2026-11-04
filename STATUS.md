@@ -182,6 +182,7 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 
 | **Welt-Deko:** `tools/world/BuildDecor.luau` baut `Workspace.Aetheria.Decor` (1.854 Teile, 11 Lichter): Randfelsen, 4 Wasserfälle mit Gischt, Wiesenflecken, Gras, Blumen, Büsche, Blütenbäume, 26 Weglaternen, Hecken um die Schatzkammern, Blumenbeete am Platz, dichterer Flüsterwald mit Glühwürmchen, Ruinenhof mit Bodenplatten, Säulenresten und blauen Fackeln, Kristalle und Ranken an der Inselunterseite | Screenshots Edit-Modus | ✅ |
 | **Welt-Deko:** hält Abstand zu Plätzen, Wegen, Schatzkammern, Grab-Verstecken, Geister-Spawns und Hügeln (liest das Layout live) | Code + Screenshots | ✅ |
+| **Geister-Optik:** neu gestaltet (Körper, Leuchtrand, Gesicht, Ärmchen, Schweif, Augen je Zustand), im Playtest von vorn und seitlich angesehen | Playtest-Screenshots | ✅ |
 | **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
