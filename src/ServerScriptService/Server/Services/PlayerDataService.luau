@@ -13,7 +13,7 @@ local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 11
+local SCHEMA_VERSION = 12
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -25,6 +25,7 @@ export type Settings = { music: number, sfx: number, hints: boolean }
 export type Expedition = { cooldownUntil: number, runs: number, wins: number }
 export type Maps = { pieces: number, charts: number, visits: number, found: number } -- charts = complete maps
 export type Weekly = { week: number, id: string, goal: number, progress: number, claimed: boolean }
+export type Daily = { last: number, streak: number } -- last = UTC day number of the last claim
 export type Data = {
 	version: number,
 	coins: number,
@@ -42,6 +43,7 @@ export type Data = {
 	builds: { [string]: boolean }, -- tycoon builds on the plot (Shared/Builds)
 	maps: Maps,
 	weekly: Weekly,
+	daily: Daily,
 	lastSeen: number,
 }
 
@@ -72,6 +74,7 @@ local function defaultData(): Data
 		builds = {},
 		maps = { pieces = 0, charts = 0, visits = 0, found = 0 },
 		weekly = { week = 0, id = "", goal = 0, progress = 0, claimed = false },
+		daily = { last = 0, streak = 0 },
 		lastSeen = 0,
 	}
 end
@@ -204,6 +207,7 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 		data.builds = b
 		data.tier = if b.vault then 3 elseif b.hall then 2 else 1
 	end,
+	-- v12 added the daily bonus streak; the defaults (filled in by reconcile) are all it needs.
 }
 
 local function reconcile(data: any): Data
@@ -213,7 +217,7 @@ local function reconcile(data: any): Data
 			data[key] = value
 		end
 	end
-	for _, group in { "stats", "tutorial", "quests", "settings", "expedition", "maps", "weekly" } do
+	for _, group in { "stats", "tutorial", "quests", "settings", "expedition", "maps", "weekly", "daily" } do
 		for key, value in fresh[group] do
 			if data[group][key] == nil then
 				data[group][key] = value
@@ -426,6 +430,7 @@ function PlayerDataService.snapshot(player: Player): any
 		builds = data.builds,
 		maps = data.maps,
 		weekly = data.weekly,
+		daily = data.daily,
 		persistent = PlayerDataService.persistent,
 	}
 end

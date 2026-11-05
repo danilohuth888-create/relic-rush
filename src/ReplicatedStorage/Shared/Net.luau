@@ -21,6 +21,8 @@ local FUNCTIONS = {
 	"DigTreasure",
 	"TravelIsle",
 	"LeaveIsle",
+	"ClaimDaily",
+	"ClaimGift",
 }
 
 local folder: Instance

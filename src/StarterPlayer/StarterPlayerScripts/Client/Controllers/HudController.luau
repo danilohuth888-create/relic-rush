@@ -74,6 +74,8 @@ local ERRORS: { [string]: string } = {
 	not_done = "Diese Aufgabe ist noch nicht erledigt.",
 	claimed = "Diese Belohnung hast du schon abgeholt.",
 	no_map = "Du hast gerade keine vollständige Schatzkarte.",
+	not_ready = "Noch nicht so weit – das Geschenk öffnet sich bald.",
+	bad_gift = "Dieses Geschenk gibt es nicht.",
 	busy = "Beende erst deine Expedition oder deinen Inselbesuch.",
 	closed = "Die Schatzinsel ist gerade nicht erreichbar.",
 	bad_spot = "Diesen Schatz hast du schon ausgegraben.",
@@ -140,6 +142,7 @@ local rateLabel: TextLabel
 local luckLabel: TextLabel
 local navFrame: GuiObject
 local sideFrame: GuiObject
+local rewardFrame: GuiObject
 local expFrame: Frame
 local expLabel: TextLabel
 local expTimer: TextLabel
@@ -149,6 +152,10 @@ local guideLabel: TextLabel
 local skipButton: TextButton
 local questBadge: Frame
 local mapBadge: Frame
+local dailyBadge: Frame
+local giftBadge: Frame
+local giftTimer: TextLabel
+local giftTimers: { [number]: TextLabel } = {} -- countdowns in the open gifts panel
 local toastStack: Frame
 local panelHost: Frame
 local panel: Frame
@@ -514,10 +521,21 @@ local function clearGrid()
 end
 
 -- What the open panel shows, so state pushes that change nothing visible skip the rebuild.
+-- Defined with the reward panels further down; the signature needs it already.
+local giftStatus: () -> (number?, number)
+
 local lastSignature = ""
 local function signature(kind: string, state: any): string
 	if kind == "settings" or kind == "credits" then
 		return kind
+	end
+	if kind == "daily" then
+		local daily = state.daily or {}
+		return ("daily|%s|%s|%s"):format(tostring(daily.last), tostring(daily.streak), tostring(state.tier))
+	end
+	if kind == "gifts" then
+		local _, ready = giftStatus()
+		return ("gifts|%s|%d|%s"):format(tostring(player:GetAttribute("GiftsClaimed")), ready, tostring(state.tier))
 	end
 	if kind == "map" then
 		local maps = state.maps or {}
@@ -1195,6 +1213,158 @@ local function renderMap(state: any)
 	end)
 end
 
+-- Daily bonus and playtime gifts ---------------------------------------------------------
+
+local function today(): number
+	return math.floor(os.time() / 86400)
+end
+
+-- Same rule as Server/Services/RewardsService.dailyDay.
+local function dailyDay(daily: any): number?
+	if not daily then
+		return nil
+	end
+	if daily.last == today() then
+		return nil
+	end
+	if daily.last == today() - 1 then
+		return daily.streak % #Config.Daily.days + 1
+	end
+	return 1
+end
+
+local function giftsClaimed(): { [number]: boolean }
+	local result = {}
+	for index in tostring(player:GetAttribute("GiftsClaimed") or ""):gmatch("%d+") do
+		result[tonumber(index) :: number] = true
+	end
+	return result
+end
+
+local function sessionSeconds(): number
+	local start = player:GetAttribute("SessionStart")
+	return if type(start) == "number" then os.time() - start else 0
+end
+
+-- Index of the next gift that is not claimed yet, and how many are ready right now.
+function giftStatus(): (number?, number)
+	local claimed = giftsClaimed()
+	local played = sessionSeconds()
+	local nextIndex, ready = nil, 0
+	for i, gift in Config.Gifts do
+		if not claimed[i] then
+			if played >= gift.minutes * 60 then
+				ready += 1
+			end
+			nextIndex = nextIndex or i
+		end
+	end
+	return nextIndex, ready
+end
+
+local function clock(seconds: number): string
+	seconds = math.max(0, math.floor(seconds))
+	return ("%d:%02d"):format(seconds // 60, seconds % 60)
+end
+
+local function rewardText(reward: any, tier: number): string
+	local parts = { L("+%s Münzen", formatNumber(reward.coins * (Config.Daily.tierFactor[tier] or 1))) }
+	if reward.mapPiece then
+		table.insert(parts, L("Kartenteil"))
+	end
+	if reward.luck then
+		table.insert(parts, L("Glücksrune"))
+	end
+	return table.concat(parts, "\n")
+end
+
+local function rewardIcon(reward: any): string
+	return if reward.luck and reward.mapPiece then "👑" elseif reward.luck then "🍀" elseif reward.mapPiece then "🗺️" else "💰"
+end
+
+-- One reward card: art with an icon, a title, what it gives and a button or status.
+local function rewardCard(name: string, title: string, reward: any, tier: number, highlight: boolean, status: string?, onClaim: (() -> ())?): TextLabel
+	local card = cardSurface(name)
+	local top, bottom = if highlight then THEME.goldLight else THEME.violet:Lerp(THEME.white, 0.4), if highlight then THEME.amberDeep else THEME.violet
+	local art = cardArt(card, top, bottom, 58)
+	label(art, { Size = UDim2.fromScale(1, 1), Text = rewardIcon(reward), TextScaled = true })
+	new("UIPadding", { PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8), Parent = art })
+	label(card, { Position = UDim2.fromOffset(8, 68), Size = UDim2.new(1, -16, 0, 24), Text = title, Font = TITLE, TextSize = 20 })
+	label(card, {
+		Position = UDim2.fromOffset(8, 92),
+		Size = UDim2.new(1, -16, 0, 40),
+		Text = rewardText(reward, tier),
+		TextWrapped = true,
+		TextColor3 = THEME.subtle,
+		TextSize = 15,
+	})
+	if onClaim then
+		pillButton(card, "Claim", L("Abholen"), THEME.goldLight, THEME.amberDeep, true, {
+			Position = UDim2.new(0, 8, 1, -44),
+			Size = UDim2.new(1, -16, 0, 36),
+			TextSize = 18,
+			TextColor3 = C(110, 58, 8),
+		}, onClaim)
+	end
+	local statusLabel = label(card, {
+		Name = "Status",
+		Position = UDim2.new(0, 8, 1, -44),
+		Size = UDim2.new(1, -16, 0, 36),
+		Text = status or "",
+		Font = TITLE,
+		TextSize = 18,
+		TextColor3 = THEME.subtle,
+		Visible = onClaim == nil,
+	})
+	if highlight then
+		stroke(THEME.gold, 3).Parent = card
+	end
+	return statusLabel
+end
+
+local function claimReward(remote: string, arg: any)
+	local ok, success, err = pcall(function()
+		return Net.func(remote):InvokeServer(arg)
+	end)
+	if ok and success then
+		Audio.play("claim")
+	else
+		Hud.showError(if ok then err else "rate")
+	end
+end
+
+local function renderDaily(state: any)
+	setCells(UDim2.fromOffset(140, 186))
+	local claimable = dailyDay(state.daily)
+	local streak = if state.daily then state.daily.streak else 0
+	setHeader("📅", L("Tagesbonus"), if claimable then L("Komm jeden Tag wieder – die Belohnungen werden immer größer!") else L("Heute schon abgeholt. Morgen wartet Tag %d!", streak % #Config.Daily.days + 1))
+	for day, reward in Config.Daily.days do
+		local done = if claimable then (claimable > 1 and day < claimable) else day <= streak
+		local isToday = claimable == day
+		rewardCard("Day" .. day, L("Tag %d", day), reward, state.tier, isToday, if done then L("✓ Erledigt") else nil, if isToday then function()
+			claimReward("ClaimDaily", nil)
+		end else nil)
+	end
+end
+
+local function renderGifts(state: any)
+	setCells(UDim2.fromOffset(140, 186))
+	setHeader("🎁", L("Geschenke"), L("Je länger du spielst, desto mehr Geschenke öffnen sich."))
+	table.clear(giftTimers)
+	local claimed = giftsClaimed()
+	local played = sessionSeconds()
+	for i, gift in Config.Gifts do
+		local ready = not claimed[i] and played >= gift.minutes * 60
+		local status = if claimed[i] then L("✓ Erledigt") else clock(gift.minutes * 60 - played)
+		local statusLabel = rewardCard("Gift" .. i, L("%d Min.", gift.minutes), gift, state.tier, ready, status, if ready then function()
+			claimReward("ClaimGift", i)
+		end else nil)
+		if not claimed[i] and not ready then
+			giftTimers[i] = statusLabel
+		end
+	end
+end
+
 local function renderPanel()
 	local mode = panelMode
 	local state = ClientState.data
@@ -1216,6 +1386,10 @@ local function renderPanel()
 		renderCredits()
 	elseif mode.kind == "map" then
 		renderMap(state)
+	elseif mode.kind == "daily" then
+		renderDaily(state)
+	elseif mode.kind == "gifts" then
+		renderGifts(state)
 	else
 		renderCollection(state)
 	end
@@ -1233,6 +1407,7 @@ local function open(kind: string, slot: number?)
 	-- The panel takes the screen: navigation and the guide step aside (small phones need the room).
 	navFrame.Visible = false
 	sideFrame.Visible = false
+	rewardFrame.Visible = false
 	refreshGuide()
 	refreshExpedition()
 	-- World prompts, chat and the player list would sit on top of the panel and steal taps.
@@ -1272,6 +1447,14 @@ function Hud.openMap()
 	open("map")
 end
 
+function Hud.openDaily()
+	open("daily")
+end
+
+function Hud.openGifts()
+	open("gifts")
+end
+
 function Hud.openSettings()
 	open("settings")
 end
@@ -1285,6 +1468,7 @@ function Hud.close()
 	panelHost.Visible = false
 	navFrame.Visible = true
 	sideFrame.Visible = true
+	rewardFrame.Visible = true
 	refreshGuide()
 	refreshExpedition()
 	ProximityPromptService.Enabled = true
@@ -1535,6 +1719,32 @@ local function buildNavigation()
 	map, mapBadge = railButton("NavMap", "🗺️", L("Karte"), THEME.amber, THEME.amberDeep, 4, Hud.openMap)
 	map.Parent = side
 
+	-- Rewards on the right: daily bonus and playtime gifts with a countdown.
+	local rewards = scaled(new("Frame", {
+		Name = "Rewards",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -14, 0.64, 0),
+		Size = UDim2.fromOffset(76, 176),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	}, { new("UIListLayout", { Padding = UDim.new(0, 18), SortOrder = Enum.SortOrder.LayoutOrder }) }))
+	local daily
+	daily, dailyBadge = railButton("NavDaily", "📅", L("Bonus"), THEME.gold, THEME.amberDeep, 1, Hud.openDaily)
+	daily.Parent = rewards
+	rewardFrame = rewards
+	local gifts
+	gifts, giftBadge = railButton("NavGifts", "🎁", L("Geschenke"), THEME.pink, THEME.pinkDeep, 2, Hud.openGifts)
+	gifts.Parent = rewards
+	giftTimer = chip(gifts, "", THEME.dark, THEME.white, {
+		Name = "Timer",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 1, 2),
+		Size = UDim2.fromOffset(0, 22),
+		TextSize = 15,
+		Font = TITLE,
+		ZIndex = 6,
+	})
+
 	-- Settings: a small gear in the top right corner (the top left belongs to Roblox).
 	local gearSlot, gear = shadowed("TextButton", {
 		Name = "Gear",
@@ -1691,6 +1901,36 @@ local function build()
 	gui.Parent = player:WaitForChild("PlayerGui")
 end
 
+-- Badges and the gift countdown; offers the daily bonus once per session when it is ready.
+local dailyOffered = false
+local function refreshRewards()
+	local state = ClientState.data
+	local nextGift, ready = giftStatus()
+	giftBadge.Visible = ready > 0
+	if ready > 0 then
+		giftTimer.Text = L("Bereit!")
+	elseif nextGift then
+		giftTimer.Text = clock(Config.Gifts[nextGift].minutes * 60 - sessionSeconds())
+	else
+		giftTimer.Text = "✓"
+	end
+	local claimable = state and dailyDay(state.daily)
+	dailyBadge.Visible = claimable ~= nil
+	if claimable and not dailyOffered and state.tutorialDone and panelMode == nil and player:GetAttribute("ExpRun") == nil then
+		dailyOffered = true
+		open("daily")
+	end
+	if panelMode and panelMode.kind == "gifts" then
+		local played = sessionSeconds()
+		for i, timerLabel in giftTimers do
+			timerLabel.Text = clock(Config.Gifts[i].minutes * 60 - played)
+		end
+		if signature("gifts", state) ~= lastSignature then
+			renderPanel()
+		end
+	end
+end
+
 function Hud.start()
 	build()
 	updateScale()
@@ -1750,6 +1990,7 @@ function Hud.start()
 			task.wait(1)
 			refreshCoins()
 			refreshExpedition()
+			refreshRewards()
 		end
 	end)
 	refreshCoins()

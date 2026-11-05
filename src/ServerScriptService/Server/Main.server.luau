@@ -21,6 +21,7 @@ local TycoonService = require(Services.TycoonService)
 local MapService = require(Services.MapService)
 local LeaderboardService = require(Services.LeaderboardService)
 local ExpeditionService = require(Services.ExpeditionService)
+local RewardsService = require(Services.RewardsService)
 
 PlayerDataService.init()
 PlotService.init()
@@ -35,6 +36,7 @@ TycoonService.init()
 MapService.init()
 LeaderboardService.init()
 ExpeditionService.init()
+RewardsService.init()
 
 local function onPlayerAdded(player: Player)
 	Analytics.onboarding(player, Analytics.Onboarding.Joined)
@@ -50,6 +52,7 @@ local function onPlayerAdded(player: Player)
 	RelicSpawnService.startPlayer(player)
 	QuestService.startPlayer(player)
 	LeaderboardService.startPlayer(player)
+	RewardsService.startPlayer(player)
 	player:SetAttribute("Loaded", true)
 	PlayerDataService.replicate(player)
 end
@@ -57,6 +60,7 @@ end
 local function onPlayerRemoving(player: Player)
 	ExpeditionService.stopPlayer(player)
 	MapService.stopPlayer(player)
+	RewardsService.stopPlayer(player)
 	LeaderboardService.stopPlayer(player)
 	RelicSpawnService.stopPlayer(player)
 	QuestService.stopPlayer(player)
@@ -128,6 +132,13 @@ if RunService:IsStudio() then
 		elseif action == "nosave" then
 			-- Everything after this stays in this Studio session only (free testing).
 			PlayerDataService.setNoSave(userId)
+		elseif action == "skiptime" then
+			-- Playtime gifts: pretend the session started args[1] seconds earlier.
+			RewardsService.skipTime(player, tonumber(args[1]) or 0)
+		elseif action == "newday" then
+			-- Daily bonus: as if the last claim was yesterday (keeps the streak going).
+			data.daily.last -= 1
+			PlayerDataService.replicate(player)
 		elseif action == "freshplot" then
 			-- A new player's plot (Studio only, never saved): no builds, relics back in the bag.
 			PlayerDataService.setNoSave(userId)

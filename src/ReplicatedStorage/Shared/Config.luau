@@ -112,6 +112,30 @@ Config.Maps = {
 -- harder it is to get: easy treasures lie in the open, hidden ones behind rocks and ruins,
 -- the secret one in a tricky place; spirits get faster ("dash") or sneakier ("blink").
 -- Every visit has a few easy finds, so it never ends empty-handed.
+-- Daily bonus: a 7-day streak (a missed day starts again at day 1). Playtime gifts open after
+-- some minutes of play in one session. Coins of both scale with the treasury tier.
+Config.Daily = {
+	tierFactor = { 1, 4, 14 },
+	days = {
+		{ coins = 150 },
+		{ coins = 250 },
+		{ coins = 400, mapPiece = true },
+		{ coins = 600 },
+		{ coins = 900, luck = true },
+		{ coins = 1300 },
+		{ coins = 2500, mapPiece = true, luck = true },
+	},
+}
+Config.Gifts = {
+	{ minutes = 2, coins = 80 },
+	{ minutes = 5, coins = 150 },
+	{ minutes = 10, coins = 250, luck = true },
+	{ minutes = 15, coins = 400 },
+	{ minutes = 25, coins = 600, mapPiece = true },
+	{ minutes = 40, coins = 900 },
+	{ minutes = 60, coins = 1500, mapPiece = true, luck = true },
+}
+
 Config.Isle = {
 	visitSeconds = 4 * 60,
 	digRange = 9,
