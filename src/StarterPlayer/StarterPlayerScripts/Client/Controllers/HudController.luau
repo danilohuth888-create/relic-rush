@@ -567,7 +567,7 @@ local function cardArt(card: Instance, top: Color3, bottom: Color3, height: numb
 		Position = UDim2.fromOffset(6, 6),
 		Size = UDim2.new(1, -12, 0, height),
 		BackgroundColor3 = THEME.white,
-		ClipsDescendants = true,
+		-- no ClipsDescendants: rounded clipping hides ViewportFrames (the relic previews)
 		Parent = card,
 	}, { corner(14), gradient(top, bottom) })
 end

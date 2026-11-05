@@ -200,13 +200,14 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Haus v3:** frisches Grundstück → nur Reliktsaal, Treppenabdeckung zu, 3 Kaufflächen; Schatzkeller an seiner Fläche gekauft (350), Abdeckung offen, Treppe mit Laufsteuerung hinunter in den Keller | Playtest | ✅ |
 | **Haus v3:** alle 39 Bauteile nacheinander über die Kauflogik (günstigste aktive Fläche), jede Optik vorhanden, 20/20 Podeste, Stufe 3, ×2,35, ~1.050 Teile, keine Fehler | Playtest | ✅ |
 | **Haus v3:** Bilder Vollausbau außen, Keller, Eingangshalle, Wohnzimmer; Migration v10→v11 am echten Profil | Playtest-Screenshots | ✅ |
+| **UI v2:** Icon-Leiste, Münzen mit „+“ (öffnet Shop), Schnellreise Kristallplatz (Teleport auf Spawn-Platte geprüft), Meldungen rechts (2 Kartenteil-Meldungen gestapelt), Shop mit Banderolen und neuer Reihenfolge, Schließen-Knopf, Sammelbuch-Vorschauen sichtbar | Playtest-Screenshots | ✅ |
 | **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
 - **Letztes Speichern beim Verlassen in Studio:** Beim Stoppen beendet Studio den Server so schnell, dass der letzte Schreibvorgang fehlte (bis zu einem Autosave-Intervall Fortschritt). Live-Server geben `BindToClose` 30 s. Abgemildert durch Autosave alle 60 s; der echte Test geht nur auf Live-Servern.
 - **Echte Robux-Käufe:** bewusst nicht ausgelöst; die Gutschrift-Logik ist simuliert. Als Ersteller besitzt du deine Pässe automatisch, deshalb zeigt dein Shop „Besitzt du“, und deine Rate ist mit „Doppelte Münzen“ verdoppelt.
 - **8 Spieler gleichzeitig, Besuchs-Meldung zwischen zwei echten Spielern.**
-- **Smartphone-Bedienung** am Gerät.
+- **Smartphone-Bedienung** am Gerät, neue Icon-Leiste auf kleinen Bildschirmen (Studio-Geräteemulation) noch nicht angesehen.
 - **Expedition zu zweit** (Studio *Clients and Servers*) und echte Tasten-/Touch-Bedienung der Prompts: Mein Studio-Fenster rendert gerade nicht, deshalb habe ich die Prompts serverseitig über `DevTools prompt` ausgelöst (gleiche Reichweiten-, Mitglieds- und Rate-Prüfung wie echte Eingaben).
 - ~~Geister mit echter Steuerung fangen~~ (jetzt mit Laufsteuerung geprüft; Touch noch offen): Bei verdecktem Studio-Fenster bewegt sich die Spielfigur nur per Teleport; ein Versuch mit Client-Teleports fing nichts. Serverseitig bewegt klappt es. Bitte einmal live jagen – wenn es zäh ist, stelle ich die Tempos in `Config.Spirits` ein.
 - **Tycoon-Optik:** Bauteile nur per Abfrage geprüft, Screenshots liefen ins Timeout (Studio-Fenster nicht sichtbar). Sieht sich in Block 3 an.
@@ -215,4 +216,4 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 - **Zeitlimit 8 min** nicht abgewartet (Logik geprüft, nicht ausgelöst).
 - **Glitzern bei seltenen Funden** im Spiel gesehen: Code-Pfad identisch zum Ausbau-Effekt, ein seltener Fund kam im Test nicht vor (wird mit der Expedition geprüft).
 - **Klang selbst anhören:** Ich kann Sounds nur technisch prüfen (lädt, spielt, Tonhöhe). Ob dir Auswahl und Lautstärken gefallen, hörst nur du. Austausch = eine Zeile in `Shared/Sounds.luau`.
-- **3D-Vorschau in den Karten:** In den letzten Bildern war die ganze 3D-Ansicht schwarz, auch ohne offenes Fenster. Das liegt offenbar am Rendern von Studio, nicht am Spiel. Bitte einmal selbst ansehen.
+- ~~3D-Vorschau in den Karten~~ behoben (Kartenbereich schnitt mit abgerundeten Ecken zu; ViewportFrames werden dabei nicht gezeichnet).
