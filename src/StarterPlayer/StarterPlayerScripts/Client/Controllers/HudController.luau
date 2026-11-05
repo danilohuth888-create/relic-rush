@@ -321,47 +321,6 @@ local function coinIcon(parent: Instance, size: number, order: number?): Frame
 	return coin
 end
 
--- Big gradient button with an icon. vertical = icon above a small caption (side menu).
-local function bigButton(name: string, icon: string, text: string, top: Color3, bottom: Color3, size: Vector2, order: number, vertical: boolean, onClick: () -> ()): (Frame, TextButton)
-	local slot, button = shadowed("TextButton", {
-		Name = name,
-		Size = UDim2.fromOffset(size.X, size.Y),
-		LayoutOrder = order,
-	}, { Name = "Button", Text = "", AutoButtonColor = false, BackgroundColor3 = THEME.white }, 22)
-	gradient(top, bottom).Parent = button
-	stroke(THEME.white, 3, 0.15).Parent = button
-	if vertical then
-		label(button, { Position = UDim2.fromScale(0, 0.08), Size = UDim2.fromScale(1, 0.52), Text = icon, TextScaled = true, Font = TITLE })
-		local caption = label(button, {
-			Position = UDim2.new(0, 4, 0.62, 0),
-			Size = UDim2.new(1, -8, 0.28, 0),
-			Text = text,
-			TextScaled = true,
-			Font = TITLE,
-			TextColor3 = THEME.white,
-		})
-		textStroke(bottom:Lerp(THEME.dark, 0.4), 1.5).Parent = caption
-	else
-		local layout = hlist(8)
-		layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		local row = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = button }, { layout })
-		label(row, { Size = UDim2.fromOffset(34, 34), Text = icon, TextScaled = true, Font = TITLE, LayoutOrder = 1 })
-		local caption = label(row, {
-			Size = UDim2.fromOffset(0, 34),
-			AutomaticSize = Enum.AutomaticSize.X,
-			Text = text,
-			Font = TITLE,
-			TextSize = 25,
-			TextColor3 = THEME.white,
-			LayoutOrder = 2,
-		})
-		textStroke(bottom:Lerp(THEME.dark, 0.4), 1.5).Parent = caption
-	end
-	button.Activated:Connect(onClick)
-	pressable(button, slot)
-	return slot, button
-end
-
 -- Small rounded pill button used inside cards and rows. Disabled pills are grey and inert.
 -- A UIGradient also tints its own object's text, so the gradient sits on a child fill and
 -- the caption is a separate label above it.
@@ -402,27 +361,48 @@ end
 
 -- Toasts and guide ---------------------------------------------------------------------
 
+-- Compact cards on the right edge that slide in, newest on top, and fade after a few seconds
+-- (the screen centre stays free for the game).
 function Hud.toast(text: string, color: Color3?)
-	local accent = color or THEME.white
-	local toast = new("Frame", {
-		Size = UDim2.fromOffset(0, 50),
-		AutomaticSize = Enum.AutomaticSize.X,
-		BackgroundColor3 = THEME.dark,
-		BackgroundTransparency = 0.08,
+	local accent = color or THEME.lumi
+	local slot = new("Frame", {
+		Size = UDim2.fromOffset(380, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		LayoutOrder = -math.floor(os.clock() * 1000),
 		Parent = toastStack,
-	}, { round(), hpad(22) })
-	local edge = stroke(accent, 2, 0.3)
-	edge.Parent = toast
-	local text_ = label(toast, {
-		Size = UDim2.fromOffset(0, 50),
-		AutomaticSize = Enum.AutomaticSize.X,
-		Text = text,
-		TextColor3 = accent,
-		Font = TITLE,
-		TextSize = 23,
 	})
-	local pop = new("UIScale", { Scale = 0.75, Parent = toast })
-	TweenService:Create(pop, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	local toast = new("Frame", {
+		Name = "Toast",
+		Position = UDim2.fromOffset(420, 0),
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = THEME.dark,
+		BackgroundTransparency = 0.06,
+		Parent = slot,
+	}, {
+		corner(14),
+		stroke(THEME.shadow, 2, 0.2),
+		new("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 12), PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9) }),
+	})
+	local bar = new("Frame", {
+		Name = "Accent",
+		Position = UDim2.new(0, -12, 0, -3),
+		Size = UDim2.new(0, 5, 1, 6),
+		BackgroundColor3 = accent,
+		Parent = toast,
+	}, { round() })
+	local text_ = label(toast, {
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = text,
+		TextColor3 = THEME.white,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Font = BODY,
+		TextSize = 18,
+	})
+	TweenService:Create(toast, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(0, 0) }):Play()
 
 	local toasts = {}
 	for _, c in toastStack:GetChildren() do
@@ -430,17 +410,20 @@ function Hud.toast(text: string, color: Color3?)
 			table.insert(toasts, c)
 		end
 	end
-	if #toasts > 3 then
+	if #toasts > 4 then
+		table.sort(toasts, function(x, y)
+			return x.LayoutOrder > y.LayoutOrder
+		end)
 		toasts[1]:Destroy()
 	end
-	task.delay(2.6, function()
-		if toast.Parent then
-			local fade = TweenInfo.new(0.35)
-			TweenService:Create(toast, fade, { BackgroundTransparency = 1 }):Play()
+	task.delay(3.4, function()
+		if slot.Parent then
+			local fade = TweenInfo.new(0.3)
+			TweenService:Create(toast, fade, { BackgroundTransparency = 1, Position = UDim2.fromOffset(60, 0) }):Play()
 			TweenService:Create(text_, fade, { TextTransparency = 1 }):Play()
-			TweenService:Create(edge, fade, { Transparency = 1 }):Play()
-			task.wait(0.35)
-			toast:Destroy()
+			TweenService:Create(bar, fade, { BackgroundTransparency = 1 }):Play()
+			task.wait(0.3)
+			slot:Destroy()
 		end
 	end)
 end
@@ -497,6 +480,9 @@ end
 local function refreshExpedition()
 	local objective = player:GetAttribute("ExpObjective")
 	expFrame.Visible = type(objective) == "string" and panelMode == nil
+	if navFrame then
+		navFrame.Visible = not expFrame.Visible and panelMode == nil
+	end
 	expLabel.Text = if type(objective) == "string" then objective else ""
 	local inRun = player:GetAttribute("ExpRun") ~= nil
 	expLeave.Visible = inRun
@@ -888,9 +874,69 @@ local function shopCard(key: string, title: string, text: string, coins: boolean
 	return priceLabel
 end
 
+-- A slanted corner ribbon ("BELIEBT", "BESTER WERT") on a shop card.
+local RIBBONS: { [string]: { text: string, color: Color3 } } = {
+	double_coins = { text = L("BELIEBT"), color = C(255, 76, 92) },
+	auto_chest = { text = L("NEU"), color = C(60, 190, 110) },
+	coins_large = { text = L("BESTER WERT"), color = C(255, 150, 30) },
+}
+local function ribbon(card: Instance, key: string)
+	local info = RIBBONS[key]
+	if not info then
+		return
+	end
+	local tag = new("TextLabel", {
+		Name = "Ribbon",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -6, 0, 6),
+		Size = UDim2.fromOffset(0, 24),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = info.color,
+		Text = info.text,
+		Font = TITLE,
+		TextSize = 14,
+		TextColor3 = THEME.white,
+		Rotation = 6,
+		ZIndex = 4,
+		Parent = card,
+	}, { corner(8), hpad(8), stroke(THEME.white, 2) })
+	textStroke(info.color:Lerp(THEME.dark, 0.5), 1).Parent = tag
+end
+
+local SHOP_ORDER = { double_coins = 1, auto_chest = 2, vip = 3, wings = 4, aura = 5 }
+
 local function renderShop(state: any)
 	setCells(UDim2.fromOffset(204, 236))
 	setHeader("🛒", L("Shop"), L("Alles optional – Aetheria ist komplett ohne Käufe spielbar."))
+	-- Passes first (the strongest ones on top), then coin packs, then the coin-bought rune.
+	local passes = table.clone(Config.Shop.passes)
+	table.sort(passes, function(x, y)
+		return (SHOP_ORDER[x.key] or 99) < (SHOP_ORDER[y.key] or 99)
+	end)
+	for _, pass in passes do
+		local owned = player:GetAttribute("Pass_" .. pass.key) == true
+		local live = pass.id ~= 0
+		local priceLabel = shopCard(pass.key, L(pass.name), L(pass.text), false, if live then "…" else L("Bald verfügbar"), if owned then L("✓ Besitzt du") elseif live then L("Kaufen") else L("Bald"), live and not owned, function()
+			MarketplaceService:PromptGamePassPurchase(player, pass.id)
+		end)
+		if not owned then
+			ribbon((priceLabel.Parent :: Instance).Parent :: Instance, pass.key)
+		end
+		if live then
+			fetchPrice(pass.key, pass.id, true, priceLabel)
+		end
+	end
+	for _, product in Config.Shop.products do
+		local live = product.id ~= 0
+		local text = L("%s +%s Münzen.", L(product.text), formatNumber(product.coinsByTier[state.tier]))
+		local priceLabel = shopCard(product.key, L(product.name), text, false, if live then "…" else L("Bald verfügbar"), if live then L("Kaufen") else L("Bald"), live, function()
+			MarketplaceService:PromptProductPurchase(player, product.id)
+		end)
+		ribbon((priceLabel.Parent :: Instance).Parent :: Instance, product.key)
+		if live then
+			fetchPrice(product.key, product.id, false, priceLabel)
+		end
+	end
 	local luckCost = Config.LuckRune.costByTier[state.tier]
 	local luck = player:GetAttribute("LuckUntil")
 	local luckActive = type(luck) == "number" and luck > os.time()
@@ -915,26 +961,6 @@ local function renderShop(state: any)
 			end
 		end
 	)
-	for _, pass in Config.Shop.passes do
-		local owned = player:GetAttribute("Pass_" .. pass.key) == true
-		local live = pass.id ~= 0
-		local priceLabel = shopCard(pass.key, L(pass.name), L(pass.text), false, if live then "…" else L("Bald verfügbar"), if owned then L("✓ Besitzt du") elseif live then L("Kaufen") else L("Bald"), live and not owned, function()
-			MarketplaceService:PromptGamePassPurchase(player, pass.id)
-		end)
-		if live then
-			fetchPrice(pass.key, pass.id, true, priceLabel)
-		end
-	end
-	for _, product in Config.Shop.products do
-		local live = product.id ~= 0
-		local text = L("%s +%s Münzen.", L(product.text), formatNumber(product.coinsByTier[state.tier]))
-		local priceLabel = shopCard(product.key, L(product.name), text, false, if live then "…" else L("Bald verfügbar"), if live then L("Kaufen") else L("Bald"), live, function()
-			MarketplaceService:PromptProductPurchase(player, product.id)
-		end)
-		if live then
-			fetchPrice(product.key, product.id, false, priceLabel)
-		end
-	end
 end
 
 -- Settings row: icon bubble, title and subtitle on the left, controls on the right.
@@ -1288,36 +1314,29 @@ local function buildCoins()
 	coinLabel = label(coins, { Size = UDim2.fromOffset(0, 40), AutomaticSize = Enum.AutomaticSize.X, Text = "0", Font = TITLE, TextSize = 32, LayoutOrder = 2 })
 	rateLabel = chip(coins, "+0/s", C(255, 232, 180), THEME.amberDeep, { Size = UDim2.fromOffset(0, 26), TextSize = 17, LayoutOrder = 3, Font = TITLE })
 	luckLabel = chip(coins, "", C(205, 245, 215), C(30, 130, 80), { Size = UDim2.fromOffset(0, 26), TextSize = 17, LayoutOrder = 4, Font = TITLE, Visible = false })
-end
-
--- Settings gear, a small round button under the side menu (the top corners belong to Roblox).
-local function buildGear(parent: Instance)
-	local holder = new("Frame", { Name = "GearSlot", Size = UDim2.fromOffset(96, 64), BackgroundTransparency = 1, LayoutOrder = 3, Parent = parent })
-	local slot, button = shadowed("TextButton", {
-		Name = "Gear",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0),
-		Size = UDim2.fromOffset(64, 64),
-		Parent = holder,
-	}, {
-		Name = "Button",
-		Text = "",
+	-- The usual shortcut to more coins.
+	local plus = new("TextButton", {
+		Name = "More",
+		Size = UDim2.fromOffset(36, 36),
+		BackgroundColor3 = C(70, 195, 95),
 		AutoButtonColor = false,
-		BackgroundColor3 = THEME.white,
-	}, 30)
-	gradient(C(190, 180, 215), C(120, 105, 160)).Parent = button
-	stroke(THEME.white, 3, 0.15).Parent = button
-	label(button, { Size = UDim2.fromScale(1, 1), Text = "⚙️", TextScaled = true, Font = TITLE })
-	new("UIPadding", { PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = button })
-	button.Activated:Connect(Hud.openSettings)
-	pressable(button, slot)
+		Text = "+",
+		Font = TITLE,
+		TextSize = 30,
+		TextColor3 = THEME.white,
+		LayoutOrder = 5,
+		Parent = coins,
+	}, { corner(10), stroke(C(20, 100, 40), 2) })
+	textStroke(C(20, 100, 40), 1.5).Parent = plus
+	plus.Activated:Connect(Hud.openShop)
+	pressable(plus, plus)
 end
 
 local function buildGuide()
 	guideFrame = scaled(new("Frame", {
 		Name = "Guide",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 76),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -18),
 		Size = UDim2.fromOffset(0, 48),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = THEME.dark,
@@ -1399,67 +1418,137 @@ local function buildExpedition()
 	end)
 end
 
-local function buildNavigation()
-	local navLayout = hlist(14)
-	navLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	local nav = scaled(new("Frame", {
-		Name = "Nav",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.fromOffset(580, 74),
-		BackgroundTransparency = 1,
-		Parent = gui,
-	}, { navLayout }))
-	navFrame = nav
-	bigButton("NavCollection", "📖", L("Sammlung"), THEME.violet, THEME.violetDeep, Vector2.new(190, 70), 1, false, Hud.openCollection).Parent = nav
-	bigButton("NavHome", "🏛️", L("Schatzkammer"), THEME.amber, THEME.amberDeep, Vector2.new(206, 70), 2, false, function()
+-- A square rail button in the style of the big Roblox games: thick dark outline, glossy
+-- gradient, emoji icon and a short caption, with a red badge that can be shown.
+local function railButton(name: string, icon: string, text: string, top: Color3, bottom: Color3, order: number, onClick: () -> ()): (Frame, Frame)
+	local slot, button = shadowed("TextButton", {
+		Name = name,
+		Size = UDim2.fromOffset(76, 76),
+		LayoutOrder = order,
+	}, { Name = "Button", Text = "", AutoButtonColor = false, BackgroundColor3 = THEME.white }, 20)
+	gradient(top, bottom).Parent = button
+	stroke(bottom:Lerp(THEME.dark, 0.55), 3).Parent = button
+	new("Frame", {
+		Name = "Gloss",
+		Position = UDim2.fromOffset(5, 4),
+		Size = UDim2.new(1, -10, 0.42, 0),
+		BackgroundColor3 = THEME.white,
+		BackgroundTransparency = 0.78,
+		Parent = button,
+	}, { corner(16) })
+	label(button, { Position = UDim2.fromScale(0, 0.06), Size = UDim2.fromScale(1, 0.56), Text = icon, TextScaled = true, Font = TITLE })
+	local caption = label(button, {
+		Position = UDim2.new(0, 3, 0.64, 0),
+		Size = UDim2.new(1, -6, 0.28, 0),
+		Text = text,
+		TextScaled = true,
+		Font = TITLE,
+		TextColor3 = THEME.white,
+	})
+	textStroke(bottom:Lerp(THEME.dark, 0.6), 2).Parent = caption
+	button.Activated:Connect(onClick)
+	pressable(button, slot)
+	local badge = new("Frame", {
+		Name = "Badge",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -8, 0, 8),
+		Size = UDim2.fromOffset(28, 28),
+		BackgroundColor3 = C(255, 76, 92),
+		Visible = false,
+		ZIndex = 5,
+		Parent = slot,
+	}, { round(), stroke(THEME.white, 2.5) })
+	label(badge, { Size = UDim2.fromScale(1, 1), Text = "!", Font = TITLE, TextSize = 19, TextColor3 = THEME.white, ZIndex = 5 })
+	return slot, badge
+end
+
+-- A travel pill for the row under the coins (teleports through a server remote).
+local function travelButton(parent: Instance, name: string, icon: string, text: string, top: Color3, bottom: Color3, order: number, remote: string)
+	local slot, button = shadowed("TextButton", {
+		Name = name,
+		Size = UDim2.fromOffset(196, 44),
+		LayoutOrder = order,
+		Parent = parent,
+	}, { Name = "Button", Text = "", AutoButtonColor = false, BackgroundColor3 = THEME.white }, 14)
+	gradient(top, bottom).Parent = button
+	stroke(bottom:Lerp(THEME.dark, 0.55), 2.5).Parent = button
+	local layout = hlist(6)
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	local row = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = button }, { layout })
+	label(row, { Size = UDim2.fromOffset(26, 26), Text = icon, TextScaled = true, Font = TITLE, LayoutOrder = 1 })
+	local caption = label(row, {
+		Size = UDim2.fromOffset(0, 40),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Text = text,
+		Font = TITLE,
+		TextSize = 19,
+		TextColor3 = THEME.white,
+		LayoutOrder = 2,
+	})
+	textStroke(bottom:Lerp(THEME.dark, 0.6), 1.5).Parent = caption
+	button.Activated:Connect(function()
 		Hud.close()
 		local ok, success = pcall(function()
-			return Net.func("GoHome"):InvokeServer()
+			return Net.func(remote):InvokeServer()
 		end)
 		if not (ok and success) then
 			Hud.toast(L("Gerade nicht möglich – versuch es gleich nochmal."))
 		end
-	end).Parent = nav
-	local map = bigButton("NavMap", "🗺️", L("Karte"), THEME.teal, THEME.tealDeep, Vector2.new(150, 70), 3, false, Hud.openMap)
-	map.Parent = nav
-	mapBadge = new("Frame", {
-		Name = "Badge",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -6, 0, 6),
-		Size = UDim2.fromOffset(26, 26),
-		BackgroundColor3 = C(255, 76, 92),
-		Visible = false,
-		ZIndex = 5,
-		Parent = map,
-	}, { round(), stroke(THEME.white, 2) })
-	label(mapBadge, { Size = UDim2.fromScale(1, 1), Text = "!", Font = TITLE, TextSize = 18, TextColor3 = THEME.white, ZIndex = 5 })
+	end)
+	pressable(button, slot)
+end
 
-	-- Side menu, left middle (above the mobile thumbstick area).
+local function buildNavigation()
+	-- Travel row under the coins.
+	local travelLayout = hlist(10)
+	travelLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	local travel = scaled(new("Frame", {
+		Name = "Nav",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 74),
+		Size = UDim2.fromOffset(420, 48),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	}, { travelLayout }))
+	navFrame = travel
+	travelButton(travel, "NavHome", "🏠", L("Schatzkammer"), THEME.amber, THEME.amberDeep, 1, "GoHome")
+	travelButton(travel, "NavPlaza", "💎", L("Kristallplatz"), THEME.violet, THEME.violetDeep, 2, "GoPlaza")
+
+	-- Icon rail on the left, above the mobile thumbstick.
 	local side = scaled(new("Frame", {
 		Name = "Side",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 14, 0.5, 0),
-		Size = UDim2.fromOffset(96, 288),
+		Position = UDim2.new(0, 14, 0.53, 0),
+		Size = UDim2.fromOffset(76, 340),
 		BackgroundTransparency = 1,
 		Parent = gui,
-	}, { new("UIListLayout", { Padding = UDim.new(0, 14), SortOrder = Enum.SortOrder.LayoutOrder }) }))
+	}, { new("UIListLayout", { Padding = UDim.new(0, 12), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }) }))
 	sideFrame = side
-	local quests = bigButton("NavQuests", "📜", L("Aufgaben"), THEME.teal, THEME.tealDeep, Vector2.new(96, 96), 1, true, Hud.openQuests)
+	local shop = railButton("NavShop", "🛒", L("Shop"), THEME.pink, THEME.pinkDeep, 1, Hud.openShop)
+	shop.Parent = side
+	local collection = railButton("NavCollection", "📖", L("Sammlung"), THEME.violet, THEME.violetDeep, 2, Hud.openCollection)
+	collection.Parent = side
+	local quests
+	quests, questBadge = railButton("NavQuests", "📜", L("Aufgaben"), THEME.teal, THEME.tealDeep, 3, Hud.openQuests)
 	quests.Parent = side
-	bigButton("NavShop", "🛒", L("Shop"), THEME.pink, THEME.pinkDeep, Vector2.new(96, 96), 2, true, Hud.openShop).Parent = side
-	buildGear(side)
-	questBadge = new("Frame", {
-		Name = "Badge",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -6, 0, 6),
-		Size = UDim2.fromOffset(26, 26),
-		BackgroundColor3 = C(255, 76, 92),
-		Visible = false,
-		ZIndex = 5,
-		Parent = quests,
-	}, { round(), stroke(THEME.white, 2) })
-	label(questBadge, { Size = UDim2.fromScale(1, 1), Text = "!", Font = TITLE, TextSize = 18, TextColor3 = THEME.white, ZIndex = 5 })
+	local map
+	map, mapBadge = railButton("NavMap", "🗺️", L("Karte"), THEME.amber, THEME.amberDeep, 4, Hud.openMap)
+	map.Parent = side
+
+	-- Settings: a small gear in the top right corner (the top left belongs to Roblox).
+	local gearSlot, gear = shadowed("TextButton", {
+		Name = "Gear",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 10),
+		Size = UDim2.fromOffset(52, 52),
+	}, { Name = "Button", Text = "", AutoButtonColor = false, BackgroundColor3 = THEME.white }, 16)
+	gradient(C(200, 190, 225), C(120, 105, 160)).Parent = gear
+	stroke(C(70, 55, 105), 2.5).Parent = gear
+	label(gear, { Size = UDim2.fromScale(1, 1), Text = "⚙️", TextScaled = true, Font = TITLE })
+	new("UIPadding", { PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9), PaddingLeft = UDim.new(0, 9), PaddingRight = UDim.new(0, 9), Parent = gear })
+	gear.Activated:Connect(Hud.openSettings)
+	pressable(gear, gearSlot)
+	scaled(gearSlot).Parent = gui
 end
 
 local function buildPanel()
@@ -1510,16 +1599,15 @@ local function buildPanel()
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -14, 0, 34),
 		Size = UDim2.fromOffset(46, 46),
-		BackgroundColor3 = THEME.white,
-		BackgroundTransparency = 0.1,
+		BackgroundColor3 = C(235, 70, 88),
 		AutoButtonColor = false,
 		Text = "X",
-		TextColor3 = THEME.violetDeep,
+		TextColor3 = THEME.white,
 		Font = TITLE,
 		TextSize = 26,
 		ZIndex = 2,
 		Parent = panel,
-	}, { round() })
+	}, { round(), stroke(C(120, 20, 40), 2.5) })
 	closeButton.Activated:Connect(Hud.close)
 	pressable(closeButton, closeButton)
 
@@ -1590,13 +1678,13 @@ local function build()
 	buildExpedition()
 	toastStack = scaled(new("Frame", {
 		Name = "Toasts",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0.27, 0),
-		Size = UDim2.fromOffset(640, 220),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -14, 0, 76),
+		Size = UDim2.fromOffset(380, 360),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
-		new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+		new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Right, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})) :: Frame
 	buildNavigation()
 	buildPanel()

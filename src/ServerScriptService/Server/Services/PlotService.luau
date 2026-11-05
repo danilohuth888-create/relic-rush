@@ -260,6 +260,22 @@ function PlotService.init()
 		end
 		return PlotService.teleportHome(player)
 	end
+	-- Quick travel back to the plaza (one of its spawn pads).
+	Net.func("GoPlaza").OnServerInvoke = function(player: Player)
+		if not homeLimiter:allow(player) or player:GetAttribute("ExpRun") ~= nil then
+			return false
+		end
+		local aetheria = Workspace:FindFirstChild("Aetheria")
+		local pads = aetheria and aetheria:FindFirstChild("SpawnPads")
+		local list = if pads then pads:GetChildren() else {}
+		local character = player.Character
+		if #list == 0 or not character then
+			return false
+		end
+		local pad = list[math.random(1, #list)] :: BasePart
+		character:PivotTo(pad.CFrame * CFrame.new(0, 4, 0))
+		return true
+	end
 end
 
 function PlotService.assign(player: Player): number?

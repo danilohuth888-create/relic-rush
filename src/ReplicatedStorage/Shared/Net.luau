@@ -11,6 +11,7 @@ local FUNCTIONS = {
 	"Place",
 	"Unplace",
 	"GoHome",
+	"GoPlaza",
 	"ClaimQuest",
 	"ClaimWeekly",
 	"SkipTutorial",
