@@ -1,34 +1,42 @@
 # Launch-Material und Anleitung
 
-Alle Dateien liegen in `assets/launch/`.
+Alle Dateien liegen in `assets/launch/`. Die neuen Bilder (Stand 0.4.0) zeigen das Herrenhaus, die
+Wächter-Geister und die Schatzinsel; die Rohbilder liegen in `assets/launch/raw/`, neu erzeugen mit
+`tools/marketing/compose-thumbnail.ps1`.
 
 | Datei | Wofür | Format |
 |---|---|---|
-| `icon.png` | Spielicon | 512×512 |
-| `thumbnail_1_kristallplatz.png` | Thumbnail 1 (Start, Aetherkristall) | 1920×1080 |
-| `thumbnail_2_schatzkammer.png` | Thumbnail 2 (volle Aetherhalle) | 1920×1080 |
-| `thumbnail_3_fluesterwald.png` | Thumbnail 3 (Flüsterwald, seltene Relikte) | 1920×1080 |
+| `icon_v2.png` | Spielicon (Geister vor dem Aetherkristall, Schriftzug) | 512×512 |
+| `thumb_en_1_manor.png` | Thumbnail 1 – „BUILD YOUR TREASURE MANOR!“ | 1920×1080 |
+| `thumb_en_2_spirits.png` | Thumbnail 2 – „CATCH CUTE SPIRITS!“ | 1920×1080 |
+| `thumb_en_3_isle.png` | Thumbnail 3 – „FIND THE TREASURE ISLE!“ | 1920×1080 |
+| `thumb_de_1_herrenhaus.png` … `thumb_de_3_insel.png` | dieselben auf Deutsch (für die deutsche Lokalisierung der Thumbnails) | 1920×1080 |
 
-Thumbnails zeigen nur Relikte, die man im Spiel wirklich bekommt.
+Empfehlung: Die **englischen** Thumbnails als Standard hochladen (Roblox ist international), die
+deutschen unter *Lokalisierung → Deutsch* als eigene Thumbnails hinterlegen. Die alten Bilder
+(`icon.png`, `thumbnail_*.png`) zeigen die frühe Version und können ersetzt werden.
+
+Tipps aus erfolgreichen Spielen: Thumbnail 1 ist das wichtigste (das sehen Spieler zuerst). Nach
+1–2 Wochen lohnt sich ein Vergleich – Roblox bietet dafür *Thumbnail-Tests* (A/B) an.
 
 ## Wo du was einträgst
 
 Creator Dashboard → **Unbenannte Experience** → **Konfigurationen** (*Configure*):
 
 1. **Grundeinstellungen**
-   - Name: `RELIC RUSH: Treasure Hunters`
+   - Name: `RELIC RUSH: Treasure Hunters` (Tipp: Ein kurzes Emoji davor wie `👻 RELIC RUSH` fällt in der Liste mehr auf)
    - Beschreibung: Text unten (Deutsch). Unter *Lokalisierung* kannst du die englische Fassung zusätzlich hinterlegen.
    - Genre: **Simulation** (falls Untergenres angeboten werden: Sammeln / Tycoon)
    - Geräte: Computer, Smartphone, Tablet (Konsole erst nach einem Gamepad-Test)
-2. **Icon:** `icon.png` hochladen.
-3. **Thumbnails:** In der Reihenfolge 1, 2, 3 hochladen, dann *Speichern*. Roblox prüft Bilder vor der Anzeige, das kann etwas dauern.
+2. **Icon:** `icon_v2.png` hochladen.
+3. **Thumbnails:** `thumb_en_1_manor.png`, `thumb_en_2_spirits.png`, `thumb_en_3_isle.png` in dieser Reihenfolge hochladen, dann *Speichern*. Roblox prüft Bilder vor der Anzeige, das kann etwas dauern.
 4. **Orte → Start-Place → Server-Füllung / Max. Spieler:** `8`
 5. **Fragebogen zur Altersfreigabe** (*Maturity & Compliance*). Beantworte ihn ehrlich. Was im Spiel steckt:
    - keine Gewalt, kein Blut, keine Waffen, keine Angstszenen
    - keine romantischen Inhalte, kein derber Humor
    - keine bezahlten Zufallsgegenstände; alle Robux-Käufe sind feste Artikel
    - Roblox-Chat ist an (Standard), sonst kein freier Nutzertext
-   - Käufe: 4 Game Passes und 2 Developer Products
+   - Käufe: 4 Game Passes (ein fünfter, „Auto-Truhe“, ist vorbereitet) und 2 Developer Products
 6. **Zugriff** (*Privacy*): erst auf **Öffentlich**, wenn die Release-Checkliste abgehakt ist.
 
 ## Beschreibung (Deutsch, < 1000 Zeichen)
@@ -36,21 +44,19 @@ Creator Dashboard → **Unbenannte Experience** → **Konfigurationen** (*Config
 ```
 ✨ Willkommen in Aetheria – der schwebenden Insel der Reliktjäger! ✨
 
-Sammle magische Relikte, stelle sie in deiner eigenen Schatzkammer aus und lass sie für dich Münzen erzeugen. Je seltener das Relikt, desto mehr glänzt deine Sammlung!
+Fang süße Wächter-Geister, sammle magische Relikte und stelle sie in deinem eigenen Herrenhaus aus. Jedes Relikt verdient Münzen – damit baust du dein Haus Raum für Raum aus!
 
-🔮 Finde 25 Relikte – von Mondstein bis Frostkrone
-🏛️ Baue deine Schatzkammer zum Runensaal und zur Aetherhalle aus
-🌲 Erkunde den Flüsterwald voller leuchtender Pilze und seltener Schätze
-📖 Fülle dein Sammelbuch und kassiere Meilenstein-Belohnungen
-📅 Neue tägliche Aufgaben bei jedem Besuch
-🍀 Nutze Glücksrunen für seltenere Funde
-👀 Besuche die Schatzkammern deiner Freunde
+👻 Jage Wächter-Geister – seltene sind flink und trickreich
+🏰 Baue dein Herrenhaus: Eingangshalle, Bibliothek, Kartenraum, Türme
+💎 Reliktsaal, Schatzkeller und Schatzgewölbe für 20 Relikte
+🗺️ Sammle Kartenteile und reise zur geheimen Schatzinsel
+⚔️ Expedition in die Vergessenen Ruinen – allein oder mit Freunden
+📅 Tagesbonus, Spielzeit-Geschenke und neue Aufgaben jeden Tag
+🏆 Kletter in der Bestenliste „Größte Sammlung“ nach oben
 
-Lumi, dein kleiner Lichtgeist, zeigt dir die ersten Schritte – in unter einer Minute hast du dein erstes Relikt!
+Lumi, dein kleiner Lichtgeist, zeigt dir die ersten Schritte – in unter einer Minute fängst du deinen ersten Geist!
 
 Kostenlos spielbar. Alle Shop-Artikel sind optional.
-
-Bald: Die Vergessenen Ruinen öffnen ihr Portal …
 ```
 
 ## Description (English)
@@ -58,24 +64,22 @@ Bald: Die Vergessenen Ruinen öffnen ihr Portal …
 ```
 ✨ Welcome to Aetheria – the floating island of relic hunters! ✨
 
-Collect magical relics, show them off in your very own treasury and let them earn coins for you. The rarer the relic, the brighter your collection shines!
+Catch cute guardian spirits, collect magical relics and show them off in your very own manor. Every relic earns coins – use them to build your house room by room!
 
-🔮 Find 25 relics – from Moonstone to Frost Crown
-🏛️ Upgrade your treasury into a Rune Hall and an Aether Hall
-🌲 Explore the Whispering Forest full of glowing mushrooms and rare treasures
-📖 Fill your collection book and earn milestone rewards
-📅 New daily quests every visit
-🍀 Use luck runes for rarer finds
-👀 Visit your friends' treasuries
+👻 Hunt guardian spirits – rare ones are fast and tricky
+🏰 Build your manor: entrance hall, library, map room, towers
+💎 Relic hall, treasure cellar and vault for 20 relics
+🗺️ Collect map pieces and travel to the secret Treasure Isle
+⚔️ Explore the Forgotten Ruins – solo or with friends
+📅 Daily bonus, playtime gifts and new quests every day
+🏆 Climb the "Biggest Collection" leaderboard
 
-Lumi, your little light spirit, shows you the ropes – you'll have your first relic in under a minute!
+Lumi, your little light spirit, shows you the ropes – you'll catch your first spirit in under a minute!
 
 Free to play. All shop items are optional.
-
-Coming soon: the Forgotten Ruins open their portal …
 ```
 
-Hinweis: Im Spiel selbst ist noch alles auf Deutsch. Englische Spieler sehen Roblox' automatische Übersetzung. Eine echte englische Fassung der Spieltexte ist ein sinnvolles Update nach dem Launch.
+Das Spiel selbst gibt es jetzt komplett auf Deutsch und Englisch (automatisch nach Spielersprache).
 
 ## Nach dem Launch: was du beobachten solltest
 

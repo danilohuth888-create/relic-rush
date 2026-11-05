@@ -1722,8 +1722,9 @@ local function buildNavigation()
 	-- Rewards on the right: daily bonus and playtime gifts with a countdown.
 	local rewards = scaled(new("Frame", {
 		Name = "Rewards",
+		-- High enough to stay clear of the mobile jump button in the bottom right corner.
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -14, 0.64, 0),
+		Position = UDim2.new(1, -14, 0.56, 0),
 		Size = UDim2.fromOffset(76, 176),
 		BackgroundTransparency = 1,
 		Parent = gui,
