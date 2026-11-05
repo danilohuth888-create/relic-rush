@@ -5,7 +5,12 @@
 -- PlotService.luau and RelicSpawnService.luau. Run BuildDecor.luau afterwards for the scenery.
 
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+
+-- The house is planned in plan units and built this much larger (Shared/Builds.Scale); the
+-- plot's ground slabs and the cellar cut below follow it.
+local S = require(ReplicatedStorage.Shared.Builds).Scale
 
 local C = Color3.fromRGB
 local PAL = {
@@ -114,7 +119,7 @@ local layers = { { 410, 20, -14 }, { 340, 26, -36 }, { 250, 28, -62 }, { 150, 28
 for i, layer in layers do
 	cyl(island, "Rock" .. i, layer[2], layer[1], CFrame.new(0, layer[3], 0), if i % 2 == 0 then PAL.rockDark else PAL.rock)
 end
-for i, hill in { { -175, -21, 30, 52 }, { 175, -21, -20, 48 }, { -60, -27, 195, 60 }, { 60, -25, -185, 54 } } do
+for i, hill in { { -122, -21, 145, 52 }, { 171, -21, -99, 48 }, { -60, -27, 195, 60 }, { 0, -25, -198, 54 } } do
 	P(island, "Hill" .. i, BALL, Vector3.one * hill[4], CFrame.new(hill[1], hill[2], hill[3]), PAL.grassDark)
 end
 for i = 1, 4 do
@@ -200,9 +205,10 @@ end
 -- accent colour as an attribute. cf is the yard's CFrame (local -Z faces the plaza).
 local plots = container("Folder", root, "Plots")
 local cellarCuts = {}
-local PLOT_R = 120
+-- 30 degrees apart, so the enlarged houses keep a gap between them even at the yard gates.
+local PLOT_R = 138
 for i = 1, 8 do
-	local theta = math.rad(-78.75 + (i - 1) * 22.5)
+	local theta = math.rad(-105 + (i - 1) * 30)
 	local pos = Vector3.new(math.sin(theta) * PLOT_R, 0, -math.cos(theta) * PLOT_R)
 	local cf = CFrame.lookAt(pos, Vector3.new(0, 0, 0)) -- local -Z faces the plaza
 	local accent = PLOT_COLORS[i]
@@ -210,7 +216,7 @@ for i = 1, 8 do
 		return cf * CFrame.new(x, y, z)
 	end
 	local dir = (Vector3.new(0, 0, 0) - pos).Unit
-	path("PlotPath" .. i, dir * -50 + Vector3.new(0, 0.05, 0), pos + dir * 21 + Vector3.new(0, 0.05, 0), 9)
+	path("PlotPath" .. i, dir * -50 + Vector3.new(0, 0.05, 0), pos + dir * 21 * S + Vector3.new(0, 0.05, 0), 9)
 
 	local plot = Instance.new("Model")
 	plot.Name = "Plot" .. i
@@ -219,20 +225,26 @@ for i = 1, 8 do
 	plot:SetAttribute("Accent", accent)
 	plot.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 
-	P(plot, "Floor", BLOCK, Vector3.new(40, 1.2, 40), at(0, 0, 0), PAL.stone)
-	P(plot, "Ground", BLOCK, Vector3.new(40, 1.2, 22), at(0, 0, 31), PAL.stone)
-	P(plot, "GroundL", BLOCK, Vector3.new(11.5, 1.2, 3.5), at(-14.25, 0, 43.75), PAL.stone)
-	P(plot, "GroundR", BLOCK, Vector3.new(11.5, 1.2, 3.5), at(14.25, 0, 43.75), PAL.stone)
-	P(plot, "GroundBack", BLOCK, Vector3.new(40, 1.2, 2.5), at(0, 0, 46.75), PAL.stone)
-	P(plot, "StairCover", BLOCK, Vector3.new(17, 1.2, 3.5), at(0, 0, 43.75), PAL.stone):SetAttribute("HideWhen", "cellar")
+	-- Ground slabs in plan units (x, z, width, depth), laid out at the house's scale.
+	local function ground(name, x, z, w, d)
+		return P(plot, name, BLOCK, Vector3.new(w * S, 1.2, d * S), at(x * S, 0, z * S), PAL.stone)
+	end
+	ground("Floor", 0, 0, 40, 40)
+	ground("Ground", 0, 31, 40, 22)
+	ground("GroundL", -14.25, 43.75, 11.5, 3.5)
+	ground("GroundR", 14.25, 43.75, 11.5, 3.5)
+	ground("GroundBack", 0, 46.75, 40, 2.5)
+	ground("StairCover", 0, 43.75, 17, 3.5):SetAttribute("HideWhen", "cellar")
+	-- From just above the island top down to below the cellar's floor slab (scaled).
+	local cutBottom = 0.6 - 11 * S
 	local cut = Instance.new("Part")
 	cut.Anchored = true
-	cut.Size = Vector3.new(40, 10.5, 42)
-	cut.CFrame = at(0, -5.15, 25)
+	cut.Size = Vector3.new(40 * S, 0.1 - cutBottom, 42 * S)
+	cut.CFrame = at(0, (0.1 + cutBottom) / 2, 25 * S)
 	table.insert(cellarCuts, cut)
-	P(plot, "YardPath", BLOCK, Vector3.new(6, 0.1, 14), at(0, 0.62, -13), PAL.stoneDark)
-	sign(plot, at(-12, 0.6, -21.5), 13, "Freie Schatzkammer", "Schatzkammer " .. i, "OwnerLabel")
-	P(plot, "SpawnPoint", BLOCK, Vector3.new(4, 1, 4), at(0, 0.2, -11) * CFrame.Angles(0, math.pi, 0), accent, SMOOTH, HIDDEN)
+	P(plot, "YardPath", BLOCK, Vector3.new(6 * S, 0.1, 14 * S), at(0, 0.62, -13 * S), PAL.stoneDark)
+	sign(plot, at(-12 * S, 0.6, -21.5 * S), 13, "Freie Schatzkammer", "Schatzkammer " .. i, "OwnerLabel")
+	P(plot, "SpawnPoint", BLOCK, Vector3.new(4, 1, 4), at(0, 0.2, -11 * S) * CFrame.Angles(0, math.pi, 0), accent, SMOOTH, HIDDEN)
 	container("Folder", plot, "Pedestals")
 	plot.Parent = plots
 	task.wait()
@@ -378,9 +390,9 @@ end
 -- Lighting: soft, slightly violet daylight ------------------------------------------------
 Lighting.ClockTime = 14.5
 Lighting.Brightness = 2
-Lighting.ExposureCompensation = -0.25
-Lighting.OutdoorAmbient = C(150, 140, 185)
-Lighting.Ambient = C(80, 70, 110)
+Lighting.ExposureCompensation = -0.4
+Lighting.OutdoorAmbient = C(132, 124, 160)
+Lighting.Ambient = C(116, 106, 98) -- light under roofs: warm, not violet
 local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 if atmosphere then
 	atmosphere.Density = 0.3
@@ -398,7 +410,7 @@ if bloom then
 end
 local grade = Lighting:FindFirstChild("AetheriaGrade") or Instance.new("ColorCorrectionEffect")
 grade.Name = "AetheriaGrade"
-grade.Saturation = 0.12
+grade.Saturation = 0.04
 grade.Contrast = 0.05
 grade.Parent = Lighting
 if not Workspace.Terrain:FindFirstChildOfClass("Clouds") then

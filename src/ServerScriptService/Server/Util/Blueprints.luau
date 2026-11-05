@@ -1,7 +1,9 @@
 --!strict
 -- The treasury house. Every plot is a paved yard with a cellar dug out below (see
--- tools/world/BuildAetheria.luau); this module builds the house on it at runtime, in the
--- yard's local frame (floor top at y = 0.6, cellar floor at y = -9.4, local -Z faces the plaza):
+-- tools/world/BuildAetheria.luau); this module builds the house on it at runtime. Makers work in
+-- plan units of the yard's local frame (floor top at y = 0.6, cellar floor at y = -9.4, local -Z
+-- faces the plaza); every finished build is then enlarged by Shared/Builds.Scale around the
+-- floor top, so the rooms are tall and wide enough for the camera:
 --
 --   ground floor                                   below ground (y = -9.4)
 --   z 46 +--------+-----------+--------+           z 46 +-----------------------------+
@@ -24,19 +26,23 @@
 -- the player is inside. The yard holds the treasure chest (ChestZone, PendingLabel), and
 -- PlotN.Preview shows a see-through version of the build the owner is standing next to.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Builds = require(ReplicatedStorage.Shared.Builds)
+
 local C = Color3.fromRGB
-local GOLD = C(255, 200, 80)
-local STONE = C(222, 212, 196)
-local STONE_DARK = C(184, 172, 158)
-local PLASTER = C(226, 212, 194)
+local GOLD = C(198, 160, 96)
+local STONE = C(206, 194, 176)
+local STONE_DARK = C(168, 156, 142)
+local PLASTER = C(196, 182, 164)
 local WOOD = C(132, 94, 72)
-local WARM = C(255, 190, 110)
-local CRYSTAL = C(120, 230, 255)
+local WARM = C(255, 210, 160)
+local CRYSTAL = C(130, 200, 225)
 local BEAM = C(110, 76, 58) -- timber framing
 local PLINTH = C(150, 142, 150)
 local VAULT = C(120, 128, 150)
+local VELVET = C(70, 26, 44)
 local BLOCK, BALL, CYL = Enum.PartType.Block, Enum.PartType.Ball, Enum.PartType.Cylinder
 local UPRIGHT = CFrame.Angles(0, 0, math.rad(90))
 local ALONG_Z = CFrame.Angles(0, math.pi / 2, 0)
@@ -81,17 +87,19 @@ local function wedge(parent: Instance, name: string, size: Vector3, cf: CFrame, 
 	return w
 end
 
+-- Lamps glow softly: several of them share a room, so each one stays dim and only slightly tinted.
 local function light(part: BasePart, color: Color3, range: number, brightness: number)
 	local l = Instance.new("PointLight")
-	l.Color = color
+	l.Color = color:Lerp(Color3.new(1, 1, 1), 0.4)
 	l.Range = range
-	l.Brightness = brightness
+	l.Brightness = brightness * 0.55
 	l.Parent = part
 end
 
 local DECOR = { CanCollide = false, CastShadow = false }
--- Roof parts never block the camera or clicks; the client fades them while inside.
-local ROOF = { CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false }
+-- Roof parts never block the camera or clicks; the client fades them while inside. They still
+-- cast shadows, which keeps the rooms below from being flooded by sunlight.
+local ROOF = { CanCollide = false, CanQuery = false, CanTouch = false }
 
 local function roofColor(accent: Color3): Color3
 	return accent:Lerp(C(60, 50, 90), 0.45)
@@ -291,6 +299,8 @@ end
 
 -- While a preview is being built, pedestals go into the preview instead of the plot.
 local previewTarget: Instance? = nil
+-- Pedestals created by the maker that is running, so they are enlarged together with it.
+local newPedestals: { Model } = {}
 
 -- A pedestal in a room; PlotService ghosts it until its slot is unlocked.
 local function pedestal(plot: Model, room: string, slot: number, base: CFrame)
@@ -305,8 +315,12 @@ local function pedestal(plot: Model, room: string, slot: number, base: CFrame)
 	ped:SetAttribute("Room", room)
 	cyl(ped, "Foot", 0.6, 4.6, base * CFrame.new(0, 0.3, 0), STONE_DARK)
 	cyl(ped, "Base", 2.6, 3.6, base * CFrame.new(0, 1.3, 0), STONE)
-	cyl(ped, "Rim", 0.35, 4, base * CFrame.new(0, 2.75, 0), GOLD, Enum.Material.Metal)
+	cyl(ped, "Rim", 0.35, 4, base * CFrame.new(0, 2.75, 0), C(150, 116, 78), Enum.Material.Metal)
+	cyl(ped, "Cushion", 0.2, 3.2, base * CFrame.new(0, 3, 0), VELVET, Enum.Material.Fabric, DECOR)
 	P(ped, "Top", BLOCK, Vector3.one, base * CFrame.new(0, 3.4, 0), GOLD, nil, { Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false })
+	if not previewTarget then
+		table.insert(newPedestals, ped)
+	end
 	ped.Parent = folder
 end
 
@@ -330,12 +344,11 @@ local function boardLabel(board: BasePart, name: string, text: string)
 end
 
 local CF = -9.4 -- cellar floor top (Shared/Builds.CellarFloor)
-local RELIC_H = 10
-local HALL_H = 11
-local ROOM_H = 9
-local CELLAR_H = 8.6
+local RELIC_H = 12
+local HALL_H = 13
+local ROOM_H = 11
+local CELLAR_H = 9.1 -- up to the ground slabs above
 local STONE_CELLAR = C(128, 132, 146)
-local VELVET = C(70, 26, 44)
 
 -- Footprints of the rooms that are built on foundations (x0, x1, z0, z1).
 local ROOMS: { [string]: { number } } = {
@@ -381,7 +394,7 @@ local MAKERS: { [string]: Maker } = {
 	-- board, the yard's treasure chest and the foundations of the rooms still to come.
 	base = function(folder, at, accent, plot)
 		local x0, x1, z0, z1 = -10, 10, 26, 46
-		wall(folder, at, true, z0, x0, x1, RELIC_H, { door(0, 5, 8) }, PLASTER)
+		wall(folder, at, true, z0, x0, x1, RELIC_H, { door(0, 8, 9) }, PLASTER)
 		wall(folder, at, true, z1, x0, x1, RELIC_H, {}, PLASTER)
 		for _, x in { x0, x1 } do
 			wall(folder, at, false, x, z0, z1, RELIC_H, {}, PLASTER)
@@ -389,35 +402,35 @@ local MAKERS: { [string]: Maker } = {
 				P(folder, "Corner", BLOCK, Vector3.new(1.6, RELIC_H + 0.8, 1.6), at(x, GROUND + (RELIC_H + 0.8) / 2, z), STONE_DARK)
 			end
 		end
-		facade(folder, at, true, z0, x0, x1, RELIC_H, { door(0, 5, 8) }, -1, accent)
+		facade(folder, at, true, z0, x0, x1, RELIC_H, { door(0, 8, 9) }, -1, accent)
 		facade(folder, at, true, z1, x0, x1, RELIC_H, {}, 1, accent)
 		for _, x in { x0, x1 } do
 			facade(folder, at, false, x, z0, z1, RELIC_H, {}, if x < 0 then -1 else 1, accent)
 		end
 		roofAlongZ(folder, at, 0, 10, z0, z1, GROUND + RELIC_H, GROUND + RELIC_H + 4.6, accent)
 		-- A golden archway and the open doors.
-		P(folder, "ArchTop", BLOCK, Vector3.new(6.4, 1, 1.6), at(0, GROUND + 8.5, z0), GOLD, Enum.Material.Metal)
+		P(folder, "ArchTop", BLOCK, Vector3.new(9.4, 1, 1.6), at(0, GROUND + 9.5, z0), GOLD, Enum.Material.Metal)
 		for _, side in { -1, 1 } do
-			P(folder, "ArchPost", BLOCK, Vector3.new(0.7, 8, 1.6), at(side * 2.85, GROUND + 4, z0), GOLD, Enum.Material.Metal, DECOR)
-			P(folder, "DoorLeaf", BLOCK, Vector3.new(0.3, 7.6, 2.4), at(side * 2.35, GROUND + 3.8, z0 + 1.3), BEAM, Enum.Material.Wood, DECOR)
+			P(folder, "ArchPost", BLOCK, Vector3.new(0.7, 9, 1.6), at(side * 4.35, GROUND + 4.5, z0), GOLD, Enum.Material.Metal, DECOR)
+			P(folder, "DoorLeaf", BLOCK, Vector3.new(0.3, 8.6, 2.4), at(side * 3.85, GROUND + 4.3, z0 + 1.3), BEAM, Enum.Material.Wood, DECOR)
 		end
 		-- Inside: velvet floor, a rune circle, crystal sconces.
 		P(folder, "Velvet", BLOCK, Vector3.new(19, 0.08, 19), at(0, GROUND + 0.05, 36), accent:Lerp(VELVET, 0.8), Enum.Material.Fabric, DECOR)
-		P(folder, "RuneRing", CYL, Vector3.new(0.1, 13, 13), at(0, GROUND + 0.1, 34.2) * UPRIGHT, accent, Enum.Material.Neon, DECOR)
+		P(folder, "RuneRing", CYL, Vector3.new(0.1, 13, 13), at(0, GROUND + 0.1, 34.2) * UPRIGHT, GOLD, Enum.Material.Metal, DECOR)
 		P(folder, "RuneInner", CYL, Vector3.new(0.11, 12.4, 12.4), at(0, GROUND + 0.1, 34.2) * UPRIGHT, accent:Lerp(VELVET, 0.8), Enum.Material.Fabric, DECOR)
 		for _, x in { -9.4, 9.4 } do
 			for _, z in { 31, 38 } do
-				local sconce = P(folder, "Sconce", BLOCK, Vector3.one * 0.9, at(x, GROUND + 6, z) * ON_CORNER, CRYSTAL, Enum.Material.Neon, DECOR)
+				local sconce = P(folder, "Sconce", BLOCK, Vector3.one * 0.7, at(x, GROUND + 6, z) * ON_CORNER, WARM, Enum.Material.Neon, DECOR)
 				if z == 31 then
-					light(sconce, accent:Lerp(CRYSTAL, 0.5), 16, 0.9)
+					light(sconce, WARM, 16, 0.9)
 				end
 			end
 		end
 		painting(folder, at(0, GROUND + 6.5, 45.4) * CFrame.Angles(0, math.pi, 0), 6, 3.4, accent:Lerp(C(120, 160, 255), 0.5))
 
-		local banner = P(folder, "Banner", BLOCK, Vector3.new(3.6, 5.6, 0.3), at(6, 5.6, z0 - 0.65), accent)
+		local banner = P(folder, "Banner", BLOCK, Vector3.new(3.6, 5.6, 0.3), at(7.2, 5.6, z0 - 0.65), accent)
 		banner:SetAttribute("BaseColor", accent)
-		local board = P(folder, "PlanBoard", BLOCK, Vector3.new(4.6, 3, 0.4), at(-6, 5.4, z0 - 0.7), WOOD)
+		local board = P(folder, "PlanBoard", BLOCK, Vector3.new(4.6, 3, 0.4), at(-7.2, 5.4, z0 - 0.7), WOOD)
 		boardLabel(board, "UpgradeLabel", "Bauplan")
 		local accents = Instance.new("Folder")
 		accents.Name = "Accents"
@@ -459,7 +472,7 @@ local MAKERS: { [string]: Maker } = {
 		end
 		P(chest, "Lock", BLOCK, Vector3.new(0.6, 0.7, 0.2), box * CFrame.new(0, 0.3, -1.45), GOLD, Enum.Material.Metal, DECOR)
 		P(chest, "Lid", BLOCK, Vector3.new(4, 0.6, 2.8), box * CFrame.new(0, 1.2, 1.6) * CFrame.Angles(math.rad(-55), 0, 0) * CFrame.new(0, 0, -1.2), WOOD, Enum.Material.Wood, DECOR)
-		local pile = P(chest, "GoldPile", BALL, Vector3.new(3.4, 1.2, 2.2), box * CFrame.new(0, 1, 0), GOLD, Enum.Material.Neon, DECOR)
+		local pile = P(chest, "GoldPile", BALL, Vector3.new(3.4, 1.2, 2.2), box * CFrame.new(0, 1, 0), GOLD, Enum.Material.Metal, DECOR)
 		light(pile, GOLD, 12, 0.9)
 		local sparkle = Instance.new("ParticleEmitter")
 		sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
@@ -516,12 +529,12 @@ local MAKERS: { [string]: Maker } = {
 		end
 		slab(folder, "Wall", -20, 20, CF, top, 45.2, 46, at, STONE_CELLAR, Enum.Material.Slate)
 		-- Front wall with an archway towards the vault.
-		slab(folder, "Wall", -20, -3, CF, top, 26, 26.8, at, STONE_CELLAR, Enum.Material.Slate)
-		slab(folder, "Wall", 3, 20, CF, top, 26, 26.8, at, STONE_CELLAR, Enum.Material.Slate)
-		slab(folder, "Wall", -3, 3, CF + 7, top, 26, 26.8, at, STONE_CELLAR, Enum.Material.Slate)
-		hideWhen(slab(folder, "SealedDoor", -3, 3, CF, CF + 7, 26.1, 26.6, at, BEAM, Enum.Material.Wood), "vault")
-		for _, x in { -2.2, -0.7, 0.7, 2.2 } do
-			hideWhen(slab(folder, "Bar", x - 0.12, x + 0.12, CF, CF + 7, 26.65, 26.8, at, C(90, 90, 100), Enum.Material.Metal, DECOR), "vault")
+		slab(folder, "Wall", -20, -5, CF, top, 26, 26.8, at, STONE_CELLAR, Enum.Material.Slate)
+		slab(folder, "Wall", 5, 20, CF, top, 26, 26.8, at, STONE_CELLAR, Enum.Material.Slate)
+		slab(folder, "Wall", -5, 5, CF + 8, top, 26, 26.8, at, STONE_CELLAR, Enum.Material.Slate)
+		hideWhen(slab(folder, "SealedDoor", -5, 5, CF, CF + 8, 26.1, 26.6, at, BEAM, Enum.Material.Wood), "vault")
+		for _, x in { -3.6, -1.8, 0, 1.8, 3.6 } do
+			hideWhen(slab(folder, "Bar", x - 0.12, x + 0.12, CF, CF + 8, 26.65, 26.8, at, C(90, 90, 100), Enum.Material.Metal, DECOR), "vault")
 		end
 		for _, z in { 30.5, 36, 41.5 } do
 			slab(folder, "Beam", -19.2, 19.2, top - 0.9, top - 0.3, z - 0.4, z + 0.4, at, BEAM, Enum.Material.Wood, DECOR)
@@ -558,12 +571,12 @@ local MAKERS: { [string]: Maker } = {
 		end
 		slab(folder, "Wall", -20, 20, CF, top, 4, 4.8, at, C(130, 130, 150), Enum.Material.Slate)
 		-- Golden frame around the archway from the cellar.
-		slab(folder, "ArchFrame", -3.5, 3.5, CF + 7, CF + 7.6, 25.7, 26.2, at, GOLD, Enum.Material.Metal, DECOR)
-		for _, x in { -3.3, 3.3 } do
-			slab(folder, "ArchFrame", x - 0.25, x + 0.25, CF, CF + 7, 25.7, 26.2, at, GOLD, Enum.Material.Metal, DECOR)
+		slab(folder, "ArchFrame", -5.5, 5.5, CF + 8, CF + 8.6, 25.7, 26.2, at, GOLD, Enum.Material.Metal, DECOR)
+		for _, x in { -5.3, 5.3 } do
+			slab(folder, "ArchFrame", x - 0.25, x + 0.25, CF, CF + 8, 25.7, 26.2, at, GOLD, Enum.Material.Metal, DECOR)
 		end
 		-- The heavy round vault door stands open beside the arch.
-		local doorCf = at(-6.5, CF + 3.6, 24.6) * CFrame.Angles(0, math.rad(15), 0)
+		local doorCf = at(-9.5, CF + 3.6, 24.6) * CFrame.Angles(0, math.rad(15), 0)
 		P(folder, "VaultDoor", CYL, Vector3.new(0.8, 7, 7), doorCf * CFrame.Angles(0, math.pi / 2, 0), C(170, 175, 190), Enum.Material.Metal, DECOR)
 		P(folder, "VaultWheel", CYL, Vector3.new(0.4, 3, 3), doorCf * CFrame.new(0, 0, -0.5) * CFrame.Angles(0, math.pi / 2, 0), GOLD, Enum.Material.Metal, DECOR)
 		for _, x in { -10, 0, 10 } do
@@ -588,7 +601,7 @@ local MAKERS: { [string]: Maker } = {
 		local front = { door(0, 6, 8.5), window(-5, 2.6, 3.6, 8.2), window(5, 2.6, 3.6, 8.2) }
 		wall(folder, at, true, z0, x0, x1, HALL_H, front, PLASTER)
 		for _, x in { x0, x1 } do
-			wall(folder, at, false, x, z0, z1, HALL_H, { door(15, 4, 8) }, PLASTER)
+			wall(folder, at, false, x, z0, z1, HALL_H, { door(15, 6, 9) }, PLASTER)
 			for _, z in { z0, z1 } do
 				P(folder, "Corner", BLOCK, Vector3.new(1.6, HALL_H + 0.8, 1.6), at(x, GROUND + (HALL_H + 0.8) / 2, z), STONE_DARK)
 			end
@@ -600,7 +613,7 @@ local MAKERS: { [string]: Maker } = {
 			glassPane(folder, at(x, 5.9, z0), 2.6, 4.6, accent)
 		end
 		-- Marble floor with a border, plants by the door.
-		slab(folder, "Marble", x0 + 0.5, x1 - 0.5, GROUND, GROUND + 0.06, z0 + 0.5, z1 - 0.5, at, C(235, 232, 238), Enum.Material.Marble, DECOR)
+		slab(folder, "Marble", x0 + 0.5, x1 - 0.5, GROUND, GROUND + 0.06, z0 + 0.5, z1 - 0.5, at, C(214, 206, 198), Enum.Material.Marble, DECOR)
 		slab(folder, "Border", x0 + 0.5, x1 - 0.5, GROUND, GROUND + 0.07, z0 + 1.2, z0 + 1.6, at, accent, nil, DECOR)
 		for _, x in { -5.8, 5.8 } do
 			plant(folder, at(x, 0, z0 + 2))
@@ -613,7 +626,7 @@ local MAKERS: { [string]: Maker } = {
 
 	-- A red runner from the yard through the hall into the relic hall.
 	carpet = function(folder, at)
-		P(folder, "Runner", BLOCK, Vector3.new(3, 0.1, 47), at(0, 0.7, 16.5), C(190, 40, 70), Enum.Material.Fabric, DECOR)
+		P(folder, "Runner", BLOCK, Vector3.new(3, 0.1, 47), at(0, 0.7, 16.5), C(150, 46, 62), Enum.Material.Fabric, DECOR)
 		for _, x in { -1.65, 1.65 } do
 			P(folder, "Border", BLOCK, Vector3.new(0.3, 0.12, 47), at(x, 0.71, 16.5), GOLD, Enum.Material.Metal, DECOR)
 		end
@@ -621,7 +634,7 @@ local MAKERS: { [string]: Maker } = {
 
 	-- Guardian statues flanking the door to the relic hall.
 	statues = function(folder, at, accent)
-		for _, x in { -4.6, 4.6 } do
+		for _, x in { -6.2, 6.2 } do
 			P(folder, "Plinth", BLOCK, Vector3.new(2.6, 1.2, 2.6), at(x, 1.2, 23.6), STONE_DARK)
 			P(folder, "Body", BLOCK, Vector3.new(1.8, 3.4, 1.4), at(x, 3.5, 23.6), STONE)
 			P(folder, "Head", BLOCK, Vector3.new(1.4, 1.4, 1.4), at(x, 5.9, 23.6), STONE)
@@ -632,15 +645,15 @@ local MAKERS: { [string]: Maker } = {
 
 	-- A crystal chandelier in the entrance hall.
 	chandelier = function(folder, at, accent)
-		local c = at(0, 9.6, 15)
+		local c = at(0, GROUND + HALL_H - 2, 15)
 		cyl(folder, "Ring", 0.5, 8, c, GOLD, Enum.Material.Metal, DECOR)
 		P(folder, "Chain", BLOCK, Vector3.new(0.2, 2.4, 0.2), c * CFrame.new(0, 1.4, 0), GOLD, Enum.Material.Metal, DECOR)
 		for i = 0, 7 do
 			local a = i / 8 * math.pi * 2
-			P(folder, "Drop", BLOCK, Vector3.new(0.5, 1.6, 0.5), c * CFrame.new(math.sin(a) * 3.7, -1.1, math.cos(a) * 3.7) * ON_CORNER, if i % 2 == 0 then CRYSTAL else accent, Enum.Material.Neon, DECOR)
+			P(folder, "Drop", BLOCK, Vector3.new(0.5, 1.6, 0.5), c * CFrame.new(math.sin(a) * 3.7, -1.1, math.cos(a) * 3.7) * ON_CORNER, if i % 2 == 0 then CRYSTAL else accent, Enum.Material.Glass, DECOR)
 		end
-		local heart = P(folder, "Heart", BLOCK, Vector3.one * 1.8, c * CFrame.new(0, -1.4, 0) * ON_CORNER, CRYSTAL, Enum.Material.Neon, DECOR)
-		light(heart, CRYSTAL, 24, 1.2)
+		local heart = P(folder, "Heart", BLOCK, Vector3.one * 1.8, c * CFrame.new(0, -1.4, 0) * ON_CORNER, CRYSTAL, Enum.Material.Glass, DECOR)
+		light(heart, WARM, 26, 1.1)
 	end,
 
 	-- The living room (west): fireplace wall, windows to the garden.
@@ -649,7 +662,7 @@ local MAKERS: { [string]: Maker } = {
 		local outer = { window(9.5, 3.6, 3.6, 8), window(20.5, 3.6, 3.6, 8) }
 		wall(folder, at, false, x0, z0, z1, ROOM_H, outer, PLASTER)
 		wall(folder, at, true, z0, x0, x1, ROOM_H, { window(-14, 3.6, 3.6, 7.6) }, PLASTER)
-		wall(folder, at, true, z1, x0, -10, ROOM_H, { door(-15, 3.6, 7.5) }, PLASTER)
+		wall(folder, at, true, z1, x0, -10, ROOM_H, { door(-15, 5, 8.5) }, PLASTER)
 		facade(folder, at, false, x0, z0, z1, ROOM_H, outer, -1, accent)
 		facade(folder, at, true, z0, x0, x1, ROOM_H, { window(-14, 3.6, 3.6, 7.6) }, -1, accent)
 		roofAlongZ(folder, at, -14, 6, z0, z1, GROUND + ROOM_H, GROUND + ROOM_H + 3.4, accent)
@@ -713,7 +726,7 @@ local MAKERS: { [string]: Maker } = {
 		local outer = { window(9.5, 3.6, 3.6, 8), window(20.5, 3.6, 3.6, 8) }
 		wall(folder, at, false, x1, z0, z1, ROOM_H, outer, PLASTER)
 		wall(folder, at, true, z0, x0, x1, ROOM_H, { window(14, 3.6, 3.6, 7.6) }, PLASTER)
-		wall(folder, at, true, z1, 10, x1, ROOM_H, { door(15, 3.6, 7.5) }, PLASTER)
+		wall(folder, at, true, z1, 10, x1, ROOM_H, { door(15, 5, 8.5) }, PLASTER)
 		facade(folder, at, false, x1, z0, z1, ROOM_H, outer, 1, accent)
 		facade(folder, at, true, z0, x0, x1, ROOM_H, { window(14, 3.6, 3.6, 7.6) }, -1, accent)
 		roofAlongZ(folder, at, 14, 6, z0, z1, GROUND + ROOM_H, GROUND + ROOM_H + 3.4, accent)
@@ -766,8 +779,8 @@ local MAKERS: { [string]: Maker } = {
 		end
 		P(folder, "Parchment", BLOCK, Vector3.new(4.2, 0.06, 6), at(-15, GROUND + 3.03, 37), C(244, 228, 190), nil, DECOR)
 		P(folder, "IsleSketch", CYL, Vector3.new(0.08, 3, 3), at(-15, GROUND + 3.08, 37.5) * UPRIGHT, C(160, 210, 140), nil, DECOR)
-		P(folder, "MapX", BLOCK, Vector3.new(0.9, 0.1, 0.2), at(-14.5, GROUND + 3.13, 37) * CFrame.Angles(0, 0.8, 0), C(220, 40, 40), Enum.Material.Neon, DECOR)
-		P(folder, "MapX", BLOCK, Vector3.new(0.9, 0.1, 0.2), at(-14.5, GROUND + 3.13, 37) * CFrame.Angles(0, -0.8, 0), C(220, 40, 40), Enum.Material.Neon, DECOR)
+		P(folder, "MapX", BLOCK, Vector3.new(0.9, 0.1, 0.2), at(-14.5, GROUND + 3.13, 37) * CFrame.Angles(0, 0.8, 0), C(190, 50, 45), nil, DECOR)
+		P(folder, "MapX", BLOCK, Vector3.new(0.9, 0.1, 0.2), at(-14.5, GROUND + 3.13, 37) * CFrame.Angles(0, -0.8, 0), C(190, 50, 45), nil, DECOR)
 		P(folder, "Compass", CYL, Vector3.new(0.2, 1, 1), at(-16.5, GROUND + 3.15, 34.5) * UPRIGHT, GOLD, Enum.Material.Metal, DECOR)
 		local lamp = P(folder, "MapLamp", BALL, Vector3.one * 0.7, at(-15, GROUND + 6.5, 37), WARM, Enum.Material.Neon, DECOR)
 		light(lamp, WARM, 12, 0.8)
@@ -793,7 +806,7 @@ local MAKERS: { [string]: Maker } = {
 			P(folder, "Case", BLOCK, Vector3.new(2.2, 3, 3.2), c * CFrame.new(0, GROUND + 3.9, 0), C(220, 240, 255), Enum.Material.Glass, { Transparency = 0.6 })
 			P(folder, "CaseTop", BLOCK, Vector3.new(2.4, 0.3, 3.4), c * CFrame.new(0, GROUND + 5.55, 0), GOLD, Enum.Material.Metal)
 			local color = ({ GOLD, CRYSTAL, accent })[i]
-			local trophy = P(folder, "Trophy", BLOCK, Vector3.one * 1.2, c * CFrame.new(0, GROUND + 3.8, 0) * ON_CORNER, color, Enum.Material.Neon, DECOR)
+			local trophy = P(folder, "Trophy", BLOCK, Vector3.one * 1.2, c * CFrame.new(0, GROUND + 3.8, 0) * ON_CORNER, color, Enum.Material.Glass, DECOR)
 			if i == 2 then
 				light(trophy, CRYSTAL, 12, 0.8)
 			end
@@ -841,7 +854,7 @@ local MAKERS: { [string]: Maker } = {
 		cyl(folder, "Water", 0.2, 10, c * CFrame.new(0, GROUND + 0.75, 0), C(100, 190, 240), Enum.Material.Glass, { Transparency = 0.25, CanCollide = false })
 		cyl(folder, "Column", 3.2, 1.2, c * CFrame.new(0, GROUND + 2.2, 0), STONE)
 		cyl(folder, "Bowl", 0.6, 3.4, c * CFrame.new(0, GROUND + 3.9, 0), STONE)
-		local coin = P(folder, "Coin", CYL, Vector3.new(0.4, 1.8, 1.8), c * CFrame.new(0, GROUND + 5.1, 0), GOLD, Enum.Material.Neon, DECOR)
+		local coin = P(folder, "Coin", CYL, Vector3.new(0.4, 1.8, 1.8), c * CFrame.new(0, GROUND + 5.1, 0), GOLD, Enum.Material.Metal, DECOR)
 		coin:AddTag("SpinSlow")
 		for k = 0, 3 do
 			local a = k * 1.6
@@ -878,7 +891,7 @@ local MAKERS: { [string]: Maker } = {
 			P(folder, "Heap", BALL, Vector3.new(3.4, 2, 3.4), c * CFrame.new(0, 0.5, 0), GOLD, Enum.Material.Metal, DECOR)
 			P(folder, "HeapTop", BALL, Vector3.new(2, 1.6, 2), c * CFrame.new(0.3, 1.4, -0.2), C(255, 215, 110), Enum.Material.Metal, DECOR)
 			for k = 0, 4 do
-				P(folder, "Coin", CYL, Vector3.new(0.15, 0.8, 0.8), c * CFrame.new(math.cos(k) * 1.8, 0.1, math.sin(k) * 1.8) * CFrame.Angles(0, k, math.rad(90)), GOLD, Enum.Material.Neon, DECOR)
+				P(folder, "Coin", CYL, Vector3.new(0.15, 0.8, 0.8), c * CFrame.new(math.cos(k) * 1.8, 0.1, math.sin(k) * 1.8) * CFrame.Angles(0, k, math.rad(90)), GOLD, Enum.Material.Metal, DECOR)
 			end
 		end
 	end,
@@ -940,6 +953,30 @@ local function animateIn(folder: Instance)
 	end
 end
 
+-- Enlarges what a maker built (in plan units) by Builds.Scale around the floor top of the
+-- frame cf: sizes, positions, light ranges and label offsets.
+local SCALE = Builds.Scale
+local function enlarge(root: Instance, cf: CFrame)
+	for _, d in root:GetDescendants() do
+		if d:IsA("BasePart") then
+			local rel = cf:ToObjectSpace(d.CFrame)
+			local p = rel.Position
+			d.Size *= SCALE
+			d.CFrame = cf * (rel - p + Vector3.new(p.X * SCALE, GROUND + (p.Y - GROUND) * SCALE, p.Z * SCALE))
+		elseif d:IsA("PointLight") or d:IsA("SpotLight") then
+			d.Range *= SCALE
+		elseif d:IsA("BillboardGui") then
+			d.StudsOffsetWorldSpace *= SCALE
+		end
+	end
+end
+
+-- Plot colours are bright for signs and banners; inside the house they are toned down.
+local function houseAccent(plot: Model): Color3
+	local accent = (plot:GetAttribute("Accent") :: Color3?) or C(200, 170, 255)
+	return accent:Lerp(C(140, 118, 104), 0.35)
+end
+
 local Blueprints = {}
 
 -- Creates the visuals of every owned build that is missing (plus the starting room, which every
@@ -953,7 +990,7 @@ function Blueprints.sync(plot: Model, owned: { [string]: boolean }, animate: boo
 	local function at(x: number, y: number, z: number): CFrame
 		return cf * CFrame.new(x, y, z)
 	end
-	local accent = (plot:GetAttribute("Accent") :: Color3?) or C(200, 170, 255)
+	local accent = houseAccent(plot)
 	local root = plot:FindFirstChild("Builds") or Instance.new("Folder")
 	root.Name = "Builds"
 	root.Parent = plot
@@ -965,7 +1002,13 @@ function Blueprints.sync(plot: Model, owned: { [string]: boolean }, animate: boo
 		if has(id) and not existing then
 			local folder = Instance.new("Model")
 			folder.Name = id
+			table.clear(newPedestals)
 			maker(folder, at, accent, plot)
+			enlarge(folder, cf)
+			for _, ped in newPedestals do
+				enlarge(ped, cf)
+			end
+			table.clear(newPedestals)
 			folder.Parent = root
 			if animate and id ~= "base" then
 				animateIn(folder)
@@ -1015,17 +1058,18 @@ function Blueprints.preview(plot: Model, id: string?)
 	local folder = Instance.new("Model")
 	folder.Name = "Preview"
 	previewTarget = folder
-	local ok = pcall(maker, folder, at, (plot:GetAttribute("Accent") :: Color3?) or C(200, 170, 255), plot)
+	local ok = pcall(maker, folder, at, houseAccent(plot), plot)
 	previewTarget = nil
 	if not ok then
 		folder:Destroy()
 		return
 	end
+	enlarge(folder, cf)
 	for _, d in folder:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.Material = Enum.Material.Neon
 			d.Color = C(120, 210, 255)
-			d.Transparency = 0.72
+			d.Transparency = 0.78
 			d.CanCollide = false
 			d.CanQuery = false
 			d.CanTouch = false

@@ -47,7 +47,8 @@ local function setAccents(plot: Model, claimed: boolean)
 	end
 	for _, p in accents:GetChildren() do
 		if p:IsA("BasePart") then
-			p.Material = if claimed then Enum.Material.Neon else Enum.Material.SmoothPlastic
+			-- Only the roof crystals glow; the rune strip sits inside the house and stays matte.
+			p.Material = if claimed and p.Name == "Crystal" then Enum.Material.Neon else Enum.Material.SmoothPlastic
 			p.Transparency = if claimed then 0 else 0.35
 		end
 	end
@@ -115,8 +116,8 @@ local function tagLabel(gui: Instance, name: string, y: number, h: number, color
 	l.Parent = gui
 end
 
--- One pad per build, standing where that build will appear (Builds.pad, in the plot's local
--- frame). Only pads whose build can be bought right now show up.
+-- One pad per build, standing where that build will appear (Builds.pad, in plan units of the
+-- plot's local frame). Only pads whose build can be bought right now show up.
 local function createButtons(plot: Model)
 	local floor = plot:FindFirstChild("Floor") :: BasePart?
 	if not floor or plot:FindFirstChild("Buttons") then
@@ -128,7 +129,7 @@ local function createButtons(plot: Model)
 		local pad = Instance.new("Part")
 		pad.Name = "Pad_" .. build.id
 		pad.Size = Vector3.new(3.4, 0.3, 3.4)
-		pad.CFrame = floor.CFrame * CFrame.new(build.pad.X, 0.75 + build.pad.Y, build.pad.Z)
+		pad.CFrame = floor.CFrame * CFrame.new(Builds.toPlot(build.pad) + Vector3.new(0, 0.15, 0))
 		pad.Anchored = true
 		pad.CanCollide = false
 		pad.CanQuery = false
@@ -175,7 +176,7 @@ local function setButtons(plot: Model, owned: { [string]: boolean }?)
 	end
 end
 
-local GOLD = Color3.fromRGB(255, 200, 80)
+local GOLD = Color3.fromRGB(214, 170, 84)
 local function setVipLook(plot: Model, vip: boolean)
 	local accents = plot:FindFirstChild("Accents", true)
 	local banner = plot:FindFirstChild("Banner", true) :: BasePart?
@@ -192,7 +193,7 @@ local function setVipLook(plot: Model, vip: boolean)
 			banner:SetAttribute("BaseColor", banner.Color)
 		end
 		banner.Color = if vip then GOLD else banner:GetAttribute("BaseColor") :: Color3
-		banner.Material = if vip then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		banner.Material = if vip then Enum.Material.Metal else Enum.Material.SmoothPlastic
 	end
 end
 
@@ -376,6 +377,23 @@ function PlotService.ownedPlots(): { [Player]: Model }
 	return result
 end
 
+-- The plot whose house (any room, cellar included) contains the position, if any. Same
+-- footprint as the client's roof fade (plan units, see Server/Util/Blueprints).
+function PlotService.houseAt(position: Vector3): Model?
+	local s = Builds.Scale
+	for i = 1, Config.MaxPlots do
+		local plot = plotModel(i)
+		local floor = plot and plot:FindFirstChild("Floor") :: BasePart?
+		if plot and floor then
+			local rel = floor.CFrame:PointToObjectSpace(position)
+			if math.abs(rel.X) < 20.5 * s and rel.Z > 3.5 * s and rel.Z < 48.5 * s and rel.Y > -12 * s and rel.Y < 24 * s then
+				return plot
+			end
+		end
+	end
+	return nil
+end
+
 -- Puts the relic model on the pedestal (visible to every player) or clears it.
 function PlotService.renderSlot(player: Player, slot: number, relicId: string?)
 	local pedestal = PlotService.getPedestal(player, slot)
@@ -391,13 +409,13 @@ function PlotService.renderSlot(player: Player, slot: number, relicId: string?)
 	local model = RelicVisuals.build(def, { effects = true })
 	model.Name = "Display"
 	-- Displayed relics are the treasury's showpieces, so they stand larger than pickups.
-	model:ScaleTo(1.6)
-	model:PivotTo(top.CFrame * CFrame.new(0, 1, 0))
+	model:ScaleTo(1.8)
+	model:PivotTo(top.CFrame * CFrame.new(0, Builds.Scale, 0))
 
 	-- Sized in studs so far labels shrink with distance instead of piling up over the hall.
 	local tag = Instance.new("BillboardGui")
 	tag.Size = UDim2.fromScale(3.6, 0.75)
-	tag.StudsOffsetWorldSpace = Vector3.new(0, 2.6, 0)
+	tag.StudsOffsetWorldSpace = Vector3.new(0, 2.6 * Builds.Scale, 0)
 	tag.MaxDistance = 22
 	tag.LightInfluence = 0
 	local label = Instance.new("TextLabel")

@@ -45,12 +45,14 @@ local ISLAND_R = 210
 local FOREST = Vector3.new(0, 0, 140)
 local FOREST_R = 62
 local RUINS = Vector3.new(140, 0, 118)
-local WATERFALLS = { 70, 135, 235, 300 } -- degrees, measured from +Z towards +X
+local WATERFALLS = { 25, 150, 210, 300 } -- degrees, measured from +Z towards +X; between the plots
 local DIG_SPOTS = {
 	Vector3.new(-150, 0, 40), Vector3.new(150, 0, -35), Vector3.new(-42, 0, 172), Vector3.new(46, 0, 178),
 	Vector3.new(55, 0, -172), Vector3.new(-95, 0, -150), Vector3.new(95, 0, 72), Vector3.new(-125, 0, 118),
 }
-local HILLS = { Vector3.new(-175, 0, 30), Vector3.new(175, 0, -20), Vector3.new(-60, 0, 195), Vector3.new(60, 0, -185) }
+local HILLS = { Vector3.new(-122, 0, 145), Vector3.new(171, 0, -99), Vector3.new(-60, 0, 195), Vector3.new(0, 0, -198) }
+-- The houses are planned in plan units and built this much larger (Shared/Builds.Scale).
+local S = require(game:GetService("ReplicatedStorage").Shared.Builds).Scale
 
 local root = Workspace:WaitForChild("Aetheria")
 local rng = Random.new(7)
@@ -167,8 +169,8 @@ local function free(pos: Vector3, r: number, opts: { forest: boolean?, ruins: bo
 	end
 	for _, plot in plotCenters do
 		local rel = plot.cf:PointToObjectSpace(Vector3.new(pos.X, plot.cf.Position.Y, pos.Z))
-		if math.abs(rel.X) < 24 + r and rel.Z > -26 - r and rel.Z < 52 + r then
-			return false -- yard and house (the house reaches local z = 35, towers 38)
+		if math.abs(rel.X) < 24 * S + r and rel.Z > -26 * S - r and rel.Z < 52 * S + r then
+			return false -- yard and house (plan units: the house reaches z = 46, towers 50)
 		end
 	end
 	if onPath(pos, r + 1.5) then
@@ -484,7 +486,7 @@ for _, p in pathParts do
 		local nearPlot = false
 		for _, plot in plotCenters do
 			local rel = plot.cf:PointToObjectSpace(Vector3.new(pos.X, plot.cf.Position.Y, pos.Z))
-			if math.abs(rel.X) < 24 and math.abs(rel.Z) < 30 then
+			if math.abs(rel.X) < 24 * S and math.abs(rel.Z) < 30 * S then
 				nearPlot = true -- keeps the owner sign at the plot entrance readable
 			end
 		end
@@ -501,8 +503,8 @@ task.wait()
 -- Hedges framing every treasury plot (outside its walls) -------------------------------------
 local hedges = folder(decor, "PlotHedges")
 for _, plot in plotCenters do
-	local function at(x, z)
-		return (plot.cf * CFrame.new(x, 0, z)).Position * Vector3.new(1, 0, 1)
+	local function at(x, z) -- plan units
+		return (plot.cf * CFrame.new(x * S, 0, z * S)).Position * Vector3.new(1, 0, 1)
 	end
 	for x = -14, 14, 7 do
 		bush(hedges, at(x, 51), 4.4, PAL.leafDark)

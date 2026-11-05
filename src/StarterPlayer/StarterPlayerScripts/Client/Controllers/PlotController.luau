@@ -144,6 +144,7 @@ end
 
 -- Fades the roof of whichever treasury the player stands in, so the hall stays visible from
 -- the usual camera height. Roof parts carry the "TreasuryRoof" tag (Server/Util/Blueprints).
+-- (The server switches the camera to look through walls inside houses, see TycoonService.)
 local ROOF_FADE = 0.85
 local function fadeRoofs()
 	local character = player.Character
@@ -156,8 +157,9 @@ local function fadeRoofs()
 			local floor = plot:FindFirstChild("Floor") :: BasePart?
 			if floor then
 				local rel = floor.CFrame:PointToObjectSpace(root.Position)
-				-- The house footprint behind the yard (see Server/Util/Blueprints).
-				if math.abs(rel.X) < 20.5 and rel.Z > 3.5 and rel.Z < 48.5 and rel.Y > -12 and rel.Y < 24 then
+				-- The house footprint behind the yard (plan units, see Server/Util/Blueprints).
+				local s = Builds.Scale
+				if math.abs(rel.X) < 20.5 * s and rel.Z > 3.5 * s and rel.Z < 48.5 * s and rel.Y > -12 * s and rel.Y < 24 * s then
 					inside = plot
 					break
 				end

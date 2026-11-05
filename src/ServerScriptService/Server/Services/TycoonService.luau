@@ -3,6 +3,7 @@
 -- their own plot. The server watches the owners' positions itself, so there is no remote to
 -- abuse; a button fires once per step and the owner has to step off before it fires again.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builds = require(ReplicatedStorage.Shared.Builds)
@@ -100,7 +101,7 @@ local function checkChest(owner: Player, plot: Model, root: BasePart?)
 		return
 	end
 	local offset = root.Position - zone.Position
-	local inside = Vector2.new(offset.X, offset.Z).Magnitude < 3.4 and offset.Y > -2 and offset.Y < 7
+	local inside = Vector2.new(offset.X, offset.Z).Magnitude < 3.4 * Builds.Scale and offset.Y > -2 and offset.Y < 8
 	if inside and not inChest[owner] then
 		inChest[owner] = true
 		local amount = EconomyService.collect(owner)
@@ -137,6 +138,18 @@ local function updatePreview(owner: Player, plot: Model, root: BasePart?)
 	end
 end
 
+-- Inside a house the camera looks through walls (Invisicam) instead of zooming in to the
+-- player's head whenever a wall gets between them. Only the server may set this.
+local function updateCamera(player: Player)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local inside = root ~= nil and PlotService.houseAt(root.Position) ~= nil
+	local mode = if inside then Enum.DevCameraOcclusionMode.Invisicam else Enum.DevCameraOcclusionMode.Zoom
+	if player.DevCameraOcclusionMode ~= mode then
+		player.DevCameraOcclusionMode = mode
+	end
+end
+
 local function step()
 	local now = os.clock()
 	local tint = now - lastTint > 0.5
@@ -166,6 +179,11 @@ local function step()
 		end
 		if tint then
 			PlotService.tintButtons(owner, owner:GetAttribute("Coins") :: number? or 0)
+		end
+	end
+	if tint then
+		for _, player in Players:GetPlayers() do
+			updateCamera(player)
 		end
 	end
 	for player in standingOn do

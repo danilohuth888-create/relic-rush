@@ -205,6 +205,10 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Geschenke:** Countdown am Knopf, „Bereit!“ mit Abzeichen, Geschenk 1 abgeholt (+1.120), Server lehnt zu früh (not_ready), doppelt (claimed) und ungültige Indizes ab | Playtest | ✅ |
 | **Neuspieler-Ablauf** (`DevTools newplayer`): Lumi → Startgeist in 2,9 s gefangen → „Schatzkammer“ → Kamera aufs Haus → Reliktsaal → Podest mit E → Mondstein ausgestellt → Lumi schickt zur Truhe | Playtest mit Laufsteuerung, Tasten, Klicks | ✅ |
 | **Einladen-Knopf, Abzeichen:** Knopf sichtbar; Abzeichen-Code läuft ohne Fehler (IDs noch 0, Vergabe selbst nicht getestet) | Playtest | ✅ / offen |
+| **Haus ×1,3 und höhere Decken:** Reliktsaal, Halle, Wohnzimmer, Keller und Gewölbe im Playtest angesehen; Kamera bleibt hinter der Figur, im Haus schaltet der Server auf Invisicam (draußen wieder Zoom), Wände davor werden durchsichtig | Playtest mit Screenshots | ✅ |
+| **Kellertreppe** hinunter und wieder hinauf gelaufen (Humanoid:MoveTo, y 4,7 → −8,3 → 4,7) | Playtest | ✅ |
+| **Kauf-Felder** liegen bündig auf ihrem Boden (Erdgeschoss 0,6, Keller/Gewölbe −12,4, Türme auf der Wiese) | Playtest (Raycast) | ✅ |
+| **Neue Grundstücksanordnung:** 8 Grundstücke im 30°-Fächer (Radius 138), alle auf der Insel, Keller-Schnitt per CSG neu, Deko neu verteilt | Studio-Luftbild | ✅ |
 | **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen
