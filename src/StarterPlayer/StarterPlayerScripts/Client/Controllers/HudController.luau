@@ -8,6 +8,7 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
+local SocialService = game:GetService("SocialService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
@@ -1734,8 +1735,8 @@ local function buildNavigation()
 		Name = "Rewards",
 		-- High enough to stay clear of the mobile jump button in the bottom right corner.
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -14, 0.56, 0),
-		Size = UDim2.fromOffset(76, 176),
+		Position = UDim2.new(1, -14, 0.5, 0),
+		Size = UDim2.fromOffset(76, 270),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, { new("UIListLayout", { Padding = UDim.new(0, 18), SortOrder = Enum.SortOrder.LayoutOrder }) }))
@@ -1746,6 +1747,16 @@ local function buildNavigation()
 	local gifts
 	gifts, giftBadge = railButton("NavGifts", "🎁", L("Geschenke"), THEME.pink, THEME.pinkDeep, 2, Hud.openGifts)
 	gifts.Parent = rewards
+	-- Friends make the game: the Roblox invite dialog, when this player may send invites.
+	local invite = railButton("NavInvite", "👥", L("Einladen"), THEME.teal, THEME.tealDeep, 3, function()
+		local ok, can = pcall(SocialService.CanSendGameInviteAsync, SocialService, player)
+		if ok and can then
+			pcall(SocialService.PromptGameInvite, SocialService, player)
+		else
+			Hud.toast(L("Einladen ist hier gerade nicht möglich."))
+		end
+	end)
+	invite.Parent = rewards
 	giftTimer = chip(gifts, "", THEME.dark, THEME.white, {
 		Name = "Timer",
 		AnchorPoint = Vector2.new(0.5, 0.5),

@@ -30,6 +30,13 @@ Nichts davon wird ohne deine ausdrückliche Freigabe öffentlich geschaltet.
 - [x] Wochenziel
 - [ ] Store-Texte DE/EN im Creator Dashboard eintragen (Entwürfe in `docs/LAUNCH.md`)
 
+## Bindung und Wachstum
+- [x] Tagesbonus (7-Tage-Serie) und Spielzeit-Geschenke
+- [x] Einladen-Knopf
+- [ ] Abzeichen im Dashboard anlegen und IDs eintragen (`Config.Badges`)
+- [ ] Spielpass „Auto-Truhe“ anlegen und ID eintragen
+- [ ] Neue Thumbnails und Icon hochladen (`assets/launch/`, Anleitung in `docs/LAUNCH.md`)
+
 ## Technik und Sicherheit
 - [x] Alle Remotes serverseitig validiert, Rate-Limits
 - [x] Duplikationsschutz bei Ausstellen/Tauschen nachgewiesen

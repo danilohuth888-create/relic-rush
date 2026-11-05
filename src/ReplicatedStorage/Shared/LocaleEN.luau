@@ -318,4 +318,6 @@ return {
 	["Geschenk geöffnet: +%d Münzen!"] = "Gift opened: +%d coins!",
 	["Lauf in deinen Reliktsaal (hinten im Haus) und tippe auf ein Podest."] = "Walk into your relic hall (at the back of the house) and tap a pedestal.",
 	["Super! Tippe oben auf »Schatzkammer« und stelle dein Relikt auf ein Podest."] = "Great! Tap »Treasury« at the top and put your relic on a pedestal.",
+	["Einladen"] = "Invite",
+	["Einladen ist hier gerade nicht möglich."] = "Inviting is not possible right now.",
 }

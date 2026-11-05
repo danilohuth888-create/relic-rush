@@ -201,6 +201,10 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Haus v3:** alle 39 Bauteile nacheinander über die Kauflogik (günstigste aktive Fläche), jede Optik vorhanden, 20/20 Podeste, Stufe 3, ×2,35, ~1.050 Teile, keine Fehler | Playtest | ✅ |
 | **Haus v3:** Bilder Vollausbau außen, Keller, Eingangshalle, Wohnzimmer; Migration v10→v11 am echten Profil | Playtest-Screenshots | ✅ |
 | **UI v2:** Icon-Leiste, Münzen mit „+“ (öffnet Shop), Schnellreise Kristallplatz (Teleport auf Spawn-Platte geprüft), Meldungen rechts (2 Kartenteil-Meldungen gestapelt), Shop mit Banderolen und neuer Reihenfolge, Schließen-Knopf, Sammelbuch-Vorschauen sichtbar | Playtest-Screenshots | ✅ |
+| **Tagesbonus:** öffnet sich beim Einloggen, Tag 1 abgeholt (+2.100 auf Stufe 3), danach „Morgen wartet Tag 2“; Abzeichen am Knopf verschwindet | Playtest mit Klicks | ✅ |
+| **Geschenke:** Countdown am Knopf, „Bereit!“ mit Abzeichen, Geschenk 1 abgeholt (+1.120), Server lehnt zu früh (not_ready), doppelt (claimed) und ungültige Indizes ab | Playtest | ✅ |
+| **Neuspieler-Ablauf** (`DevTools newplayer`): Lumi → Startgeist in 2,9 s gefangen → „Schatzkammer“ → Kamera aufs Haus → Reliktsaal → Podest mit E → Mondstein ausgestellt → Lumi schickt zur Truhe | Playtest mit Laufsteuerung, Tasten, Klicks | ✅ |
+| **Einladen-Knopf, Abzeichen:** Knopf sichtbar; Abzeichen-Code läuft ohne Fehler (IDs noch 0, Vergabe selbst nicht getestet) | Playtest | ✅ / offen |
 | **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen

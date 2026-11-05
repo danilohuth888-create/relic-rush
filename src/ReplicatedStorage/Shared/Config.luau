@@ -136,6 +136,22 @@ Config.Gifts = {
 	{ minutes = 60, coins = 1500, mapPiece = true, luck = true },
 }
 
+-- Roblox badges (Creator Dashboard → Badges). 0 = not created yet, the game skips it. Create
+-- them with these names and paste the ids here (see docs/LAUNCH.md).
+Config.Badges = {
+	welcome = 0, -- "Willkommen in Aetheria" (joined once)
+	firstSpirit = 0, -- "Geisterjäger" (first spirit caught)
+	firstRelic = 0, -- "Erste Ausstellung" (first relic on a pedestal)
+	collector10 = 0, -- "Sammler" (10 relics discovered)
+	collectorAll = 0, -- "Meistersammler" (every relic discovered)
+	legendary = 0, -- "Legende" (a legendary relic found)
+	manor = 0, -- "Hausherr" (entrance hall built)
+	vault = 0, -- "Schatzgewölbe" (vault built)
+	isle = 0, -- "Inselentdecker" (first trip to the Treasure Isle)
+	treasure = 0, -- "Schatzgräber" (first treasure dug up)
+	expedition = 0, -- "Ruinenforscher" (an expedition completed)
+}
+
 Config.Isle = {
 	visitSeconds = 4 * 60,
 	digRange = 9,

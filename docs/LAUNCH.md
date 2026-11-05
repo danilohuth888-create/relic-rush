@@ -39,6 +39,33 @@ Creator Dashboard → **Unbenannte Experience** → **Konfigurationen** (*Config
    - Käufe: 4 Game Passes (ein fünfter, „Auto-Truhe“, ist vorbereitet) und 2 Developer Products
 6. **Zugriff** (*Privacy*): erst auf **Öffentlich**, wenn die Release-Checkliste abgehakt ist.
 
+## Abzeichen (Badges) anlegen
+
+Abzeichen erscheinen auf der Spielseite und motivieren zum Weiterspielen. Im Creator Dashboard unter
+*Abzeichen* anlegen (Bild: z. B. ein Ausschnitt aus den Thumbnails), dann die ID in
+`src/ReplicatedStorage/Shared/Config.luau` bei `Config.Badges` eintragen (oder mir schicken):
+
+| Schlüssel | Name | Wofür |
+|---|---|---|
+| welcome | Willkommen in Aetheria | einmal beigetreten |
+| firstSpirit | Geisterjäger | ersten Geist gefangen |
+| firstRelic | Erste Ausstellung | erstes Relikt ausgestellt |
+| collector10 | Sammler | 10 Relikte entdeckt |
+| collectorAll | Meistersammler | alle Relikte entdeckt |
+| legendary | Legende | legendäres Relikt gefunden |
+| manor | Hausherr | Eingangshalle gebaut |
+| vault | Schatzgewölbe | Gewölbe gebaut |
+| isle | Inselentdecker | erste Reise zur Schatzinsel |
+| treasure | Schatzgräber | ersten Schatz ausgegraben |
+| expedition | Ruinenforscher | Expedition geschafft |
+
+Ein ID-Wert 0 heißt „noch nicht angelegt“ – das Spiel überspringt das Abzeichen dann einfach.
+
+## Spielpass „Auto-Truhe“
+
+Im Dashboard einen Pass „Auto-Truhe“ anlegen (Vorschlag 149–199 Robux), die ID in `Config.Shop.passes`
+bei `auto_chest` eintragen. Bis dahin steht er im Shop als „Bald verfügbar“.
+
 ## Beschreibung (Deutsch, < 1000 Zeichen)
 
 ```
