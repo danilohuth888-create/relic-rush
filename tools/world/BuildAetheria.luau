@@ -193,10 +193,13 @@ local function path(name, from, to, width)
 end
 
 -- Treasury plots ------------------------------------------------------------------------
--- Each plot is a paved yard; the house itself (starting room with pedestals 1-4 and every
--- room built later) is created at runtime by Server/Util/Blueprints.luau. The plot carries its
+-- Each plot is a paved yard and building ground; the house itself (relic hall with pedestals
+-- 1-4 and every room built later) is created at runtime by Server/Util/Blueprints.luau. Below
+-- the house a cellar space is cut out of the island (see the CSG step after the loop); the
+-- ground slabs cover it, and StairCover opens once the cellar is built. The plot carries its
 -- accent colour as an attribute. cf is the yard's CFrame (local -Z faces the plaza).
 local plots = container("Folder", root, "Plots")
+local cellarCuts = {}
 local PLOT_R = 120
 for i = 1, 8 do
 	local theta = math.rad(-78.75 + (i - 1) * 22.5)
@@ -217,12 +220,53 @@ for i = 1, 8 do
 	plot.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 
 	P(plot, "Floor", BLOCK, Vector3.new(40, 1.2, 40), at(0, 0, 0), PAL.stone)
+	P(plot, "Ground", BLOCK, Vector3.new(40, 1.2, 22), at(0, 0, 31), PAL.stone)
+	P(plot, "GroundL", BLOCK, Vector3.new(11.5, 1.2, 3.5), at(-14.25, 0, 43.75), PAL.stone)
+	P(plot, "GroundR", BLOCK, Vector3.new(11.5, 1.2, 3.5), at(14.25, 0, 43.75), PAL.stone)
+	P(plot, "GroundBack", BLOCK, Vector3.new(40, 1.2, 2.5), at(0, 0, 46.75), PAL.stone)
+	P(plot, "StairCover", BLOCK, Vector3.new(17, 1.2, 3.5), at(0, 0, 43.75), PAL.stone):SetAttribute("HideWhen", "cellar")
+	local cut = Instance.new("Part")
+	cut.Anchored = true
+	cut.Size = Vector3.new(40, 10.5, 42)
+	cut.CFrame = at(0, -5.15, 25)
+	table.insert(cellarCuts, cut)
 	P(plot, "YardPath", BLOCK, Vector3.new(6, 0.1, 14), at(0, 0.62, -13), PAL.stoneDark)
 	sign(plot, at(-12, 0.6, -21.5), 13, "Freie Schatzkammer", "Schatzkammer " .. i, "OwnerLabel")
 	P(plot, "SpawnPoint", BLOCK, Vector3.new(4, 1, 4), at(0, 0.2, -11) * CFrame.Angles(0, math.pi, 0), accent, SMOOTH, HIDDEN)
 	container("Folder", plot, "Pedestals")
 	plot.Parent = plots
 	task.wait()
+end
+
+-- Cellars: cut the space below every house out of the island's top layers ----------------
+do
+	local GeometryService = game:GetService("GeometryService")
+	for _, name in { "GrassTop", "GrassEdge", "Rock1" } do
+		local part = island:FindFirstChild(name) :: BasePart
+		local ok, result = pcall(function()
+			return GeometryService:SubtractAsync(part, cellarCuts, {
+				CollisionFidelity = Enum.CollisionFidelity.PreciseConvexDecomposition,
+				RenderFidelity = Enum.RenderFidelity.Precise,
+				SplitApart = false,
+			})
+		end)
+		if ok and result[1] then
+			local union = result[1]
+			union.Name = name
+			union.Anchored = true
+			union.UsePartColor = true
+			union.Color = part.Color
+			union.Material = part.Material
+			union.Parent = island
+			part:Destroy()
+		else
+			warn("[BuildAetheria] cellar cut failed for " .. name .. ": " .. tostring(result))
+		end
+		task.wait()
+	end
+	for _, cut in cellarCuts do
+		cut:Destroy()
+	end
 end
 
 -- Whisper Forest ------------------------------------------------------------------------

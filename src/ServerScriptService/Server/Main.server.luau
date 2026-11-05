@@ -128,6 +128,19 @@ if RunService:IsStudio() then
 		elseif action == "nosave" then
 			-- Everything after this stays in this Studio session only (free testing).
 			PlayerDataService.setNoSave(userId)
+		elseif action == "freshplot" then
+			-- A new player's plot (Studio only, never saved): no builds, relics back in the bag.
+			PlayerDataService.setNoSave(userId)
+			for _, relicId in data.display do
+				data.inventory[relicId] = (data.inventory[relicId] or 0) + 1
+			end
+			table.clear(data.display)
+			table.clear(data.builds)
+			data.tier = 1
+			PlotService.applyBuilds(player, data.builds)
+			PlotService.renderAll(player, data.display)
+			EconomyService.recompute(player)
+			PlayerDataService.replicate(player)
 		elseif action == "build" then
 			-- Buys a build as if the player stepped on its button (all checks apply).
 			return TycoonService.buy(player, args[1])

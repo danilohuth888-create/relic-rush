@@ -26,9 +26,6 @@ local PlotService = {}
 local plotsFolder: Instance
 local owners: { [number]: Player } = {}
 local homeLimiter = RateLimiter.new(2, 0.5)
--- Build buttons in the yard in front of the house (plot-local x, z), cheapest offer nearest
--- to the door.
-local BUTTON_SPOTS = { { -7.5, -15 }, { 7.5, -15 }, { -12.5, -15 }, { 12.5, -15 }, { -17.5, -15 }, { 17.5, -15 } }
 local BUTTON_READY = Color3.fromRGB(90, 230, 130)
 local BUTTON_LOCKED = Color3.fromRGB(150, 140, 165)
 
@@ -118,7 +115,8 @@ local function tagLabel(gui: Instance, name: string, y: number, h: number, color
 	l.Parent = gui
 end
 
--- Six glowing pads offering the cheapest builds whose requirements are met.
+-- One pad per build, standing where that build will appear (Builds.pad, in the plot's local
+-- frame). Only pads whose build can be bought right now show up.
 local function createButtons(plot: Model)
 	local floor = plot:FindFirstChild("Floor") :: BasePart?
 	if not floor or plot:FindFirstChild("Buttons") then
@@ -126,11 +124,11 @@ local function createButtons(plot: Model)
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = "Buttons"
-	for i, spot in BUTTON_SPOTS do
+	for _, build in Builds.list do
 		local pad = Instance.new("Part")
-		pad.Name = "Pad" .. i
+		pad.Name = "Pad_" .. build.id
 		pad.Size = Vector3.new(3.4, 0.3, 3.4)
-		pad.CFrame = floor.CFrame * CFrame.new(spot[1], 0.75, spot[2])
+		pad.CFrame = floor.CFrame * CFrame.new(build.pad.X, 0.75 + build.pad.Y, build.pad.Z)
 		pad.Anchored = true
 		pad.CanCollide = false
 		pad.CanQuery = false
@@ -138,15 +136,20 @@ local function createButtons(plot: Model)
 		pad.CastShadow = false
 		pad.Material = Enum.Material.Neon
 		pad.Transparency = 1
+		pad:SetAttribute("BuildId", build.id)
+		pad:SetAttribute("Active", false)
 		local gui = Instance.new("BillboardGui")
 		gui.Name = "Tag"
 		gui.Size = UDim2.fromOffset(170, 64)
 		gui.StudsOffsetWorldSpace = Vector3.new(0, 3.2, 0)
-		gui.MaxDistance = 70
+		gui.MaxDistance = 45
 		gui.LightInfluence = 0
 		gui.Enabled = false
 		tagLabel(gui, "BuildName", 0, 0.55, Color3.new(1, 1, 1))
 		tagLabel(gui, "Cost", 0.55, 0.45, Color3.fromRGB(255, 215, 90))
+		WorldText.set(gui:FindFirstChild("BuildName") :: TextLabel, "%s", "§" .. build.name)
+		local boost = if build.boost then (" · +%d %%"):format(math.floor(build.boost * 100 + 0.5)) else ""
+		WorldText.set(gui:FindFirstChild("Cost") :: TextLabel, "%s Münzen%s", "#" .. build.cost, boost)
 		gui.Parent = pad
 		pad.Parent = folder
 	end
@@ -158,19 +161,15 @@ local function setButtons(plot: Model, owned: { [string]: boolean }?)
 	if not folder then
 		return
 	end
-	local offers = if owned then Builds.available(owned) else {}
-	for i = 1, #BUTTON_SPOTS do
-		local pad = folder:FindFirstChild("Pad" .. i) :: BasePart?
-		if pad then
-			local build = offers[i]
-			local gui = pad:FindFirstChild("Tag") :: BillboardGui
-			pad:SetAttribute("BuildId", if build then build.id else nil)
-			pad.Transparency = if build then 0.2 else 1
-			gui.Enabled = build ~= nil
-			if build then
-				WorldText.set(gui:FindFirstChild("BuildName") :: TextLabel, "%s", "§" .. build.name)
-				local boost = if build.boost then (" · +%d %%"):format(math.floor(build.boost * 100 + 0.5)) else ""
-				WorldText.set(gui:FindFirstChild("Cost") :: TextLabel, "%s Münzen%s", "#" .. build.cost, boost)
+	for _, pad in folder:GetChildren() do
+		local build = Builds.byId[pad:GetAttribute("BuildId") :: string? or ""]
+		if build and pad:IsA("BasePart") then
+			local active = owned ~= nil and Builds.canBuild(owned, build)
+			pad:SetAttribute("Active", active)
+			pad.Transparency = if active then 0.2 else 1
+			local gui = pad:FindFirstChild("Tag") :: BillboardGui?
+			if gui then
+				gui.Enabled = active
 			end
 		end
 	end
@@ -320,7 +319,7 @@ function PlotService.tintButtons(player: Player, coins: number)
 	for _, pad in (if folder then folder:GetChildren() else {}) do
 		local id = pad:GetAttribute("BuildId")
 		local build = type(id) == "string" and Builds.byId[id]
-		if build and pad:IsA("BasePart") then
+		if build and pad:IsA("BasePart") and pad:GetAttribute("Active") == true then
 			local color = if coins >= build.cost then BUTTON_READY else BUTTON_LOCKED
 			if pad.Color ~= color then
 				pad.Color = color
@@ -329,13 +328,13 @@ function PlotService.tintButtons(player: Player, coins: number)
 	end
 end
 
--- The owner's active build buttons (pads with a BuildId).
+-- The owner's active build pads (the builds that can be bought right now).
 function PlotService.buttons(player: Player): { BasePart }
 	local plot = PlotService.getPlot(player)
 	local folder = plot and plot:FindFirstChild("Buttons")
 	local result = {}
 	for _, pad in (if folder then folder:GetChildren() else {}) do
-		if pad:IsA("BasePart") and pad:GetAttribute("BuildId") then
+		if pad:IsA("BasePart") and pad:GetAttribute("Active") == true then
 			table.insert(result, pad)
 		end
 	end
@@ -381,9 +380,9 @@ function PlotService.renderSlot(player: Player, slot: number, relicId: string?)
 
 	-- Sized in studs so far labels shrink with distance instead of piling up over the hall.
 	local tag = Instance.new("BillboardGui")
-	tag.Size = UDim2.fromScale(6, 1.1)
-	tag.StudsOffsetWorldSpace = Vector3.new(0, 2.8, 0)
-	tag.MaxDistance = 28
+	tag.Size = UDim2.fromScale(3.6, 0.75)
+	tag.StudsOffsetWorldSpace = Vector3.new(0, 2.6, 0)
+	tag.MaxDistance = 22
 	tag.LightInfluence = 0
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)

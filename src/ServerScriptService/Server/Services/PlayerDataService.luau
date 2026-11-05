@@ -13,7 +13,7 @@ local Locale = require(ReplicatedStorage.Shared.Locale)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local STORE_NAME = "RelicRush_Players_v1"
-local SCHEMA_VERSION = 10
+local SCHEMA_VERSION = 11
 -- Autosave refreshes the lock every Config.AutosaveSeconds; a lock this old belongs to a
 -- crashed server, so a rejoining player is not locked out for long.
 local LOCK_STALE_SECONDS = 180
@@ -149,6 +149,60 @@ local MIGRATIONS: { [number]: (any) -> () } = {
 		maps.charts = if (tonumber(maps.spot) or 0) ~= 0 then 1 else 0
 		maps.visits = if (tonumber(maps.found) or 0) > 0 then 1 else 0
 		maps.spot = nil
+	end,
+	[11] = function(data)
+		-- v11: relics move into the relic hall, its cellar (5-12) and the vault (13-20); the rest
+		-- of the house is rooms with furniture. Players keep every pedestal and get the rooms
+		-- and furniture that match what they had built.
+		local old = data.builds
+		local b: { [string]: boolean } = {}
+		local function give(...)
+			for _, id in { ... } do
+				b[id] = true
+			end
+		end
+		for slot = 5, 20 do
+			if old["ped" .. slot] then
+				give("ped" .. slot, "cellar")
+				if slot >= 13 then
+					give("vault")
+				end
+			end
+		end
+		for _, id in { "lanterns", "garden", "carpet", "fireplace", "statues", "chandelier", "towers", "crown", "goldpile" } do
+			if old[id] then
+				give(id)
+			end
+		end
+		if old.hall2 or old.roomWest or old.roomEast then
+			give("hall", "living", "library")
+		end
+		if old.library then
+			give("hall", "library", "shelves")
+		end
+		if old.fountain then
+			give("garden", "pond", "hall")
+		end
+		if old.vitrines then
+			give("hall", "library", "trophy", "trophies")
+		end
+		if old.hall3 or old.gallery or old.vault then
+			give("cellar", "vault", "hall", "living", "maproom")
+		end
+		if b.fireplace or b.carpet or b.statues or b.chandelier then
+			give("hall")
+		end
+		if b.fireplace then
+			give("living")
+		end
+		if b.towers then
+			give("living", "library", "maproom", "trophy")
+		end
+		if b.crown then
+			give("goldpile", "towers", "living", "library", "maproom", "trophy")
+		end
+		data.builds = b
+		data.tier = if b.vault then 3 elseif b.hall then 2 else 1
 	end,
 }
 

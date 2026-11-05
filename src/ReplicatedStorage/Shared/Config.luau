@@ -8,9 +8,9 @@ Config.MaxPlots = 8
 -- Treasury tiers, reached through the hall builds in Shared/Builds. Many rewards and prices
 -- scale with the tier.
 Config.Tiers = {
-	{ name = "Kleine Schatzkammer" },
-	{ name = "Runensaal" },
-	{ name = "Aetherhalle" },
+	{ name = "Reliktsaal" },
+	{ name = "Herrenhaus" },
+	{ name = "Schatzgewölbe" },
 }
 Config.MaxPedestals = 20
 

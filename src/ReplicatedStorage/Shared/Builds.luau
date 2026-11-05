@@ -1,61 +1,70 @@
 --!strict
 -- The treasury tycoon: everything a player can build on their plot, bought by stepping on the
--- glowing build buttons. Data-driven like RelicDefs; the server (TycoonService) charges and
--- records, PlotService shows the result, and both client and server read the helpers below.
+-- glowing build pad that sits exactly where the build will appear. Data-driven like RelicDefs;
+-- the server (TycoonService) charges and records, PlotService shows pads and results, and
+-- both client and server read the helpers below.
+--   pad       where its pad stands, in the plot's local frame (see Server/Util/Blueprints)
 --   pedestal  unlocks that display slot      boost  adds to the coin multiplier
 --   tier      the treasury reaches this tier (names in Config.Tiers)
---   requires  ids that must be built first (the button appears afterwards)
+--   requires  ids that must be built first (the pad appears afterwards)
 
 export type Build = {
 	id: string,
 	name: string,
 	cost: number,
 	requires: { string },
+	pad: Vector3,
 	pedestal: number?,
 	boost: number?,
 	tier: number?,
 }
 
+local CELLAR = -9.4 -- floor height of the cellar and the vault
+local V = Vector3.new
+
 local list: { Build } = {
-	-- Stage 1: from the starting room to a house with two wings
-	{ id = "lanterns", name = "Laternen", cost = 150, requires = {}, boost = 0.05 },
-	{ id = "garden", name = "Vorgarten", cost = 200, requires = {}, boost = 0.05 },
-	{ id = "roomWest", name = "Westzimmer", cost = 300, requires = {} },
-	{ id = "ped5", name = "Podest 5", cost = 140, requires = { "roomWest" }, pedestal = 5 },
-	{ id = "ped6", name = "Podest 6", cost = 220, requires = { "ped5" }, pedestal = 6 },
-	{ id = "carpet", name = "Goldteppich", cost = 380, requires = { "lanterns" }, boost = 0.05 },
-	{ id = "fireplace", name = "Kamin", cost = 700, requires = { "lanterns" }, boost = 0.05 },
-	{ id = "roomEast", name = "Ostzimmer", cost = 500, requires = { "ped6" } },
-	{ id = "ped7", name = "Podest 7", cost = 320, requires = { "roomEast" }, pedestal = 7 },
-	{ id = "ped8", name = "Podest 8", cost = 450, requires = { "ped7" }, pedestal = 8 },
-	{ id = "hall2", name = "Große Halle", cost = 1200, requires = { "ped8", "carpet" }, tier = 2 },
-	-- Stage 2: the great hall
-	{ id = "ped9", name = "Podest 9", cost = 1100, requires = { "hall2" }, pedestal = 9 },
-	{ id = "windows", name = "Buntglasfenster", cost = 1500, requires = { "hall2" }, boost = 0.05 },
-	{ id = "fountain", name = "Münzbrunnen", cost = 1800, requires = { "hall2" }, boost = 0.1 },
-	{ id = "library", name = "Bibliothek", cost = 2200, requires = { "hall2" }, boost = 0.1 },
-	{ id = "ped10", name = "Podest 10", cost = 1400, requires = { "ped9" }, pedestal = 10 },
-	{ id = "ped11", name = "Podest 11", cost = 2000, requires = { "ped10" }, pedestal = 11 },
-	{ id = "statues", name = "Wächterstatuen", cost = 2400, requires = { "fountain" }, boost = 0.05 },
-	{ id = "ped12", name = "Podest 12", cost = 2600, requires = { "ped11" }, pedestal = 12 },
-	{ id = "towers", name = "Ecktürme", cost = 2800, requires = { "windows" }, boost = 0.05 },
-	{ id = "vitrines", name = "Glasvitrinen", cost = 3200, requires = { "statues" }, boost = 0.15 },
-	{ id = "hall3", name = "Aetherhalle", cost = 6000, requires = { "ped12", "vitrines", "towers" }, tier = 3 },
-	-- Stage 3: the aether hall and its upper floor
-	{ id = "chandelier", name = "Kristalllüster", cost = 8000, requires = { "hall3" }, boost = 0.1 },
-	{ id = "gallery", name = "Galerie-Empore", cost = 10000, requires = { "hall3" } },
-	{ id = "ped13", name = "Galerie-Podest 13", cost = 12000, requires = { "gallery" }, pedestal = 13 },
-	{ id = "ped14", name = "Galerie-Podest 14", cost = 14000, requires = { "ped13" }, pedestal = 14 },
-	{ id = "ped15", name = "Galerie-Podest 15", cost = 16000, requires = { "ped14" }, pedestal = 15 },
-	{ id = "ped16", name = "Galerie-Podest 16", cost = 18000, requires = { "ped15" }, pedestal = 16 },
-	{ id = "crown", name = "Schatzkrone", cost = 30000, requires = { "chandelier", "ped16" }, boost = 0.25 },
-	-- Stage 4: the vault behind the hall
-	{ id = "vault", name = "Tresorraum", cost = 25000, requires = { "gallery" } },
-	{ id = "ped17", name = "Tresor-Podest 17", cost = 20000, requires = { "vault" }, pedestal = 17 },
-	{ id = "ped18", name = "Tresor-Podest 18", cost = 22000, requires = { "ped17" }, pedestal = 18 },
-	{ id = "ped19", name = "Tresor-Podest 19", cost = 24000, requires = { "ped18" }, pedestal = 19 },
-	{ id = "ped20", name = "Tresor-Podest 20", cost = 26000, requires = { "ped19" }, pedestal = 20 },
-	{ id = "goldpile", name = "Goldhaufen", cost = 40000, requires = { "ped20" }, boost = 0.1 },
+	-- The relic hall (always there) and its cellar: every relic stands in these rooms.
+	{ id = "lanterns", name = "Laternen", cost = 150, requires = {}, pad = V(-6.5, 0, 29), boost = 0.05 },
+	{ id = "garden", name = "Vorgarten", cost = 200, requires = {}, pad = V(-13, 0, -9), boost = 0.05 },
+	{ id = "cellar", name = "Schatzkeller", cost = 350, requires = {}, pad = V(0, 0, 40.4) },
+	{ id = "ped5", name = "Podest 5", cost = 150, requires = { "cellar" }, pad = V(-15, CELLAR, 30), pedestal = 5 },
+	{ id = "ped6", name = "Podest 6", cost = 220, requires = { "ped5" }, pad = V(-5, CELLAR, 30), pedestal = 6 },
+	{ id = "ped7", name = "Podest 7", cost = 320, requires = { "ped6" }, pad = V(5, CELLAR, 30), pedestal = 7 },
+	{ id = "ped8", name = "Podest 8", cost = 450, requires = { "ped7" }, pad = V(15, CELLAR, 30), pedestal = 8 },
+	-- The house above ground, room by room
+	{ id = "hall", name = "Eingangshalle", cost = 900, requires = { "ped6" }, pad = V(0, 0, 15), tier = 2 },
+	{ id = "carpet", name = "Goldteppich", cost = 400, requires = { "hall" }, pad = V(0, 0, 7), boost = 0.05 },
+	{ id = "ped9", name = "Podest 9", cost = 600, requires = { "ped8", "hall" }, pad = V(-15, CELLAR, 37), pedestal = 9 },
+	{ id = "ped10", name = "Podest 10", cost = 800, requires = { "ped9" }, pad = V(-5, CELLAR, 37), pedestal = 10 },
+	{ id = "living", name = "Wohnzimmer", cost = 1200, requires = { "hall" }, pad = V(-14, 0, 15) },
+	{ id = "fireplace", name = "Kamin", cost = 900, requires = { "living" }, pad = V(-16.5, 0, 15), boost = 0.05 },
+	{ id = "lounge", name = "Sofaecke", cost = 1100, requires = { "living" }, pad = V(-12, 0, 21), boost = 0.05 },
+	{ id = "library", name = "Bibliothek", cost = 1500, requires = { "hall" }, pad = V(14, 0, 15) },
+	{ id = "shelves", name = "Bücherregale", cost = 1400, requires = { "library" }, pad = V(16.5, 0, 15), boost = 0.1 },
+	{ id = "desk", name = "Lesepult und Globus", cost = 1600, requires = { "library" }, pad = V(12, 0, 21), boost = 0.05 },
+	{ id = "ped11", name = "Podest 11", cost = 1000, requires = { "ped10" }, pad = V(5, CELLAR, 37), pedestal = 11 },
+	{ id = "ped12", name = "Podest 12", cost = 1300, requires = { "ped11" }, pad = V(15, CELLAR, 37), pedestal = 12 },
+	{ id = "pond", name = "Teich mit Brunnen", cost = 2000, requires = { "garden", "hall" }, pad = V(13, 0, -9), boost = 0.1 },
+	{ id = "statues", name = "Wächterstatuen", cost = 2400, requires = { "hall" }, pad = V(4.5, 0, 22), boost = 0.05 },
+	{ id = "chandelier", name = "Kristalllüster", cost = 2500, requires = { "hall" }, pad = V(0, 0, 15), boost = 0.1 },
+	{ id = "maproom", name = "Kartenraum", cost = 3000, requires = { "living" }, pad = V(-15, 0, 36) },
+	{ id = "maptable", name = "Kartentisch", cost = 2000, requires = { "maproom" }, pad = V(-15, 0, 31), boost = 0.05 },
+	{ id = "trophy", name = "Trophäenzimmer", cost = 3500, requires = { "library" }, pad = V(15, 0, 36) },
+	{ id = "trophies", name = "Trophäenvitrinen", cost = 3200, requires = { "trophy" }, pad = V(15, 0, 31), boost = 0.15 },
+	-- Below the hall: the vault with the last eight pedestals
+	{ id = "vault", name = "Schatzgewölbe", cost = 6000, requires = { "ped12" }, pad = V(0, CELLAR, 28.6), tier = 3 },
+	{ id = "ped13", name = "Podest 13", cost = 4000, requires = { "vault" }, pad = V(-15, CELLAR, 19), pedestal = 13 },
+	{ id = "ped14", name = "Podest 14", cost = 5000, requires = { "ped13" }, pad = V(-5, CELLAR, 19), pedestal = 14 },
+	{ id = "ped15", name = "Podest 15", cost = 6500, requires = { "ped14" }, pad = V(5, CELLAR, 19), pedestal = 15 },
+	{ id = "ped16", name = "Podest 16", cost = 8000, requires = { "ped15" }, pad = V(15, CELLAR, 19), pedestal = 16 },
+	{ id = "grotto", name = "Kristallgrotte", cost = 9000, requires = { "vault" }, pad = V(-17, CELLAR, 43), boost = 0.1 },
+	{ id = "towers", name = "Ecktürme", cost = 8000, requires = { "maproom", "trophy" }, pad = V(-23.5, -0.6, 44), boost = 0.05 },
+	{ id = "ped17", name = "Podest 17", cost = 10000, requires = { "ped16" }, pad = V(-15, CELLAR, 11), pedestal = 17 },
+	{ id = "ped18", name = "Podest 18", cost = 12500, requires = { "ped17" }, pad = V(-5, CELLAR, 11), pedestal = 18 },
+	{ id = "ped19", name = "Podest 19", cost = 15000, requires = { "ped18" }, pad = V(5, CELLAR, 11), pedestal = 19 },
+	{ id = "ped20", name = "Podest 20", cost = 18000, requires = { "ped19" }, pad = V(15, CELLAR, 11), pedestal = 20 },
+	{ id = "goldpile", name = "Goldhaufen", cost = 20000, requires = { "ped18" }, pad = V(-16, CELLAR, 6.5), boost = 0.1 },
+	{ id = "crown", name = "Schatzkrone", cost = 30000, requires = { "goldpile", "towers" }, pad = V(0, 0, -5), boost = 0.25 },
 }
 
 local byId: { [string]: Build } = {}
@@ -72,6 +81,8 @@ local Builds = {}
 Builds.list = list
 Builds.byId = byId
 Builds.FreePedestals = 4 -- slots every new treasury starts with
+Builds.MaxPedestals = 20
+Builds.CellarFloor = CELLAR
 
 function Builds.slotUnlocked(owned: { [string]: boolean }, slot: number): boolean
 	if slot <= Builds.FreePedestals then
@@ -83,7 +94,7 @@ end
 
 function Builds.unlockedSlots(owned: { [string]: boolean }): number
 	local n = 0
-	for slot = 1, 20 do
+	for slot = 1, Builds.MaxPedestals do
 		if Builds.slotUnlocked(owned, slot) then
 			n += 1
 		end
@@ -114,7 +125,7 @@ function Builds.canBuild(owned: { [string]: boolean }, build: Build): boolean
 	return true
 end
 
--- Builds whose requirements are met, cheapest first (what the buttons offer).
+-- Builds whose requirements are met, cheapest first (the pads that are showing).
 function Builds.available(owned: { [string]: boolean }): { Build }
 	local result = {}
 	for _, build in list do
@@ -128,7 +139,7 @@ function Builds.available(owned: { [string]: boolean }): { Build }
 	return result
 end
 
--- The treasury tier follows the two hall builds (Config.Tiers holds the names).
+-- The treasury tier follows the hall and the vault (Config.Tiers holds the names).
 function Builds.tier(owned: { [string]: boolean }): number
 	local tier = 1
 	for _, build in list do

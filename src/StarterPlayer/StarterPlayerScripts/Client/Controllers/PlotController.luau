@@ -127,9 +127,11 @@ function PlotController.target(name: string): Vector3?
 	elseif name == "button" then
 		local buttons = plot:FindFirstChild("Buttons")
 		local best: BasePart? = nil
+		local bestCost = math.huge
 		for _, pad in (if buttons then buttons:GetChildren() else {}) do
-			if pad:IsA("BasePart") and pad:GetAttribute("BuildId") and (not best or pad.Name < best.Name) then
-				best = pad
+			local build = Builds.byId[pad:GetAttribute("BuildId") :: string? or ""]
+			if pad:IsA("BasePart") and pad:GetAttribute("Active") == true and build and build.cost < bestCost then
+				best, bestCost = pad, build.cost
 			end
 		end
 		return if best then best.Position else nil
@@ -155,7 +157,7 @@ local function fadeRoofs()
 			if floor then
 				local rel = floor.CFrame:PointToObjectSpace(root.Position)
 				-- The house footprint behind the yard (see Server/Util/Blueprints).
-				if math.abs(rel.X) < 20.5 and rel.Z > -6.5 and rel.Z < 34.5 and rel.Y < 24 then
+				if math.abs(rel.X) < 20.5 and rel.Z > 3.5 and rel.Z < 48.5 and rel.Y > -12 and rel.Y < 24 then
 					inside = plot
 					break
 				end
