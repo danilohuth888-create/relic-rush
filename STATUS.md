@@ -34,12 +34,13 @@ Stand: 2026-11-03 · Branch `dev` · Experience: GameId 10774417779 / PlaceId 12
 - Zeitlimit 8 min, Stürze und Respawns bringen zum letzten Kontrollpunkt, „Verlassen“-Knopf in der Ziel-Leiste.
 - Arena-Vorlage: `ServerStorage.ExpeditionArena`, gebaut von `tools/world/BuildExpedition.luau`.
 
-### Block 2b – Tycoon: das Haus
-- Jede Schatzkammer ist ein **Haus, das mit den Podesten wächst** (`Server/Util/Blueprints.luau`). Start: der **Relikt-Raum** mit Tür, Banner, Bauplan-Tafel und Podesten 1–4. Danach baut man an: **Westzimmer** (Podeste 5–6), **Ostzimmer** (7–8), die **Große Halle** dahinter (9–12, Brunnen, Kronleuchter, Rosettenfenster) und die **Galerie-Empore** als Obergeschoss mit zwei Treppen (13–16). Außen: Buntglasfenster, Ecktürme, Glaskuppel, Statuen am Eingang, Krone über dem Giebel.
-- **26 Bauteile** (`Shared/Builds.luau`) an **6 Bau-Tasten im Vorhof** (draufstellen = kaufen, grün = bezahlbar, günstigstes Angebot direkt vor der Tür). Einkommens-Boni bis ×1,85.
-- Räume bringen ihre Podeste selbst mit; gesperrte Podeste stehen als Schatten im Raum. Dächer blenden sich auf dem eigenen Bildschirm aus, solange man im Haus steht.
-- `tools/world/BuildAetheria.luau` legt nur noch Hof, Schild und Spawn an; das Haus entsteht zur Laufzeit. **Schema v9:** Wer Podeste 5–8 oder die Halle hatte, bekommt die passenden Zimmer.
-- Kaufen läuft komplett auf dem Server (Positionsprüfung), es gibt keine Kauf-Remote.
+### Block 2b – Tycoon: Herrenhaus mit Keller (v3)
+- **Reliktsaal** (Start, Podeste 1–4) hinten auf dem Grundstück; davor liegen die **Fundamente** der übrigen Räume. Eine Treppe aus dem Reliktsaal führt in den **Schatzkeller** (5–12), durch einen Bogen geht es ins **Schatzgewölbe** (13–20). Relikte stehen nur in diesen drei Räumen.
+- Übriges Haus: **Eingangshalle** (Teppich, Statuen, Kristalllüster), **Wohnzimmer** (Kamin mit Schornstein, Sofaecke), **Bibliothek** (Regale, Lesepult und Globus), **Kartenraum** (Kartentisch), **Trophäenzimmer** (Vitrinen); außen Vorgarten, Teich mit Brunnen, Ecktürme, Krone; im Keller Kristallgrotte und Goldhaufen. **39 Bauteile**, Einkommen bis ×2,35.
+- **Kaufflächen vor Ort:** Jedes Bauteil hat seine eigene Fläche genau dort, wo es entsteht (Podest-Flächen neben dem Podest). Nur gerade kaufbare Flächen leuchten; daneben stehend zeigt ein Hologramm die Vorschau.
+- **Schatztruhe** im Vorhof: Einkommen sammelt sich dort und wird beim Hineinlaufen abgeholt; Münzen fliegen von den Relikten zur Truhe.
+- Welt: `BuildAetheria` schneidet den Kellerraum per CSG aus der Insel (GrassTop, GrassEdge, Rock1 werden zu Unions) und deckt ihn mit Bodenplatten ab; `StairCover` öffnet sich beim Kauf des Kellers (Attribut `HideWhen`).
+- **Schema v11** überträgt alte Ausbauten (Podeste behalten, passende Räume/Möbel). Studio-Werkzeug `DevTools freshplot` setzt ein Grundstück ohne Speichern zurück.
 
 ### Block 2c – Wächter-Geister
 - Die Lichtsäulen sind weg. An jedem Fundort schwebt ein **eigener Wächter-Geist** (runder Pastell-Geist mit Gesicht, Wangen, Ärmchen, wehendem Schweif und Leuchtrand in Seltenheitsfarbe) und trägt ein Relikt. Die Augen zeigen den Zustand.
@@ -196,6 +197,9 @@ Alle Tests liefen am 2026-11-02 im Studio-Playtest der veröffentlichten Experie
 | **Schatzinsel:** Geist mit Sprint (selten) in 13 s, Meister-Geist (episch) gefangen; Teleport-Trick löst aus (Sprung 4,8 Studs bei 7,3 Studs Abstand) | Playtest mit Laufsteuerung + Server-Protokoll | ✅ |
 | **Schatzinsel-Deko:** ca. 1.450 Teile, 9 Lichter; keine feste Deko an Grabstellen oder Geister-Startpunkten (Überlappungsprüfung); hinter den Wasserfall gelaufen, Adlerfels mit Sprüngen über alle 10 Trittsteine erklommen | Edit-Prüfung + Playtest | ✅ |
 | **Schatzinsel:** „Verlassen“-Knopf → zurück am eigenen Spawn, Leiste weg, Grabstellen und Insel-Geister entfernt | Playtest mit Klicks | ✅ |
+| **Haus v3:** frisches Grundstück → nur Reliktsaal, Treppenabdeckung zu, 3 Kaufflächen; Schatzkeller an seiner Fläche gekauft (350), Abdeckung offen, Treppe mit Laufsteuerung hinunter in den Keller | Playtest | ✅ |
+| **Haus v3:** alle 39 Bauteile nacheinander über die Kauflogik (günstigste aktive Fläche), jede Optik vorhanden, 20/20 Podeste, Stufe 3, ×2,35, ~1.050 Teile, keine Fehler | Playtest | ✅ |
+| **Haus v3:** Bilder Vollausbau außen, Keller, Eingangshalle, Wohnzimmer; Migration v10→v11 am echten Profil | Playtest-Screenshots | ✅ |
 | **Performance:** Playtest-Client 60 FPS (Heartbeat und Rendern), 2.741 gestreamte Teile, keine Skriptfehler | Playtest | ✅ |
 
 ### Noch nicht getestet / manuell zu prüfen

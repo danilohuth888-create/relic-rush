@@ -297,4 +297,6 @@ return {
 	["Podest 18"] = "Pedestal 18",
 	["Podest 19"] = "Pedestal 19",
 	["Podest 20"] = "Pedestal 20",
+	["Auto-Truhe"] = "Auto Chest",
+	["Die Münzen deiner Relikte landen automatisch auf deinem Konto – nie mehr zur Truhe laufen."] = "Your relics' coins go straight to your balance – no more walking to the chest.",
 }

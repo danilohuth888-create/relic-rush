@@ -21,6 +21,8 @@ local EconomyService = {}
 
 local rates: { [Player]: number } = {}
 local pending: { [Player]: number } = {}
+local lastAuto: { [Player]: number } = {}
+local AUTO_SECONDS = 5 -- the Auto-Truhe pass empties the chest this often
 
 local function publishPending(player: Player)
 	local whole = math.floor(pending[player] or 0)
@@ -147,6 +149,7 @@ function EconomyService.forget(player: Player)
 		EconomyService.grant(player, rest, "income")
 	end
 	pending[player] = nil
+	lastAuto[player] = nil
 	rates[player] = nil
 end
 
@@ -159,6 +162,10 @@ function EconomyService.init()
 				if data and rate > 0 then
 					pending[player] = (pending[player] or 0) + rate * dt
 					publishPending(player)
+					if player:GetAttribute("Pass_auto_chest") and os.clock() - (lastAuto[player] or 0) >= AUTO_SECONDS then
+						lastAuto[player] = os.clock()
+						EconomyService.collect(player)
+					end
 				end
 			end
 		end

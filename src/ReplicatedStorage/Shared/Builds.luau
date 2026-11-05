@@ -3,7 +3,8 @@
 -- glowing build pad that sits exactly where the build will appear. Data-driven like RelicDefs;
 -- the server (TycoonService) charges and records, PlotService shows pads and results, and
 -- both client and server read the helpers below.
---   pad       where its pad stands, in the plot's local frame (see Server/Util/Blueprints)
+--   pad       where its pad stands, in the plot's local frame (see Server/Util/Blueprints);
+--             pedestal pads stand right beside their pedestal
 --   pedestal  unlocks that display slot      boost  adds to the coin multiplier
 --   tier      the treasury reaches this tier (names in Config.Tiers)
 --   requires  ids that must be built first (the pad appears afterwards)
@@ -24,26 +25,26 @@ local V = Vector3.new
 
 local list: { Build } = {
 	-- The relic hall (always there) and its cellar: every relic stands in these rooms.
-	{ id = "lanterns", name = "Laternen", cost = 150, requires = {}, pad = V(-6.5, 0, 29), boost = 0.05 },
+	{ id = "lanterns", name = "Laternen", cost = 150, requires = {}, pad = V(-7.6, 0, 28), boost = 0.05 },
 	{ id = "garden", name = "Vorgarten", cost = 200, requires = {}, pad = V(-13, 0, -9), boost = 0.05 },
 	{ id = "cellar", name = "Schatzkeller", cost = 350, requires = {}, pad = V(0, 0, 40.4) },
-	{ id = "ped5", name = "Podest 5", cost = 150, requires = { "cellar" }, pad = V(-15, CELLAR, 30), pedestal = 5 },
-	{ id = "ped6", name = "Podest 6", cost = 220, requires = { "ped5" }, pad = V(-5, CELLAR, 30), pedestal = 6 },
-	{ id = "ped7", name = "Podest 7", cost = 320, requires = { "ped6" }, pad = V(5, CELLAR, 30), pedestal = 7 },
-	{ id = "ped8", name = "Podest 8", cost = 450, requires = { "ped7" }, pad = V(15, CELLAR, 30), pedestal = 8 },
+	{ id = "ped5", name = "Podest 5", cost = 150, requires = { "cellar" }, pad = V(-11.2, CELLAR, 30), pedestal = 5 },
+	{ id = "ped6", name = "Podest 6", cost = 220, requires = { "ped5" }, pad = V(-1.2, CELLAR, 30), pedestal = 6 },
+	{ id = "ped7", name = "Podest 7", cost = 320, requires = { "ped6" }, pad = V(8.8, CELLAR, 30), pedestal = 7 },
+	{ id = "ped8", name = "Podest 8", cost = 450, requires = { "ped7" }, pad = V(11.2, CELLAR, 30), pedestal = 8 },
 	-- The house above ground, room by room
 	{ id = "hall", name = "Eingangshalle", cost = 900, requires = { "ped6" }, pad = V(0, 0, 15), tier = 2 },
 	{ id = "carpet", name = "Goldteppich", cost = 400, requires = { "hall" }, pad = V(0, 0, 7), boost = 0.05 },
-	{ id = "ped9", name = "Podest 9", cost = 600, requires = { "ped8", "hall" }, pad = V(-15, CELLAR, 37), pedestal = 9 },
-	{ id = "ped10", name = "Podest 10", cost = 800, requires = { "ped9" }, pad = V(-5, CELLAR, 37), pedestal = 10 },
+	{ id = "ped9", name = "Podest 9", cost = 600, requires = { "ped8", "hall" }, pad = V(-11.2, CELLAR, 37), pedestal = 9 },
+	{ id = "ped10", name = "Podest 10", cost = 800, requires = { "ped9" }, pad = V(-1.2, CELLAR, 37), pedestal = 10 },
 	{ id = "living", name = "Wohnzimmer", cost = 1200, requires = { "hall" }, pad = V(-14, 0, 15) },
 	{ id = "fireplace", name = "Kamin", cost = 900, requires = { "living" }, pad = V(-16.5, 0, 15), boost = 0.05 },
 	{ id = "lounge", name = "Sofaecke", cost = 1100, requires = { "living" }, pad = V(-12, 0, 21), boost = 0.05 },
 	{ id = "library", name = "Bibliothek", cost = 1500, requires = { "hall" }, pad = V(14, 0, 15) },
 	{ id = "shelves", name = "Bücherregale", cost = 1400, requires = { "library" }, pad = V(16.5, 0, 15), boost = 0.1 },
 	{ id = "desk", name = "Lesepult und Globus", cost = 1600, requires = { "library" }, pad = V(12, 0, 21), boost = 0.05 },
-	{ id = "ped11", name = "Podest 11", cost = 1000, requires = { "ped10" }, pad = V(5, CELLAR, 37), pedestal = 11 },
-	{ id = "ped12", name = "Podest 12", cost = 1300, requires = { "ped11" }, pad = V(15, CELLAR, 37), pedestal = 12 },
+	{ id = "ped11", name = "Podest 11", cost = 1000, requires = { "ped10" }, pad = V(8.8, CELLAR, 37), pedestal = 11 },
+	{ id = "ped12", name = "Podest 12", cost = 1300, requires = { "ped11" }, pad = V(11.2, CELLAR, 37), pedestal = 12 },
 	{ id = "pond", name = "Teich mit Brunnen", cost = 2000, requires = { "garden", "hall" }, pad = V(13, 0, -9), boost = 0.1 },
 	{ id = "statues", name = "Wächterstatuen", cost = 2400, requires = { "hall" }, pad = V(4.5, 0, 22), boost = 0.05 },
 	{ id = "chandelier", name = "Kristalllüster", cost = 2500, requires = { "hall" }, pad = V(0, 0, 15), boost = 0.1 },
@@ -53,16 +54,16 @@ local list: { Build } = {
 	{ id = "trophies", name = "Trophäenvitrinen", cost = 3200, requires = { "trophy" }, pad = V(15, 0, 31), boost = 0.15 },
 	-- Below the hall: the vault with the last eight pedestals
 	{ id = "vault", name = "Schatzgewölbe", cost = 6000, requires = { "ped12" }, pad = V(0, CELLAR, 28.6), tier = 3 },
-	{ id = "ped13", name = "Podest 13", cost = 4000, requires = { "vault" }, pad = V(-15, CELLAR, 19), pedestal = 13 },
-	{ id = "ped14", name = "Podest 14", cost = 5000, requires = { "ped13" }, pad = V(-5, CELLAR, 19), pedestal = 14 },
-	{ id = "ped15", name = "Podest 15", cost = 6500, requires = { "ped14" }, pad = V(5, CELLAR, 19), pedestal = 15 },
-	{ id = "ped16", name = "Podest 16", cost = 8000, requires = { "ped15" }, pad = V(15, CELLAR, 19), pedestal = 16 },
+	{ id = "ped13", name = "Podest 13", cost = 4000, requires = { "vault" }, pad = V(-11.2, CELLAR, 19), pedestal = 13 },
+	{ id = "ped14", name = "Podest 14", cost = 5000, requires = { "ped13" }, pad = V(-1.2, CELLAR, 19), pedestal = 14 },
+	{ id = "ped15", name = "Podest 15", cost = 6500, requires = { "ped14" }, pad = V(8.8, CELLAR, 19), pedestal = 15 },
+	{ id = "ped16", name = "Podest 16", cost = 8000, requires = { "ped15" }, pad = V(11.2, CELLAR, 19), pedestal = 16 },
 	{ id = "grotto", name = "Kristallgrotte", cost = 9000, requires = { "vault" }, pad = V(-17, CELLAR, 43), boost = 0.1 },
 	{ id = "towers", name = "Ecktürme", cost = 8000, requires = { "maproom", "trophy" }, pad = V(-23.5, -0.6, 44), boost = 0.05 },
-	{ id = "ped17", name = "Podest 17", cost = 10000, requires = { "ped16" }, pad = V(-15, CELLAR, 11), pedestal = 17 },
-	{ id = "ped18", name = "Podest 18", cost = 12500, requires = { "ped17" }, pad = V(-5, CELLAR, 11), pedestal = 18 },
-	{ id = "ped19", name = "Podest 19", cost = 15000, requires = { "ped18" }, pad = V(5, CELLAR, 11), pedestal = 19 },
-	{ id = "ped20", name = "Podest 20", cost = 18000, requires = { "ped19" }, pad = V(15, CELLAR, 11), pedestal = 20 },
+	{ id = "ped17", name = "Podest 17", cost = 10000, requires = { "ped16" }, pad = V(-11.2, CELLAR, 11), pedestal = 17 },
+	{ id = "ped18", name = "Podest 18", cost = 12500, requires = { "ped17" }, pad = V(-1.2, CELLAR, 11), pedestal = 18 },
+	{ id = "ped19", name = "Podest 19", cost = 15000, requires = { "ped18" }, pad = V(8.8, CELLAR, 11), pedestal = 19 },
+	{ id = "ped20", name = "Podest 20", cost = 18000, requires = { "ped19" }, pad = V(11.2, CELLAR, 11), pedestal = 20 },
 	{ id = "goldpile", name = "Goldhaufen", cost = 20000, requires = { "ped18" }, pad = V(-16, CELLAR, 6.5), boost = 0.1 },
 	{ id = "crown", name = "Schatzkrone", cost = 30000, requires = { "goldpile", "towers" }, pad = V(0, 0, -5), boost = 0.25 },
 }

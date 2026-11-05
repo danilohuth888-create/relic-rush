@@ -169,6 +169,8 @@ Config.Shop = {
 		{ key = "aura", name = "Sternenaura", text = "Funkelnde Sterne umkreisen deinen Charakter.", id = 2068344480 },
 		{ key = "vip", name = "VIP-Paket", text = "Goldenes Namensschild und goldene Akzente in deiner Schatzkammer.", id = 2066952546 },
 		{ key = "double_coins", name = "Doppelte Münzen", text = "Deine Relikte erzeugen dauerhaft doppelt so viele Münzen.", id = 2066916613 },
+		-- id 0 = shown as "coming soon" until the pass exists in the Creator Dashboard.
+		{ key = "auto_chest", name = "Auto-Truhe", text = "Die Münzen deiner Relikte landen automatisch auf deinem Konto – nie mehr zur Truhe laufen.", id = 0 },
 	},
 	products = {
 		{ key = "coins_small", name = "Münzbeutel", text = "Münzen passend zu deiner Ausbaustufe.", coinsByTier = { 500, 3000, 12000 }, id = 3727480713 },
