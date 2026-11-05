@@ -139,6 +139,45 @@ if RunService:IsStudio() then
 			-- Daily bonus: as if the last claim was yesterday (keeps the streak going).
 			data.daily.last -= 1
 			PlayerDataService.replicate(player)
+		elseif action == "newplayer" then
+			-- A brand-new player (Studio only, never saved): empty profile, tutorial from the start.
+			PlayerDataService.setNoSave(userId)
+			data.coins = 0
+			table.clear(data.inventory)
+			table.clear(data.display)
+			table.clear(data.discovered)
+			table.clear(data.builds)
+			data.tier = 1
+			data.milestones = 0
+			data.stats.collected = 0
+			data.stats.placed = 0
+			data.stats.upgrades = 0
+			data.stats.forestVisited = false
+			data.tutorial.done = false
+			data.maps = { pieces = 0, charts = 0, visits = 0, found = 0 }
+			data.daily = { last = 0, streak = 0 }
+			EconomyService.grant(player, 0, "devtools")
+			player:SetAttribute("Coins", 0)
+			PlotService.applyBuilds(player, data.builds)
+			PlotService.renderAll(player, data.display)
+			EconomyService.recompute(player)
+			-- swap the spirits on the client too (it only fetches them once at start)
+			local Net = require(ReplicatedStorage.Shared.Net)
+			local oldIds = {}
+			for _, entry in RelicSpawnService.list(player) do
+				table.insert(oldIds, entry.id)
+			end
+			Net.event("SpawnRemoved"):FireClient(player, oldIds)
+			RelicSpawnService.stopPlayer(player)
+			RelicSpawnService.startPlayer(player)
+			for _, entry in RelicSpawnService.list(player) do
+				Net.event("SpawnAdded"):FireClient(player, entry)
+			end
+			local pad = workspace:FindFirstChild("Aetheria") and workspace.Aetheria.SpawnPads:FindFirstChild("SpawnPad2")
+			if pad and player.Character then
+				player.Character:PivotTo(pad.CFrame * CFrame.new(0, 4, 0))
+			end
+			PlayerDataService.replicate(player)
 		elseif action == "freshplot" then
 			-- A new player's plot (Studio only, never saved): no builds, relics back in the bag.
 			PlayerDataService.setNoSave(userId)

@@ -122,7 +122,11 @@ local function step(state: any, coins: number, rootPos: Vector3): (string?, Vect
 	if state.collected == 0 then
 		return L("Hallo, ich bin Lumi! Fang den kleinen Geist vor dir – lauf einfach in ihn hinein."), relics.nearest(rootPos)
 	elseif displayed == 0 then
-		return L("Super! Tippe auf »Schatzkammer« und stelle dein Relikt auf ein Podest."), plots.target("pedestal")
+		local pedestal = plots.target("pedestal")
+		if pedestal and (pedestal - rootPos).Magnitude < 60 then
+			return L("Lauf in deinen Reliktsaal (hinten im Haus) und tippe auf ein Podest."), pedestal
+		end
+		return L("Super! Tippe oben auf »Schatzkammer« und stelle dein Relikt auf ein Podest."), pedestal
 	elseif firstBuild and coins < cheapest.cost and coins + (player:GetAttribute("Pending") :: number? or 0) >= cheapest.cost then
 		return L("Deine Relikte füllen die Schatztruhe vor deinem Haus. Lauf hinein, um die Münzen einzusammeln!"), plots.target("chest")
 	elseif firstBuild and coins >= cheapest.cost then

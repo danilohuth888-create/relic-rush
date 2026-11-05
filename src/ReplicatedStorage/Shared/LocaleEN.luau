@@ -203,7 +203,6 @@ return {
 
 	-- Lumi --------------------------------------------------------------------------------------
 	["Hallo, ich bin Lumi! Fang den kleinen Geist vor dir – lauf einfach in ihn hinein."] = "Hi, I'm Lumi! Catch the little spirit in front of you – just run into it.",
-	["Super! Tippe auf »Schatzkammer« und stelle dein Relikt auf ein Podest."] = "Great! Tap »Treasury« and put your relic on a pedestal.",
 	["Genug Münzen! Stell dich auf eine grüne Bau-Taste in deiner Schatzkammer."] = "Enough coins! Step on a green build button in your treasury.",
 	["Stelle auch dein neues Relikt aus – jedes erzeugt Münzen."] = "Display your new relic too – every relic makes coins.",
 	["Fang mehr Geister – sie tragen Relikte. Bei %d Münzen kannst du anbauen."] = "Catch more spirits – they carry relics. At %d coins you can build.",
@@ -317,4 +316,6 @@ return {
 	["Tagesbonus"] = "Daily Bonus",
 	["Tagesbonus Tag %d: +%d Münzen!"] = "Daily bonus day %d: +%d coins!",
 	["Geschenk geöffnet: +%d Münzen!"] = "Gift opened: +%d coins!",
+	["Lauf in deinen Reliktsaal (hinten im Haus) und tippe auf ein Podest."] = "Walk into your relic hall (at the back of the house) and tap a pedestal.",
+	["Super! Tippe oben auf »Schatzkammer« und stelle dein Relikt auf ein Podest."] = "Great! Tap »Treasury« at the top and put your relic on a pedestal.",
 }

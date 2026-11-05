@@ -1677,6 +1677,16 @@ local function travelButton(parent: Instance, name: string, icon: string, text: 
 		end)
 		if not (ok and success) then
 			Hud.toast(L("Gerade nicht möglich – versuch es gleich nochmal."))
+			return
+		end
+		-- Swing the camera behind the character so the player looks where they arrived.
+		task.wait(0.1)
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local camera = Workspace.CurrentCamera
+		if root and camera then
+			local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+			camera.CFrame = CFrame.lookAt(root.Position - look.Unit * 14 + Vector3.new(0, 6, 0), root.Position + look.Unit * 6 + Vector3.new(0, 2, 0))
 		end
 	end)
 	pressable(button, slot)

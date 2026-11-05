@@ -448,7 +448,8 @@ local MAKERS: { [string]: Maker } = {
 		-- The treasure chest in the yard: the relics' coins pile up here until the owner walks in.
 		local chest = Instance.new("Model")
 		chest.Name = "TreasureChest"
-		local c = at(0, GROUND, -15)
+		-- beside the path, so it is not in the way of the camera at the spawn
+		local c = at(-6.5, GROUND, -13.5)
 		P(chest, "ChestZone", CYL, Vector3.new(0.3, 6.4, 6.4), c * CFrame.new(0, 0.15, 0) * UPRIGHT, STONE_DARK, nil, { CanCollide = false })
 		P(chest, "Ring", CYL, Vector3.new(0.12, 7, 7), c * CFrame.new(0, 0.05, 0) * UPRIGHT, accent, Enum.Material.Neon, DECOR)
 		local box = c * CFrame.new(0, 1.4, 0)
